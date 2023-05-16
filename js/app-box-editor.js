@@ -1,5 +1,7 @@
 const BoxFileType = Object.freeze({ "WORDSTR": 1, "CHAR_OR_LINE": 2 })
 const IgnoreEOFBox = true
+worker = null;
+
 var map
 var imageFileName;
 var imageFileNameForButton;
@@ -10,6 +12,7 @@ var lineIsDirty = false;
 var unicodeData;
 var imageIsProcessed = false;
 var recognizedLinesOfText = [];
+var image;
 var imageHeight;
 var imageWidth;
 var mapHeight;
@@ -41,35 +44,31 @@ class Box {
         this.modified = false
     }
     static compare(a, b) {
-        var tolerance = 100;
+        var meanHeight = (a.y2 - a.y1 + b.y2 - b.y1) / 2;
+        var verticalDistance = a.y1 - b.y1;
+        var areOverlappingHorizontally = a.x1 <= b.x2 && a.x2 >= b.x1;
+        var tolerance = meanHeight; //100;
         var aCenterX = (a.x1 + a.x2) / 2;
         var aCenterY = (a.y1 + a.y2) / 2;
         var bCenterX = (b.x1 + b.x2) / 2;
         var bCenterY = (b.y1 + b.y2) / 2;
-        // check if at least one center is within the vertical distance of the other box
-        if ((aCenterY > b.y1 && aCenterY < b.y2) || (bCenterY > a.y1 && bCenterY < a.y2)) {
-            console.log("boxes " + a.text + " and " + b.text + " horizontally aligned");
-            if (aCenterX - bCenterX < 0) {
-                return -1;
-            } else {
-                return 1;
-            }
-        }
-        // check if at least one horizontal side is within the horizontal distance of the other box
-        if ((a.x1 > b.x1 - tolerance && a.x1 < b.x2 + tolerance) || (b.x1 > a.x1 - tolerance && b.x1 < a.x2 + tolerance)) {
-            // console.log("boxes " + a.text + " and " + b.text + " horizontally aligned");
-            if (aCenterY - bCenterY > 0) {
-                return -1;
-            } else {
-                return 1;
-            }
-        }
-        // console.log("boxes " + a.text + " and " + b.text + " are not close to each other");
-        if (aCenterX - bCenterX < 0) {
+
+        if (a.x2 <= b.x1 + tolerance){// && verticalDistance < 2*meanHeight && verticalDistance < 0) {
+            return -1;
+        } else if (a.y1 > b.y2 && areOverlappingHorizontally && verticalDistance > 2*meanHeight) {
+            return -1;
+        } else if (a.y1 > b.y2) {
             return -1;
         } else {
             return 1;
         }
+
+        // // console.log("boxes " + a.text + " and " + b.text + " are not close to each other");
+        // if (aCenterX - bCenterX < 0) {
+        //     return -1;
+        // } else {
+        //     return 1;
+        // }
     }
     // compare function for .equals
     equals(other) {
@@ -110,8 +109,7 @@ var _URL = window.URL || window.webkitURL,
     imageLoaded = false,
     boxdataLoaded = false,
     selectedBox,
-    zoomMax = 1,
-    image;
+    zoomMax = 1;
 
 function getBoxFileType(boxContent) {
     var assumeWordStrFormat;
@@ -320,9 +318,9 @@ async function editRect(e) {
 
     // new dimensions
     var newDimenstions = [newd.x1, newd.y1, newd.x2, newd.y2];
-    console.log("moved box ", [
-        box.polyid, box.text
-    ], " from ", oldDimenstions, " to ", newDimenstions);
+    // console.log("moved box ", [
+    //     box.polyid, box.text
+    // ], " from ", oldDimenstions, " to ", newDimenstions);
     if (lineWasDirty) {
         newd.text = $('#formtxt').val();
     }
@@ -359,7 +357,8 @@ function deleteBoxFromResults(box) {
 }
 
 function onRectClick(event) {
-    console.log(event.target);
+    // console.log(event.target);
+    console.log("onRectClick", event.target._leaflet_id);
 
     // if editing is enabled, do nothing
     if (event.target.editing.enabled()) {
@@ -505,8 +504,14 @@ $('#formtxt').on('focus', function () {
 function setMainLoadingStatus(status) {
     if (status) {
         $('#mapid').addClass('loading');
+        if (image != undefined) {
+            $(image._image).animate({ opacity: .3 }, 200);
+        }
     } else {
         $('#mapid').removeClass('loading');
+        if (image != undefined) {
+            $(image._image).animate({ opacity: 1 }, 500);
+        }
     }
 }
 
@@ -519,6 +524,36 @@ function processWorkerLogMessage(message) {
     } updateProgressBar(message);
 }
 
+async function redetectText(rectList) {
+    // boxdata.forEach(async function (box) {
+    //     rectangle = { left: box.x1, top: box.y1, width: box.x2 - box.x1, height: box.y2 - box.y1 }
+    //     await worker.setParameters({
+    //         tessedit_ocr_engine_mode: 1,
+    //         tessedit_pageseg_mode: 13,// 12
+    //     });
+    //     result = await worker.recognize(image._image, { rectangle })
+    //     box.text = result.data.text;
+    // });
+    if (rectList.length == 0) {
+        rectList = boxdata;
+    }
+    for (i = 0; i < rectList.length; i++) {
+        var box = rectList[i];
+        // rectangle = { left: box.x1, top: box.y1, width: box.x2 - box.x1, height: box.y2 - box.y1 }
+        rectangle = { left: box.x1, top: imageHeight - box.y2, width: box.x2 - box.x1, height: box.y2 - box.y1 }
+        // await worker.loadLanguage('RTS_from_Cyrillic');
+        // await worker.initialize('RTS_from_Cyrillic');
+        await worker.setParameters({
+            tessedit_ocr_engine_mode: 1,
+            tessedit_pageseg_mode: 1,// 12
+        });
+        result = await worker.recognize(image._image, { rectangle })
+        box.text = result.data.text;
+        // remove newlines
+        box.text = box.text.replace(/(\r\n|\n|\r)/gm, "");
+    }
+}
+
 async function generateInitialBoxes(image) {
     setMainLoadingStatus(true);
     displayMessage({ message: 'Generating initial boxes...' });
@@ -526,7 +561,8 @@ async function generateInitialBoxes(image) {
     boxlayer.clearLayers();
     boxdata = [];
 
-    const worker = await Tesseract.createWorker({
+    // const worker = await Tesseract.createWorker({
+    worker = await Tesseract.createWorker({
         langPath: '../../assets',
         gzip: false,
         logger: m => processWorkerLogMessage(m)
@@ -541,15 +577,19 @@ async function generateInitialBoxes(image) {
         // tessedit_ocr_engine_mode: "OcrEngineMode.OEM_LSTM_ONLY",
         // tessedit_pageseg_mode: "PSM_AUTO_OSD"
         tessedit_ocr_engine_mode: 1,
-        tessedit_pageseg_mode: 12
+        tessedit_pageseg_mode: 1,// 12
     });
     // const results = await worker.recognize(image, { left: image.width, top: image.height, width: 10, height: 10 });
     // run worker on half of the image
-    const rectangle = { left: 0, top: 0, width: image.width / 2, height: image.height }
+    // const rectangle = { left: 0, top: 0, width: image.width / 2, height: image.height/2 }
     const results = await worker.recognize(image);
     // const results = await worker.recognize(image, { rectangle });
     // await worker.terminate();
     recognizedLinesOfText = results.data.lines;
+    // remove newlines
+    recognizedLinesOfText.forEach(function (line) {
+        line.text = line.text.replace(/(\r\n|\n|\r)/gm, "");
+    });
     await insertSuggestions($('.ui.include-suggestions.checkbox').checkbox('is checked'));
     setMainLoadingStatus(false);
     setButtonsEnabledState(true);
@@ -754,7 +794,7 @@ function updateProgressBar(options = {}) {
     }
     if (options.type == 'tagging') {
         var currentPosition = boxdata.indexOf(selectedBox);
-        updateSlider({ value: currentPosition + 1});
+        updateSlider({ value: currentPosition + 1 });
         // $('.ui.slider').slider('set value', currentPosition + 1);
         // set max value
         // $('.ui.slider').slider('setting', 'max', boxdata.length);
@@ -956,8 +996,8 @@ function sortAllBoxes() {
     // repead three times to make sure that the boxes are sorted correctly
     // I don't know why this is necessary, but it is 🤷‍♂️
     boxdata.sort(Box.compare);
-    boxdata.sort(Box.compare);
-    boxdata.sort(Box.compare);
+    // boxdata.sort(Box.compare);
+    // boxdata.sort(Box.compare);
 }
 
 // Define regular expressions
@@ -1003,12 +1043,15 @@ async function colorize(text) {
                 current_script = span_class;
             }
         } else if (char == ' ') {
+            span_class = 'space';
             if (current_script == 'space') {
-                current_span += '&nbsp;';
+                // current_span += '&nbsp;';
+                current_span += '·';
             } else {
                 colored_text += '</span>' + current_span;
-                current_span = '&nbsp;';
-                current_script = 'space';
+                // current_span = '<span class="' + span_class + '">' + '&nbsp;';
+                current_span = '<span class="' + span_class + '">' + '·';
+                current_script = span_class;
             }
         } else if (latin_pattern.test(char)) {
             if (isCapital)
@@ -1026,9 +1069,14 @@ async function colorize(text) {
                 current_script = span_class;
             }
         } else {
-            colored_text += '</span>' + current_span + char;
-            current_span = '';
-            current_script = null;
+            span_class = 'other';
+            if (current_script == span_class) {
+                current_span += char;
+            } else {
+                colored_text += '</span>' + current_span; + char;
+                current_span = '<span class="' + span_class + '">' + char;
+                current_script = span_class;
+            }
         } isCapital = false;
     }
     colored_text += '</span>' + current_span;
@@ -1087,7 +1135,7 @@ var drawControl = new L.Control.Draw({
         polygon: false,
         marker: false,
         circle: false,
-        polyline: false,
+        polyline: true,
         rectangle: true,
         circlemarker: false
     },
@@ -1159,10 +1207,10 @@ async function setMapSize(options) {
         var mapHeight = $('#mapid').height();
         var mapWidth = $('#mapid').width();
         var mapAspectRatio = mapWidth / mapHeight;
-        console.log(imageAspectRatio, mapAspectRatio);
+        // console.log(imageAspectRatio, mapAspectRatio);
         if (imageAspectRatio > .5) {
             var newHeight = mapWidth * imageAspectRatio;
-            var newHeight = imageHeight/2;
+            var newHeight = imageHeight / 2;
             await resizeMapTo(newHeight);
         }
         // map.fitBounds(imageBounds);
@@ -1175,7 +1223,7 @@ async function setMapSize(options) {
         }
         // map.fitBounds(bounds);
     }
-    setTimeout(function () { map.invalidateSize({pan:false}) }, 500);
+    setTimeout(function () { map.invalidateSize({ pan: false }) }, 500);
 }
 
 async function resizeMapTo(height, duration = 500) {
@@ -1456,6 +1504,10 @@ async function downloadBoxFile(e) {
     sortAllBoxes()
     var fileExtension = '.box'
     var content = '';
+    // remove newlines from text
+    $.each(boxdata, function () {
+        this.text = this.text.replace(/(\r\n|\n|\r)/gm, "");
+    })
     if (boxFileType == BoxFileType.CHAR_OR_LINE) {
         $.each(boxdata, function () {
             content = content + this.text + ' ' + this.x1 + ' ' + this.y1 + ' ' + this.x2 + ' ' + this.y2 + ' 0\n'
@@ -1489,6 +1541,10 @@ async function downloadGroundTruth(e) {
     sortAllBoxes()
     var fileExtension = '.gt.txt'
     var content = '';
+    // remove newlines from text
+    $.each(boxdata, function () {
+        this.text = this.text.replace(/(\r\n|\n|\r)/gm, "");
+    })
     if (boxFileType == BoxFileType.CHAR_OR_LINE) {
         $.each(boxdata, function () {
             content = content + this.text + '\n'
@@ -1530,6 +1586,97 @@ const setKerning = (elements, kerning) => {
         }
     }
 };
+
+// split the box by the intersection of the box and the polyline using turf.js bboxclip
+function cutBoxByPoly(box, poly) {
+    // split poly into segments
+    // var polyFeature = turf.polygon(poly);
+    // var multiLine = turf.multiLineString([[[0,0],[10,10]]]);
+    // make multilinestring from polyline
+    var polyFeature = turf.lineString(poly);
+    // var polyFeature = turf.lineToPolygon(poly);
+    // convert poly latlngs y component to image height - y
+    // polyFeature.geometry.coordinates._latlngs.forEach(function (element) {
+    //     element.lat = imageHeight - element.lat;
+    // });
+    var boxFeature = turf.bboxPolygon([box.x1, box.y1, box.x2, box.y2]);
+    // for each segment of the polyline, find the intersection with the box. check if point is inside box. if so, add to list of points
+    var splitLines = [];
+    for (var i = 0; i < poly._latlngs.length - 1; i++) {
+        // var segmentPoints = [poly._latlngs[i], poly._latlngs[i + 1]];
+        var segmentPoints = [[poly._latlngs[i].lng, poly._latlngs[i].lat], [poly._latlngs[i + 1].lng, poly._latlngs[i + 1].lat]];
+        var j = i + 1;
+        // while point is inside box, keep adding points to segment
+        while (turf.booleanPointInPolygon([poly._latlngs[j].lng, poly._latlngs[j].lat], boxFeature) && j < poly._latlngs.length - 1) {
+            j++;
+            segmentPoints.push([poly._latlngs[j].lng, poly._latlngs[j].lat]);
+        }
+        var segmentFeature = turf.lineString(segmentPoints);
+        splitLines.push(segmentFeature);
+        i = j - 1;
+    }
+
+    // filter all segments that intersect the box
+    var intersectingLines = [];
+    splitLines.forEach(function (element) {
+        if (turf.booleanIntersects(element, boxFeature)) {
+            intersectingLines.push(element);
+        }
+    });
+
+    // for each intersecting segment, split the box
+    var boxGaps = [];
+    intersectingLines.forEach(function (element) {
+        // var intersection = turf.lineIntersect(boxFeature, element);
+        // if (element.geometry.coordinates.length == 3) {
+        //     intersection.features.push(turf.point(element.geometry.coordinates[1]));
+        // }
+        // var intersectionBox = turf.bbox(intersection);
+        // boxGaps.push(intersectionBox);
+        boxGaps.push(turf.envelope(element));
+    });
+
+    // for each gap, split the box
+    // union all box gaps
+    // if (boxGaps.length > 1) {
+    //     var gapUnion = turf.union(boxGaps[0], boxGaps[1]);
+    //     for (var i = 2; i < boxGaps.length; i++) {
+    //         gapUnion = turf.union(gapUnion, boxGaps[i]);
+    //     }
+    // }
+
+    // var difference = turf.difference(boxFeature, gapUnion);
+
+    var newBoxes = [];
+    var newEdges = [];
+    newEdges.push(box.x1);
+    // push all vertical edges of box gaps
+    boxGaps.forEach(function (element) {
+        newEdges.push(element.geometry.coordinates[0][0][0]);
+        newEdges.push(element.geometry.coordinates[0][2][0]);
+    });
+    newEdges.push(box.x2);
+    // sort edges
+    newEdges.sort(function (a, b) { return a - b });
+    // for each pair of edges, create a new box
+    for (var i = 0; i < newEdges.length - 1; i += 2) {
+        var newBox = {
+            x1: newEdges[i],
+            y1: box.y1,
+            x2: newEdges[i + 1],
+            y2: box.y2
+        };
+        newBoxes.push(newBox);
+    }
+    // round box coordinates
+    newBoxes.forEach(function (element) {
+        element.x1 = Math.round(element.x1);
+        element.y1 = Math.round(element.y1);
+        element.x2 = Math.round(element.x2);
+        element.y2 = Math.round(element.y2);
+    });
+    return newBoxes;
+}
 
 $(document).ready(async function () {
     colorizedFields = [];
@@ -1636,40 +1783,97 @@ $(document).ready(async function () {
         mapDeletingState = false;
         updateSlider({ max: boxdata.length });
     });
-    // map.on('draw:drawstart', async function (event) {
-    //     mapEditingState = true;
-    //     await setMapSize({ largeView: true });
-    // });
-    // map.on('draw:drawstop', async function (event) {
-    //     await setMapSize({ largeView: false });
-    //     mapEditingState = false;
-    // });
+    map.on('draw:drawstart', async function (event) {
+        mapEditingState = true;
+        await setMapSize({ largeView: true });
+    });
+    map.on('draw:drawstop', async function (event) {
+        await setMapSize({ largeView: false });
+        mapEditingState = false;
+    });
 
     map.on(L.Draw.Event.CREATED, function (event) {
-        var layer = event.layer;
-        layer.on('edit', editRect);
-        layer.on('click', onRectClick);
-        boxlayer.addLayer(layer);
-        var polyid = boxlayer.getLayerId(layer)
-        var newbb = new Box({
-            polyid: polyid,
-            text: '',
-            x1: Math.round(layer._latlngs[0][0].lng),
-            y1: Math.round(layer._latlngs[0][0].lat),
-            x2: Math.round(layer._latlngs[0][2].lng),
-            y2: Math.round(layer._latlngs[0][2].lat)
-        })
-        var idx;
-        if (selectedBox) {
-            idx = boxdata.findIndex(function (x) {
-                return x.polyid == selectedBox.polyid;
+        if (event.layerType === 'rectangle') {
+
+            var layer = event.layer;
+            layer.on('edit', editRect);
+            layer.on('click', onRectClick);
+            boxlayer.addLayer(layer);
+            var polyid = boxlayer.getLayerId(layer)
+            var newbb = new Box({
+                polyid: polyid,
+                text: '',
+                x1: Math.round(layer._latlngs[0][0].lng),
+                y1: Math.round(layer._latlngs[0][0].lat),
+                x2: Math.round(layer._latlngs[0][2].lng),
+                y2: Math.round(layer._latlngs[0][2].lat)
+            })
+            var idx;
+            if (selectedBox) {
+                idx = boxdata.findIndex(function (x) {
+                    return x.polyid == selectedBox.polyid;
+                });
+            } else {
+                idx = 0;
+            } boxdata.splice(idx + 1, 0, newbb);
+            sortAllBoxes();
+            initializeSlider();
+            fillAndFocusRect(newbb);
+            return;
+        }
+        if (event.layerType === 'polyline') {
+            setMainLoadingStatus(true);
+            setButtonsEnabledState(false);
+            // if (event.layerType === 'polygon') {
+            // cut all boxes by the polygon line
+            var poly = event.layer;
+            var polybounds = poly.getBounds();
+            var newboxes = [];
+            // delete set
+            var deleteBoxes = [];
+            for (var i = 0; i < boxdata.length; i++) {
+                var box = boxdata[i];
+                var boxbounds = L.latLngBounds([box.y1, box.x1], [box.y2, box.x2]);
+                var intersection = polybounds.intersects(boxbounds);
+                if (intersection) {
+                    var boxes = cutBoxByPoly(box, poly);
+                    deleteBoxes.push(box);
+                    if (boxes.length > 0) {
+                        newboxes = newboxes.concat(boxes);
+                    }
+                }
+            }
+            deleteBoxes.forEach(function (box) {
+                layer = boxlayer.getLayer(box.polyid);
+                boxlayer.removeLayer(layer);
+                deleteBox(box);
             });
-        } else {
-            idx = 0;
-        } boxdata.splice(idx + 1, 0, newbb);
-        sortAllBoxes();
-        initializeSlider();
-        fillAndFocusRect(newbb);
+            // for (var i = 0; i < newboxes.length; i++) {
+            // update all newboxes to Box objects in place
+            newboxes = newboxes.map(function (box) {
+                var newbox = new Box(box);
+                return newbox;
+            });
+
+            newboxes.forEach(function (newbox) {
+                // var newbox = new Box(box);
+                var newpoly = L.rectangle([[newbox.y1, newbox.x1], [newbox.y2, newbox.x2]]);
+                newpoly.on('edit', editRect);
+                newpoly.on('click', onRectClick);
+                newpoly.setStyle(boxInactive);
+                boxlayer.addLayer(newpoly);
+                var polyid = boxlayer.getLayerId(newpoly)
+                newbox.polyid = polyid;
+                boxdata.push(newbox);
+            });
+
+            redetectText(newboxes);
+            sortAllBoxes();
+            updateProgressBar({ type: 'tagging' });
+            updateSlider({ max: boxdata.length });
+            setMainLoadingStatus(false);
+            setButtonsEnabledState(true);
+        }
     });
 
 
