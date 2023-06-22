@@ -1,7 +1,111 @@
 const BoxFileType = Object.freeze({ "WORDSTR": 1, "CHAR_OR_LINE": 2 })
 const IgnoreEOFBox = true
-worker = null;
+var worker = null;
 
+var appSettings = {
+    interface: {
+        appearance: "match-device",
+        toolbarActions: {
+            detectAllLines: true,
+            detectSelectedBox: true,
+            detectAllBoxes: true,
+            invisiblesToggle: true,
+        },
+        imageView: "medium",
+        showInvisibles: false,
+    },
+    behavior: {
+        onImageLoad: {
+            detectAllLines: false,
+            includeTextForDetectedLines: false,
+        },
+        alerting: {
+            enableWarrningMessagesForDifferentFileNames: true,
+            enableWarrningMessagesForUncommittedChanges: true,
+        },
+    },
+};
+
+// Function to update the cookie with the current settings
+function updateCookie() {
+    Cookies.set("appSettings", JSON.stringify(appSettings));
+}
+
+// Update appSettings based on user modifications
+function updateAppSettings({ path, value, cookie }) {
+
+    if (cookie) {
+        appSettings = { ...appSettings, ...cookie };
+    } else {
+        const pathArray = path.split(".");
+        let obj = appSettings;
+        for (let i = 0; i < pathArray.length - 1; i++) {
+            obj = obj[pathArray[i]];
+        }
+        // displayMessage({ title: "Settings updated!", type: "info", message: `Path: ${path}, value: ${value}, previous value: ${obj[pathArray[pathArray.length - 1]]}.` });
+        obj[pathArray[pathArray.length - 1]] = value;
+        updateCookie();
+
+        // wait 1 second before continuing to the next line
+        setTimeout(() => {
+            $("#settingsModalStatus")[0].innerHTML = "Settings saved!"
+            // $("#settingsModalStatus .loader").addClass("active")
+        }, 100)
+        $("#settingsModalStatus")[0].innerHTML = "<div class='ui mini active fast inline loader'></div>"
+        // $("#settingsModalStatus .loader").addClass("active")
+        // $("#settingsModalStatus")[0].innerText = "Settings saved!"
+        // $("#settingsModalStatus .loader").removeClass("active")
+    }
+    updateSettingsModal();
+}
+
+
+
+// Update settings modal to reflect the current settings
+function updateSettingsModal() {
+    // Toolbar actions
+    for (const [key, value] of Object.entries(appSettings.interface.toolbarActions)) {
+        const path = `interface.toolbarActions.${key}`;
+        document.querySelector(`input[name='${path}']`).checked = value;
+        // find parent of button with name attribute equal to path and hide toggle visibility
+        $("button[name='" + path + "']").parent().toggle(appSettings.interface.toolbarActions[key]);
+    }
+    // Appearance
+    const appearancePath = "interface.appearance";
+    document.querySelector(`input[name='${appearancePath}'][value='${appSettings.interface.appearance}']`).checked = true;
+    setClassForAppearance(appSettings.interface.appearance);
+    // Image view
+    const imageViewPath = "interface.imageView";
+    document.querySelector(`input[name='${imageViewPath}'][value='${appSettings.interface.imageView}']`).checked = true;
+    setMapSize({ height: appSettings.interface.imageView })
+    // On image load
+    for (const [key, value] of Object.entries(appSettings.behavior.onImageLoad)) {
+        const path = `behavior.onImageLoad.${key}`;
+        document.querySelector(`input[name='${path}']`).checked = value;
+    }
+    // Alerting
+    for (const [key, value] of Object.entries(appSettings.behavior.alerting)) {
+        const path = `behavior.alerting.${key}`;
+        document.querySelector(`input[name='${path}']`).checked = value;
+    }
+}
+
+// Listen for changes to the settings and update the appSettings object and the cookie accordingly
+document.addEventListener("change", function (event) {
+    // const inputs = document.querySelectorAll("input[type='checkbox'], input[type='radio'], input[type='text']");
+    // inputs.forEach((input) => {
+    //     input.addEventListener("change", (event) => {
+    const path = event.target.name;
+    const value = event.target.type === "checkbox" ? event.target.checked : event.target.value;
+    updateAppSettings({ path: path, value: value });
+});
+
+function setClassForAppearance(value) {
+    const appearance = appSettings.interface.appearance;
+    // eliminate all classes
+    document.documentElement.classList.remove(...document.documentElement.classList);
+    document.documentElement.classList.toggle(value);
+}
 var map
 var imageFileName;
 var imageFileNameForButton;
@@ -19,6 +123,8 @@ var mapHeight;
 var mapDeletingState = false;
 var mapEditingState = false;
 var currentSliderPosition = -1;
+var showInvisibles = false;
+
 
 class Box {
     constructor({
@@ -29,7 +135,7 @@ class Box {
         y2,
         polyid,
         visited = false,
-        verified = false
+        committed = false,
     }) {
         this.text = text
         this.x1 = x1
@@ -40,36 +146,53 @@ class Box {
         // ternary operator to set default value
         this.filled = text != "" ? true : false
         this.visited = visited
-        this.verified = verified
         this.modified = false
     }
     static compare(a, b) {
-        var meanHeight = (a.y2 - a.y1 + b.y2 - b.y1) / 2;
-        var verticalDistance = a.y1 - b.y1;
-        var areOverlappingHorizontally = a.x1 <= b.x2 && a.x2 >= b.x1;
-        var tolerance = meanHeight; //100;
-        var aCenterX = (a.x1 + a.x2) / 2;
-        var aCenterY = (a.y1 + a.y2) / 2;
-        var bCenterX = (b.x1 + b.x2) / 2;
-        var bCenterY = (b.y1 + b.y2) / 2;
+        // set tolerance to account for vertically overlapping boxes as a percentage of height
+        const tolerance = 0.5; // 0.25 = 25%
 
-        if (a.x2 <= b.x1 + tolerance){// && verticalDistance < 2*meanHeight && verticalDistance < 0) {
+        // Check if ranges of x-coordinates overlap
+        const xOverlap = a.x1 <= b.x2 && b.x1 <= a.x2;
+
+        // Check if line segment a is below line segment b
+        const below = a.y1 > b.y2 - tolerance * (b.y2 - b.y1);
+
+        // Check if line segment a is entirely to the left of line segment b
+        const left = a.x2 <= b.x1;
+
+        // Check if there exists a line segment c that overlaps both a and b
+        const cOverlap = (c) => c.x1 <= a.x2 && a.x1 <= c.x2 && c.x1 <= b.x2 && b.x1 <= c.x2;
+
+        // Check if line segment a overflows to the next line (line segment b)
+        const aOverflows = a.y1 === b.y2 && xOverlap;
+
+        // Rule 1: Line segment a comes before line segment b
+        // if their ranges of x-coordinates overlap and if a is below b
+        if (xOverlap && below) {
             return -1;
-        } else if (a.y1 > b.y2 && areOverlappingHorizontally && verticalDistance > 2*meanHeight) {
-            return -1;
-        } else if (a.y1 > b.y2) {
-            return -1;
-        } else {
-            return 1;
         }
 
-        // // console.log("boxes " + a.text + " and " + b.text + " are not close to each other");
-        // if (aCenterX - bCenterX < 0) {
-        //     return -1;
-        // } else {
-        //     return 1;
-        // }
+        // Rule 2: Line segment a comes before line segment b
+        // if a is entirely to the left of b and no line segment c overlaps both a and b
+        if (left && !cOverlap(a) && !cOverlap(b)) {
+            return -1;
+        }
+
+        // Rule 3: Line segment a comes before line segment b
+        // if line segment a overflows to the next line (line segment b)
+        if (aOverflows) {
+            return -1;
+        }
+
+        // In all other cases, line segment b comes before line segment a
+        return 1;
     }
+
+
+
+
+
     // compare function for .equals
     equals(other) {
         return this.text == other.text && this.x1 == other.x1 && this.y1 == other.y1 && this.x2 == other.x2 && this.y2 == other.y2
@@ -90,7 +213,7 @@ boxInactive = {
     opacity: 0.5,
     fillOpacity: 0.3
 }
-boxVisited = {
+boxComitted = {
     color: 'green',
     stroke: false,
     fillOpacity: 0.3
@@ -181,7 +304,7 @@ function setStyle(rect) {
 
 function removeStyle(rect, modified = false) {
     if (rect && modified) {
-        rect.setStyle(boxVisited)
+        rect.setStyle(boxComitted)
     } else if (rect) {
         rect.setStyle(boxInactive)
     }
@@ -293,7 +416,7 @@ function processFile(e) {
         map.addLayer(boxlayer);
 
 
-        $('#formrow').removeClass('hidden');
+        // $('#formrow').removeClass('hidden');
         sortAllBoxes();
         // select next BB
         var nextBB = getNextBB();
@@ -315,6 +438,7 @@ async function editRect(e) {
     })
     var lineWasDirty = lineIsDirty;
     await updateBoxdata(layer._leaflet_id, newd);
+    setFromData(newd);
 
     // new dimensions
     var newDimenstions = [newd.x1, newd.y1, newd.x2, newd.y2];
@@ -442,7 +566,8 @@ function submitText(e) {
         x1: parseInt($('#x1').val()),
         y1: parseInt($('#y1').val()),
         x2: parseInt($('#x2').val()),
-        y2: parseInt($('#y2').val())
+        y2: parseInt($('#y2').val()),
+        committed: true,
     })
     var modified = updateBoxdata(polyid, newdata)
     updateRect(polyid, newdata)
@@ -524,18 +649,58 @@ function processWorkerLogMessage(message) {
     } updateProgressBar(message);
 }
 
-async function redetectText(rectList) {
-    // boxdata.forEach(async function (box) {
-    //     rectangle = { left: box.x1, top: box.y1, width: box.x2 - box.x1, height: box.y2 - box.y1 }
-    //     await worker.setParameters({
-    //         tessedit_ocr_engine_mode: 1,
-    //         tessedit_pageseg_mode: 13,// 12
-    //     });
-    //     result = await worker.recognize(image._image, { rectangle })
-    //     box.text = result.data.text;
-    // });
+async function regenerateInitialBoxes() {
+    $("#redetectAllBoxes").addClass("double loading");
+    $("#redetectAllBoxes").addClass("disabled");
+    await generateInitialBoxes();
+    $("#redetectAllBoxes").removeClass("double loading");
+    $("#redetectAllBoxes").removeClass("disabled");
+    sortAllBoxes();
+}
+async function regenerateTextSuggestions() {
+    $("#regenerateTextSuggestions").addClass("double loading");
+    $("#regenerateTextSuggestions").addClass("disabled");
+    if (boxdata.length > 0) {
+        await redetectText(boxdata);
+        // get box by id
+        var el = boxdata.findIndex(function (x) {
+            return x.polyid == selectedBox.polyid;
+        });
+        setFromData(boxdata[el]);
+        // set styles for all boxes using setStyle(boxInactive);
+        for (let box of boxlayer.getLayers()) {
+            box.setStyle(boxInactive);
+        }
+        focusBoxID(selectedBox.polyid);
+    }
+    $("#regenerateTextSuggestions").removeClass("double loading");
+    $("#regenerateTextSuggestions").removeClass("disabled");
+    sortAllBoxes();
+}
+async function regenerateTextSuggestionForSelectedBox() {
+    $("#regenerateTextSuggestionForSelectedBox").addClass("double loading");
+    $("#regenerateTextSuggestionForSelectedBox").addClass("disabled");
+    if (boxdata.length > 0) {
+        var newValues = await redetectText([selectedBox]);
+        // get box by id
+        var el = boxdata.findIndex(function (x) {
+            return x.polyid == selectedBox.polyid;
+        });
+        boxdata[el].text = newValues[0].text;
+        setFromData(boxdata[el]);
+    }
+    $("#regenerateTextSuggestionForSelectedBox").removeClass("double loading");
+    $("#regenerateTextSuggestionForSelectedBox").removeClass("disabled");
+    sortAllBoxes();
+}
+
+async function redetectText(rectList = []) {
     if (rectList.length == 0) {
-        rectList = boxdata;
+        // rectList = boxdata;
+        result = await worker.recognize(image._image)
+        return result;
+    } else {
+        var returnBoxes = true;
     }
     for (i = 0; i < rectList.length; i++) {
         var box = rectList[i];
@@ -543,60 +708,56 @@ async function redetectText(rectList) {
         rectangle = { left: box.x1, top: imageHeight - box.y2, width: box.x2 - box.x1, height: box.y2 - box.y1 }
         // await worker.loadLanguage('RTS_from_Cyrillic');
         // await worker.initialize('RTS_from_Cyrillic');
-        await worker.setParameters({
-            tessedit_ocr_engine_mode: 1,
-            tessedit_pageseg_mode: 1,// 12
-        });
+        // await worker.setParameters({
+        //     tessedit_ocr_engine_mode: 1,
+        //     tessedit_pageseg_mode: 1,// 12
+        // });
         result = await worker.recognize(image._image, { rectangle })
         box.text = result.data.text;
         // remove newlines
         box.text = box.text.replace(/(\r\n|\n|\r)/gm, "");
+        box.committed = false;
+        box.visited = false;
+    }
+    if (returnBoxes) {
+        return rectList
     }
 }
 
-async function generateInitialBoxes(image) {
+async function generateInitialBoxes(includeSuggestions = true) {
+    updateProgressBar({ reset: true });
+    var file,
+        img;
     setMainLoadingStatus(true);
-    displayMessage({ message: 'Generating initial boxes...' });
 
     boxlayer.clearLayers();
     boxdata = [];
-
-    // const worker = await Tesseract.createWorker({
-    worker = await Tesseract.createWorker({
-        langPath: '../../assets',
-        gzip: false,
-        logger: m => processWorkerLogMessage(m)
-    });
-    await worker.loadLanguage('RTS_from_Cyrillic');
-    await worker.initialize('RTS_from_Cyrillic');
-    // await worker.loadLanguage(['osd', 'RTS_from_Cyrillic']);
-    // await worker.initialize(['osd', 'RTS_from_Cyrillic']);
-    // TODO: 06/04/2023 Continue setting parameters to discover columns and not assume single block.
-    await worker.setParameters({
-        // tessedit_ocr_engine_mode: OcrEngineMode.OEM_LSTM_ONLY,
-        // tessedit_ocr_engine_mode: "OcrEngineMode.OEM_LSTM_ONLY",
-        // tessedit_pageseg_mode: "PSM_AUTO_OSD"
-        tessedit_ocr_engine_mode: 1,
-        tessedit_pageseg_mode: 1,// 12
-    });
     // const results = await worker.recognize(image, { left: image.width, top: image.height, width: 10, height: 10 });
     // run worker on half of the image
     // const rectangle = { left: 0, top: 0, width: image.width / 2, height: image.height/2 }
-    const results = await worker.recognize(image);
+    // const results = await worker.recognize(image);
+    results = await redetectText();
     // const results = await worker.recognize(image, { rectangle });
     // await worker.terminate();
     recognizedLinesOfText = results.data.lines;
+    if (recognizedLinesOfText.length == 0) {
+        setMainLoadingStatus(false);
+        return false;
+    }
     // remove newlines
     recognizedLinesOfText.forEach(function (line) {
         line.text = line.text.replace(/(\r\n|\n|\r)/gm, "");
     });
-    await insertSuggestions($('.ui.include-suggestions.checkbox').checkbox('is checked'));
-    setMainLoadingStatus(false);
-    setButtonsEnabledState(true);
-    $('#formrow').removeClass('hidden');
+    await insertSuggestions(includeSuggestions);
+    // $('#formrow').removeClass('hidden');
     // select next BB
     var nextBB = getNextBB();
     fillAndFocusRect(nextBB);
+
+    setMainLoadingStatus(false);
+    initializeSlider();
+    boxdataIsDirty = false;
+    updateProgressBar({ type: 'tagging' });
 }
 
 // if selected box is deleted, select closest box
@@ -613,15 +774,16 @@ function selectClosestBox() {
 }
 
 
-async function insertSuggestions(bool) {
+async function insertSuggestions(includeSuggestions) {
     // if data is dirty
     if (boxdataIsDirty) {
         // warn user
         var result = await askUser({
             title: 'Warning',
-            message: 'Suggestions will be generated from the current text. Do you want to continue?',
+            message: 'Suggestions will be generated from the current lines. Do you want to continue?',
             confirmText: 'Yes',
-            denyText: 'No'
+            denyText: 'No',
+            type: 'replacingTextWarning',
         });
         if (!result) {
             return;
@@ -636,7 +798,7 @@ async function insertSuggestions(bool) {
         var box = line.bbox;
         var text = line.text;
         var symbole = new Box({
-            text: bool ? text : '',
+            text: includeSuggestions ? text : '',
             y1: imageHeight - box.y1, // bottom
             y2: imageHeight - box.y0, // top
             x1: box.x0, // right
@@ -661,20 +823,25 @@ async function insertSuggestions(bool) {
         map.addLayer(boxlayer);
     }
     numberOFBoxes = boxdata.length;
-    selectClosestBox();
+    // selectClosestBox();
 }
 
 
 async function askUser(object) {
+    if ((object.type === 'differentFileNameWarning' && !appSettings.behavior.alerting.enableWarrningMessagesForDifferentFileNames) ||
+        (object.type === 'uncommittedChangesWarning' && !appSettings.behavior.alerting.enableWarrningMessagesForUncommittedChanges)) {
+        return true;
+    }
     setPromptKeyboardControl();
-    if (object.confirmText == undefined) {
-        object.confirmText = 'OK';
-    }
-    if (object.denyText == undefined) {
-        object.denyText = 'Cancel';
-    }
+    // if (object.confirmText == undefined) {
+    //     object.confirmText = 'OK';
+    // }
+    // if (object.denyText == undefined) {
+    //     object.denyText = 'Cancel';
+    // }
     return new Promise((resolve, reject) => {
         $.modal({
+            inverted: false,
             title: object.title,
             // class: 'mini',
             blurring: true,
@@ -708,7 +875,13 @@ async function askUser(object) {
 
 async function loadBoxFile(e) {
     if (boxdataIsDirty) {
-        var result = await askUser({ message: 'You have unsaved changes. Are you sure you want to continue?', title: 'Unsaved Changes', type: 'warning' });
+        var result = await askUser({
+            message: 'You did not download current progress. Do you want to overwrite existing data?',
+            title: 'Unsaved Changes',
+            type: 'uncommittedChangesWarning',
+            confirmText: 'Yes',
+            denyText: 'No',
+        });
         if (!result) {
             return;
         }
@@ -728,8 +901,10 @@ async function loadBoxFile(e) {
         } else if (imageFileName != file.name.split('.').slice(0, -1).join('.') && imageFileName != undefined) {
             result = await askUser({
                 message: 'Chosen file has name <code>' + file.name + '</code> instead of expected <code>' + imageFileName + '.box</code>.<br> Are you sure you want to continue?',
-                title: 'Different File Name',
-                type: 'warning'
+                title: 'Unexpected File Name',
+                type: 'differentFileNameWarning',
+                confirmText: 'Yes',
+                denyText: 'No',
             });
             if (!result) {
                 $('#boxFile').val(boxFileNameForButton);
@@ -743,8 +918,8 @@ async function loadBoxFile(e) {
     }
 }
 
-async function setButtonsEnabledState(state) {
-    if (state) {
+async function setButtons({ state }) {
+    if (state == 'enabled') {
         $('#boxFile').prop('disabled', false);
         $('#downloadBoxFileButton').removeClass('disabled');
         $('#downloadGroundTruthButton').removeClass('disabled');
@@ -758,8 +933,12 @@ async function setButtonsEnabledState(state) {
         $('#myInputContainer').removeClass('disabled');
         $('#formtxt').prop('disabled', false);
         $('#taggingSegment').removeClass('disabled');
+        $('#invisiblesToggle').removeClass('disabled');
+        $('#redetectAllBoxes').removeClass('disabled');
+        $('#regenerateTextSuggestions').removeClass('disabled');
+        $('#regenerateTextSuggestionForSelectedBox').removeClass('disabled');
 
-    } else {
+    } else if (state == 'disabled') {
         $('#boxFile').prop('disabled', true);
         $('#downloadBoxFileButton').addClass('disabled');
         $('#downloadGroundTruthButton').addClass('disabled');
@@ -773,6 +952,10 @@ async function setButtonsEnabledState(state) {
         $('#myInputContainer').addClass('disabled');
         $('#formtxt').prop('disabled', true);
         $('#taggingSegment').addClass('disabled');
+        $('#invisiblesToggle').addClass('disabled');
+        $('#redetectAllBoxes').addClass('disabled');
+        $('#regenerateTextSuggestions').addClass('disabled');
+        $('#regenerateTextSuggestionForSelectedBox').addClass('disabled');
     }
 }
 
@@ -794,7 +977,11 @@ function updateProgressBar(options = {}) {
     }
     if (options.type == 'tagging') {
         var currentPosition = boxdata.indexOf(selectedBox);
-        updateSlider({ value: currentPosition + 1 });
+        if ($('.ui.slider').slider('get max') != boxdata.length) {
+            updateSlider({ value: currentPosition + 1, max: boxdata.length });
+        } else {
+            updateSlider({ value: currentPosition + 1 });
+        }
         // $('.ui.slider').slider('set value', currentPosition + 1);
         // set max value
         // $('.ui.slider').slider('setting', 'max', boxdata.length);
@@ -856,17 +1043,19 @@ function updateProgressBar(options = {}) {
 
 async function loadImageFile(e) {
     if (boxdataIsDirty || lineIsDirty) {
-        var result = await askUser({ message: 'You have unsaved changes. Are you sure you want to continue?', title: 'Unsaved Changes', type: 'warning' });
+        var result = await askUser({
+            message: 'You did not download current progress. Are you sure you want to load a new image?',
+            title: 'Unsaved Changes',
+            type: 'uncommittedChangesWarning',
+            confirmText: 'Yes',
+            denyText: 'No',
+        });
         if (!result) {
             $('#imageFile').val(imageFileNameForButton);
             return;
         }
     }
-    setButtonsEnabledState(false);
-    updateProgressBar({ reset: true });
-    var file,
-        img;
-
+    setButtons({ state: 'disabled' });
 
     if ((file = this.files[0])) {
         imageFileName = file.name.split('.').slice(0, -1).join('.');
@@ -879,25 +1068,10 @@ async function loadImageFile(e) {
 
             h = this.height
             w = this.width
-            bounds = [
-                [
-                    0, 0
-                ],
-                [
-                    parseInt(h), parseInt(w)
-                ]
-            ]
-            var bounds2 = [
-                [
-                    h - 300,
-                    0
-                ],
-                [
-                    h, w
-                ]
-            ]
+            bounds = [[0, 0], [parseInt(h), parseInt(w)]]
+            var bounds2 = [[h - 300, 0], [h, w]]
             imageOverlayOptions = {
-                opacity: 0.25
+                opacity: appSettings.behavior.onImageLoad.detectAllLines ? 0.25 : 1
             }
             if (image) {
                 $(image._image).fadeOut(750, function () {
@@ -928,10 +1102,24 @@ async function loadImageFile(e) {
             boxDownloadButton: imageFileName + '.box',
             groundTruthDownloadButton: imageFileName + '.gt.txt'
         });
-        result = await generateInitialBoxes(img)
-        initializeSlider();
-        boxdataIsDirty = false;
-        updateProgressBar({ type: 'tagging' });
+        worker = await Tesseract.createWorker({
+            langPath: '../../assets',
+            gzip: false,
+            logger: m => processWorkerLogMessage(m)
+        });
+        await worker.loadLanguage('RTS_from_Cyrillic');
+        await worker.initialize('RTS_from_Cyrillic');
+        await worker.setParameters({
+            // tessedit_ocr_engine_mode: OcrEngineMode.OEM_LSTM_ONLY,
+            // tessedit_ocr_engine_mode: "OcrEngineMode.OEM_LSTM_ONLY",
+            // tessedit_pageseg_mode: "PSM_AUTO_OSD"
+            tessedit_ocr_engine_mode: 1,
+            tessedit_pageseg_mode: 1,// 12
+        });
+        if (appSettings.behavior.onImageLoad.detectAllLines) {
+            result = await generateInitialBoxes(includeSuggestions = appSettings.behavior.onImageLoad.includeTextForDetectedLines);
+        }
+        setButtons({ state: 'enabled' });
         $('#formtxt').focus();
         $('#formtxt').select();
         // fade image opacity back to 1 during 500ms
@@ -1014,6 +1202,7 @@ async function colorize(text) {
     var current_script = null;
     var current_span = '';
     var span_class = '';
+    charSpace = showInvisibles ? '·' : '&nbsp;';
     for (var i = 0; i < text.length; i++) {
         var isCapital = false;
         var char = text.charAt(i);
@@ -1046,11 +1235,13 @@ async function colorize(text) {
             span_class = 'space';
             if (current_script == 'space') {
                 // current_span += '&nbsp;';
-                current_span += '·';
+                // replace 'space' with 'space multiple' in current_span
+                current_span = current_span.replace('space', 'space multiple');
+                current_span += charSpace;
             } else {
                 colored_text += '</span>' + current_span;
                 // current_span = '<span class="' + span_class + '">' + '&nbsp;';
-                current_span = '<span class="' + span_class + '">' + '·';
+                current_span = '<span class="' + span_class + '">' + charSpace;
                 current_script = span_class;
             }
         } else if (latin_pattern.test(char)) {
@@ -1083,9 +1274,16 @@ async function colorize(text) {
     return colored_text;
 }
 
-window.onbeforeunload = function () {
+window.onbeforeunload = async function () {
     if (boxdataIsDirty || lineIsDirty) {
-        return 'You have unsaved changes. Are you sure you want to leave?';
+        // return 'You have unsaved changes. Are you sure you want to leave?';
+        return await askUser({
+            message: 'You have unsaved changes. Are you sure you want to continue?',
+            title: 'Unsaved Changes',
+            type: 'uncommittedChangesWarning',
+            confirmText: 'Yes',
+            denyText: 'No',
+        });
     }
 }
 
@@ -1193,263 +1391,41 @@ var drawControl = new L.Control.Draw({
 //     onRemove: function (map) { },
 // });
 
-async function setMapSize(options) {
-    if (options.largeView) {
-        // Get bounds of image from map
-        var imageBounds = map.getBounds();
-        // get image height and width
-        // var imageHeight = imageBounds.getNorth() - imageBounds.getSouth();
-        // var imageWidth = imageBounds.getEast() - imageBounds.getWest();
-        // get aspect ratio of image
-        var imageAspectRatio = imageBounds.getEast() - imageBounds.getWest();
-        imageAspectRatio = imageAspectRatio / (imageBounds.getNorth() - imageBounds.getSouth());
-        // increase height of #mapid to fit aspect ratio. use smooth animation
-        var mapHeight = $('#mapid').height();
-        var mapWidth = $('#mapid').width();
-        var mapAspectRatio = mapWidth / mapHeight;
-        // console.log(imageAspectRatio, mapAspectRatio);
-        if (imageAspectRatio > .5) {
-            var newHeight = mapWidth * imageAspectRatio;
-            var newHeight = imageHeight / 2;
-            await resizeMapTo(newHeight);
-        }
-        // map.fitBounds(imageBounds);
-    } else {
-        await resizeMapTo(280);
-        // fit selected poly
-        var bounds = new L.LatLngBounds();
-        for (var i = 0; i < selectedPoly.length; i++) {
-            bounds.extend(selectedPoly[i].getBounds());
-        }
-        // map.fitBounds(bounds);
+async function setMapSize(options, animate = true) {
+    // var imageBounds = map.getBounds();
+    // var imageAspectRatio = imageBounds.getEast() - imageBounds.getWest();
+    // imageAspectRatio = imageAspectRatio / (imageBounds.getNorth() - imageBounds.getSouth());
+    // var mapHeight = $('#mapid').height();
+    // var mapWidth = $('#mapid').width();
+    // var mapAspectRatio = mapWidth / mapHeight;
+    // console.log(imageAspectRatio, mapAspectRatio);
+    // if (imageAspectRatio > .5) {
+    //     var newHeight = mapWidth * imageAspectRatio;
+    //     var newHeight = imageHeight / 2;
+    //     await resizeMapTo(newHeight);
+    // }
+    if (options.height == 'short') {
+        var newHeight = 300;
     }
-    setTimeout(function () { map.invalidateSize({ pan: false }) }, 500);
+    if (options.height == 'medium') {
+        var newHeight = 500;
+    }
+    if (options.height == 'tall') {
+        var newHeight = 700;
+    }
+
+    await resizeMapTo(newHeight, animate);
+    // fit selected poly
+    var bounds = new L.LatLngBounds();
+    for (var i = 0; i < selectedPoly.length; i++) {
+        bounds.extend(selectedPoly[i].getBounds());
+    }
+    setTimeout(function () { map.invalidateSize({ pan: true }) }, 500);
 }
 
-async function resizeMapTo(height, duration = 500) {
-    $('#mapid').animate({ height: height }, duration);
+async function resizeMapTo(height, animate) {
+    $('#mapid').animate({ height: height }, animate ? 500 : 0);
 }
-
-// L.Draw.AddRegion = L.Draw.Polygon.extend({
-//     statics: {
-//         TYPE: "addregion"
-//     },
-//     Poly: L.AddRegion,
-//     options: {
-//         showArea: !1,
-//         showLength: !1,
-//         shapeOptions: {
-//             stroke: !0,
-//             color: "#3388ff",
-//             weight: 4,
-//             opacity: .5,
-//             fill: !0,
-//             fillColor: null,
-//             fillOpacity: .2,
-//             clickable: !0
-//         },
-//         metric: !0,
-//         feet: !0,
-//         nautic: !1,
-//         precision: {}
-//     },
-//     initialize: function (t, e) {
-//         L.Draw.Polyline.prototype.initialize.call(this, t, e),
-//             this.type = L.Draw.Polygon.TYPE
-//     },
-//     _updateFinishHandler: function () {
-//         var t = this._markers.length;
-//         1 === t && this._markers[0].on("click", this._finishShape, this),
-//             t > 2 && (this._markers[t - 1].on("dblclick", this._finishShape, this), t > 3 && this._markers[t - 2].off("dblclick", this._finishShape, this))
-//     },
-//     _getTooltipText: function () {
-//         var t,
-//             e;
-//         return 0 === this._markers.length ? t = L.drawLocal.draw.handlers.polygon.tooltip.start : this._markers.length < 3 ? (t = L.drawLocal.draw.handlers.polygon.tooltip.cont, e = this._getMeasurementString()) : (t = L.drawLocal.draw.handlers.polygon.tooltip.end, e = this._getMeasurementString()), {
-//             text: t,
-//             subtext: e
-//         }
-//     },
-//     _getMeasurementString: function () {
-//         var t = this._area,
-//             e = "";
-//         return t || this.options.showLength ? (this.options.showLength && (e = L.Draw.Polyline.prototype._getMeasurementString.call(this)), t && (e += "<br>" + L.GeometryUtil.readableArea(t, this.options.metric, this.options.precision)), e) : null
-//     },
-//     _shapeIsValid: function () {
-//         return this._markers.length >= 3
-//     },
-//     _vertexChanged: function (t, e) {
-//         var i;
-//         !this.options.allowIntersection && this.options.showArea && (i = this._poly.getLatLngs(), this._area = L.GeometryUtil.geodesicArea(i)),
-//             L.Draw.Polyline.prototype._vertexChanged.call(this, t, e)
-//     },
-//     _cleanUpShape: function () {
-//         var t = this._markers.length;
-//         t > 0 && (this._markers[0].off("click", this._finishShape, this), t > 2 && this._markers[t - 1].off("dblclick", this._finishShape, this))
-//     }
-// }),
-
-// L.Draw.Region = L.Draw.Rectangle.extend({
-//     statics: {
-//         TYPE: "region"
-//     },
-//     options: {
-//         shapeOptions: {
-//             stroke: !0,
-//             color: "#3388ff",
-//             weight: 4,
-//             opacity: .5,
-//             fill: !0,
-//             fillColor: null,
-//             fillOpacity: .2,
-//             clickable: !0
-//         },
-//         showArea: !0,
-//         metric: !0
-//     },
-//     initialize: function (t, e) {
-//         this.type = L.Draw.Region.TYPE,
-//             this._initialLabelText = L.drawLocal.draw.handlers.region.tooltip.start,
-//             L.Draw.SimpleShape.prototype.initialize.call(this, t, e)
-//     },
-//     disable: function () {
-//         this._enabled && (this._isCurrentlyTwoClickDrawing = !1, L.Draw.SimpleShape.prototype.disable.call(this))
-//     },
-//     _onMouseUp: function (t) {
-//         if (!this._shape && !this._isCurrentlyTwoClickDrawing)
-//             return void (this._isCurrentlyTwoClickDrawing = !0);
-
-//         this._isCurrentlyTwoClickDrawing && !o(t.target, "leaflet-pane") || L.Draw.SimpleShape.prototype._onMouseUp.call(this)
-//     },
-//     _drawShape: function (t) {
-//         this._shape ? this._shape.setBounds(new L.LatLngBounds(this._startLatLng, t)) : (this._shape = new L.Region(new L.LatLngBounds(this._startLatLng, t), this.options.shapeOptions), this._map.addLayer(this._shape))
-//     },
-//     _fireCreatedEvent: function () {
-//         var t = new L.Region(this._shape.getBounds(), this.options.shapeOptions);
-//         L.Draw.SimpleShape.prototype._fireCreatedEvent.call(this, t)
-//     },
-//     _getTooltipText: function () {
-//         var t,
-//             e,
-//             i,
-//             o = L.Draw.SimpleShape.prototype._getTooltipText.call(this),
-//             a = this._shape,
-//             n = this.options.showArea;
-//         return a && (t = this._shape._defaultShape ? this._shape._defaultShape() : this._shape.getLatLngs(), e = L.GeometryUtil.geodesicArea(t), i = n ? L.GeometryUtil.readableArea(e, this.options.metric) : ""), {
-//             text: o.text,
-//             subtext: i
-//         }
-//     }
-// });
-
-// L.DrawToolbar = L.Toolbar.extend({
-//     statics: {
-//         TYPE: "draw"
-//     },
-//     options: {
-//         polyline: {},
-//         polygon: {},
-//         rectangle: {},
-//         region: {},
-//         circle: {},
-//         marker: {},
-//         circlemarker: {}
-//     },
-//     initialize: function (t) {
-//         for (var e in this.options)
-//             this.options.hasOwnProperty(e) && t[e] && (t[e] = L.extend({}, this.options[e], t[e]));
-
-//         this._toolbarClass = "leaflet-draw-draw",
-//             L.Toolbar.prototype.initialize.call(this, t)
-//     },
-//     getModeHandlers: function (t) {
-//         return [
-//             {
-//                 enabled: this.options.polyline,
-//                 handler: new L.Draw.Polyline(t, this.options.polyline),
-//                 title: L.drawLocal.draw.toolbar.buttons.polyline
-//             },
-//             {
-//                 enabled: this.options.polygon,
-//                 handler: new L.Draw.Polygon(t, this.options.polygon),
-//                 title: L.drawLocal.draw.toolbar.buttons.polygon
-//             },
-//             {
-//                 enabled: this.options.rectangle,
-//                 handler: new L.Draw.Rectangle(t, this.options.rectangle),
-//                 title: L.drawLocal.draw.toolbar.buttons.rectangle
-//             },
-//             {
-//                 enabled: this.options.circle,
-//                 handler: new L.Draw.Circle(t, this.options.circle),
-//                 title: L.drawLocal.draw.toolbar.buttons.circle
-//             }, {
-//                 enabled: this.options.marker,
-//                 handler: new L.Draw.Marker(t, this.options.marker),
-//                 title: L.drawLocal.draw.toolbar.buttons.marker
-//             }, {
-//                 enabled: this.options.circlemarker,
-//                 handler: new L.Draw.CircleMarker(t, this.options.circlemarker),
-//                 title: L.drawLocal.draw.toolbar.buttons.circlemarker
-//             }, {
-//                 enabled: this.options.region,
-//                 handler: new L.Draw.Region(t, this.options.region),
-//                 title: L.drawLocal.draw.toolbar.buttons.region
-//             }
-//         ]
-//     },
-//     getActions: function (t) {
-//         return [
-//             {
-//                 enabled: t.completeShape,
-//                 title: L.drawLocal.draw.toolbar.finish.title,
-//                 text: L.drawLocal.draw.toolbar.finish.text,
-//                 callback: t.completeShape,
-//                 context: t
-//             }, {
-//                 enabled: t.deleteLastVertex,
-//                 title: L.drawLocal.draw.toolbar.undo.title,
-//                 text: L.drawLocal.draw.toolbar.undo.text,
-//                 callback: t.deleteLastVertex,
-//                 context: t
-//             }, {
-//                 title: L.drawLocal.draw.toolbar.actions.title,
-//                 text: L.drawLocal.draw.toolbar.actions.text,
-//                 callback: this.disable,
-//                 context: this
-//             }, {
-//                 title: L.drawLocal.draw.toolbar.buttons.clear,
-//                 text: L.drawLocal.draw.toolbar.buttons.clear,
-//                 callback: this.clearAll,
-//                 context: this
-//             }
-//         ]
-//     },
-//     setOptions: function (t) {
-//         L.setOptions(this, t);
-//         for (var e in this._modes)
-//             this._modes.hasOwnProperty(e) && t.hasOwnProperty(e) && this._modes[e].handler.setOptions(t[e])
-
-//     }
-// });
-
-// var regionControl = new L.Control.Draw({
-//     draw: {
-//         rectangle: false,
-//         polygon: false,
-//         marker: false,
-//         circle: false,
-//         region: true,
-//         polyline: false,
-//         circlemarker: false
-//     },
-//     position: 'topright',
-//     edit: {
-//         featureGroup: regionlayer,
-//         edit: true,
-//         remove: true
-//     }
-// });
 
 function formatForPopup(objects) {
     var formatted = '<div class="ui compact grid">';
@@ -1487,6 +1463,22 @@ function getUnicodeData(code) {
     });
     result.char = String.fromCharCode(parseInt(code, 16));
     return result;
+}
+
+async function toggleInvisibles(e) {
+    if (e) {
+        e.preventDefault();
+    }
+    showInvisibles = !showInvisibles;
+    // toggle active class for button
+    $("#invisiblesToggle").toggleClass('active')
+    path = "interface.showInvisibles";
+    value = showInvisibles;
+    updateAppSettings({ path, value });
+    updateBackground();
+    $('#formtxt').focus();
+    // save cookie for invisibles
+    // Cookies.set('show-invisibles', showInvisibles);
 }
 
 async function downloadBoxFile(e) {
@@ -1678,225 +1670,6 @@ function cutBoxByPoly(box, poly) {
     return newBoxes;
 }
 
-$(document).ready(async function () {
-    colorizedFields = [];
-    colorizedFields.push($('#myInputBackground')[0]);
-    colorizedFields.push($('#formtxt')[0]);
-    setKerning(colorizedFields, false);
-
-    $('#formtxt').on('input', function () {
-        updateBackground();
-        setLineIsDirty();
-    });
-    $('#x1').on('input', function (e) {
-        clearTimeout(movingTimer);
-        movingTimer = setTimeout(onBoxInputChange, doneMovingInterval);
-    });
-    $('#y1').on('input', function (e) {
-        clearTimeout(movingTimer);
-        movingTimer = setTimeout(onBoxInputChange, doneMovingInterval);
-    });
-    $('#x2').on('input', function (e) {
-        clearTimeout(movingTimer);
-        movingTimer = setTimeout(onBoxInputChange, doneMovingInterval);
-    });
-    $('#y2').on('input', function (e) {
-        clearTimeout(movingTimer);
-        movingTimer = setTimeout(onBoxInputChange, doneMovingInterval);
-    });
-    $('#imageFile').prop('disabled', false);
-    // displayMessage({ message: 'Hover over the question mark in the top right corner for help and keyboard shortcuts.' });
-
-    $('.menu .question.circle.icon').popup({ inline: true });
-    setFormKeyboardControl();
-
-    $('#formtxt').focus(function () {
-        $('#myInputBackground').addClass('focused');
-    });
-    $('#formtxt').blur(function () {
-        $('#myInputBackground').removeClass('focused');
-    });
-
-    $('.ui.checkbox').checkbox();
-
-    // set checkbox from cookie
-    if (Cookies.get('include-suggestions') == 'true') {
-        $('.ui.include-suggestions.toggle.checkbox').checkbox('check');
-    } else {
-        $('.ui.include-suggestions.toggle.checkbox').checkbox('uncheck');
-    }
-
-    // save cookie for checkbox
-    $('.ui.include-suggestions.toggle.checkbox').checkbox({
-        onChecked: function () {
-            Cookies.set('include-suggestions', 'true');
-            insertSuggestions(true);
-        },
-        onUnchecked: function () {
-            Cookies.set('include-suggestions', 'false');
-            insertSuggestions(false);
-        }
-    });
-
-    map = new L.map('mapid', {
-        crs: L.CRS.Simple,
-        minZoom: -1,
-        center: [
-            0, 0
-        ],
-        zoom: 0,
-        zoomSnap: .5,
-        scrollWheelZoom: true,
-        touchZoom: true,
-        zoomControl: false,
-        drawControl: false,
-        attributionControl: false,
-        preferCanvas: true,
-        maxBoundsViscosity: .5,
-    });
-
-    map.addControl(zoomControl);
-    // var control = new L.Control.Region()
-    // control.addTo(map);
-    map.addControl(drawControl);
-
-    $('#boxFile').change(loadBoxFile);
-    $("#imageFile").change(loadImageFile);
-
-    map.on('draw:deleted', function (event) {
-        Object.keys(event.layers._layers).forEach(function (x) {
-            var polyid = parseInt(x);
-            var delbox = boxdata.find(function (x) {
-                return x.polyid == polyid;
-            });
-
-            var delindex = deleteBox(delbox);
-        });
-        updateProgressBar({ type: 'tagging' });
-    });
-    map.on('draw:deletestart', async function (event) {
-        mapDeletingState = true;
-        await setMapSize({ largeView: true });
-    });
-    map.on('draw:deletestop', async function (event) {
-        await setMapSize({ largeView: false });
-        mapDeletingState = false;
-        updateSlider({ max: boxdata.length });
-    });
-    map.on('draw:drawstart', async function (event) {
-        mapEditingState = true;
-        await setMapSize({ largeView: true });
-    });
-    map.on('draw:drawstop', async function (event) {
-        await setMapSize({ largeView: false });
-        mapEditingState = false;
-    });
-
-    map.on(L.Draw.Event.CREATED, function (event) {
-        if (event.layerType === 'rectangle') {
-
-            var layer = event.layer;
-            layer.on('edit', editRect);
-            layer.on('click', onRectClick);
-            boxlayer.addLayer(layer);
-            var polyid = boxlayer.getLayerId(layer)
-            var newbb = new Box({
-                polyid: polyid,
-                text: '',
-                x1: Math.round(layer._latlngs[0][0].lng),
-                y1: Math.round(layer._latlngs[0][0].lat),
-                x2: Math.round(layer._latlngs[0][2].lng),
-                y2: Math.round(layer._latlngs[0][2].lat)
-            })
-            var idx;
-            if (selectedBox) {
-                idx = boxdata.findIndex(function (x) {
-                    return x.polyid == selectedBox.polyid;
-                });
-            } else {
-                idx = 0;
-            } boxdata.splice(idx + 1, 0, newbb);
-            sortAllBoxes();
-            initializeSlider();
-            fillAndFocusRect(newbb);
-            return;
-        }
-        if (event.layerType === 'polyline') {
-            setMainLoadingStatus(true);
-            setButtonsEnabledState(false);
-            // if (event.layerType === 'polygon') {
-            // cut all boxes by the polygon line
-            var poly = event.layer;
-            var polybounds = poly.getBounds();
-            var newboxes = [];
-            // delete set
-            var deleteBoxes = [];
-            for (var i = 0; i < boxdata.length; i++) {
-                var box = boxdata[i];
-                var boxbounds = L.latLngBounds([box.y1, box.x1], [box.y2, box.x2]);
-                var intersection = polybounds.intersects(boxbounds);
-                if (intersection) {
-                    var boxes = cutBoxByPoly(box, poly);
-                    deleteBoxes.push(box);
-                    if (boxes.length > 0) {
-                        newboxes = newboxes.concat(boxes);
-                    }
-                }
-            }
-            deleteBoxes.forEach(function (box) {
-                layer = boxlayer.getLayer(box.polyid);
-                boxlayer.removeLayer(layer);
-                deleteBox(box);
-            });
-            // for (var i = 0; i < newboxes.length; i++) {
-            // update all newboxes to Box objects in place
-            newboxes = newboxes.map(function (box) {
-                var newbox = new Box(box);
-                return newbox;
-            });
-
-            newboxes.forEach(function (newbox) {
-                // var newbox = new Box(box);
-                var newpoly = L.rectangle([[newbox.y1, newbox.x1], [newbox.y2, newbox.x2]]);
-                newpoly.on('edit', editRect);
-                newpoly.on('click', onRectClick);
-                newpoly.setStyle(boxInactive);
-                boxlayer.addLayer(newpoly);
-                var polyid = boxlayer.getLayerId(newpoly)
-                newbox.polyid = polyid;
-                boxdata.push(newbox);
-            });
-
-            redetectText(newboxes);
-            sortAllBoxes();
-            updateProgressBar({ type: 'tagging' });
-            updateSlider({ max: boxdata.length });
-            setMainLoadingStatus(false);
-            setButtonsEnabledState(true);
-        }
-    });
-
-
-    $('#nextBB').on('click', getNextAndFill);
-    $('#previousBB').on('click', getPrevAndFill);
-    $("#downloadBoxFileButton").on("click", downloadBoxFile);
-    $('#downloadGroundTruthButton').on("click", downloadGroundTruth);
-
-    await $.ajax({
-        url: '../../assets/unicodeData.csv',
-        dataType: 'text',
-        success: function (data) {
-            parsedData = $.csv.toObjects(data, {
-                separator: ';',
-                delimiter: '"'
-            });
-            unicodeData = parsedData;
-        }
-    });
-
-    $('#formtxt').bind('mouseup', showCharInfoPopup);
-    $('#formtxt').bind('keyup', showCharInfoPopup);
-});
 
 
 function downloadFile(content, fileExtension) {
@@ -1948,7 +1721,7 @@ function showCharInfoPopup(e) { // prevent modifier keys from triggering popup
         // apply style to popup
         // max-height: 40em;overflow: scroll;
         $('#updateTxt').popup('get popup').css('max-height', '20em');
-        $('#updateTxt').popup('get popup').css('overflow', 'scroll');
+        $('#updateTxt').popup('get popup').css('overflow', 'visible');
         $('#updateTxt').popup('get popup').css('scrollbar-width', 'none');
         $('#updateTxt').popup('get popup').css('scrollbar-width', 'none');
         $('#updateTxt').popup('get popup').css('-ms-overflow-style', 'none');
@@ -1964,3 +1737,263 @@ function showCharInfoPopup(e) { // prevent modifier keys from triggering popup
         }
     }
 }
+
+function settingsPopup() {
+    $('.ui.settings.modal')
+        .modal('show')
+        ;
+}
+
+$(document).ready(async function () {
+    colorizedFields = [];
+    colorizedFields.push($('#myInputBackground')[0]);
+    colorizedFields.push($('#formtxt')[0]);
+    setKerning(colorizedFields, false);
+
+    $('#formtxt').on('input', function () {
+        updateBackground();
+        setLineIsDirty();
+    });
+    $('#x1').on('input', function (e) {
+        clearTimeout(movingTimer);
+        movingTimer = setTimeout(onBoxInputChange, doneMovingInterval);
+    });
+    $('#y1').on('input', function (e) {
+        clearTimeout(movingTimer);
+        movingTimer = setTimeout(onBoxInputChange, doneMovingInterval);
+    });
+    $('#x2').on('input', function (e) {
+        clearTimeout(movingTimer);
+        movingTimer = setTimeout(onBoxInputChange, doneMovingInterval);
+    });
+    $('#y2').on('input', function (e) {
+        clearTimeout(movingTimer);
+        movingTimer = setTimeout(onBoxInputChange, doneMovingInterval);
+    });
+    $('#imageFile').prop('disabled', false);
+    // displayMessage({ message: 'Hover over the question mark in the top right corner for help and keyboard shortcuts.' });
+
+    $('.menu .question.circle.icon').popup({ inline: true });
+    setFormKeyboardControl();
+
+    $('#formtxt').focus(function () {
+        $('#myInputBackground').addClass('focused');
+    });
+    $('#formtxt').blur(function () {
+        $('#myInputBackground').removeClass('focused');
+    });
+
+    $('.ui.checkbox').checkbox(
+        // {
+        //     onChecked: function () {
+        //         displayMessage({ message: 'onChecked called<br>' });
+        //     }
+        // }
+    );
+
+    // set checkbox from cookie
+    if (Cookies.get('include-suggestions') == 'true') {
+        $('.ui.include-suggestions.toggle.checkbox').checkbox('check');
+    } else {
+        $('.ui.include-suggestions.toggle.checkbox').checkbox('uncheck');
+    }
+
+    // save cookie for checkbox
+    $('.ui.include-suggestions.toggle.checkbox').checkbox({
+        onChecked: function () {
+            Cookies.set('include-suggestions', 'true');
+            // insertSuggestions(true);
+        },
+        onUnchecked: function () {
+            Cookies.set('include-suggestions', 'false');
+            // insertSuggestions(false);
+        }
+    });
+
+    map = new L.map('mapid', {
+        crs: L.CRS.Simple,
+        minZoom: -1,
+        center: [
+            0, 0
+        ],
+        zoom: 0,
+        zoomSnap: .5,
+        scrollWheelZoom: true,
+        touchZoom: true,
+        zoomControl: false,
+        drawControl: false,
+        attributionControl: false,
+        preferCanvas: true,
+        maxBoundsViscosity: .5,
+    });
+
+    map.addControl(zoomControl);
+    // var control = new L.Control.Region()
+    // control.addTo(map);
+    map.addControl(drawControl);
+
+    $('#boxFile').change(loadBoxFile);
+    $("#imageFile").change(loadImageFile);
+
+    map.on('draw:deleted', function (event) {
+        Object.keys(event.layers._layers).forEach(function (x) {
+            var polyid = parseInt(x);
+            var delbox = boxdata.find(function (x) {
+                return x.polyid == polyid;
+            });
+
+            var delindex = deleteBox(delbox);
+        });
+        updateProgressBar({ type: 'tagging' });
+    });
+    map.on('draw:deletestart', async function (event) {
+        mapDeletingState = true;
+        // await setMapSize({ largeView: true });
+    });
+    map.on('draw:deletestop', async function (event) {
+        // await setMapSize({ largeView: false });
+        mapDeletingState = false;
+        updateSlider({ max: boxdata.length });
+    });
+    map.on('draw:drawstart', async function (event) {
+        mapEditingState = true;
+        // await setMapSize({ largeView: true });
+    });
+    map.on('draw:drawstop', async function (event) {
+        // await setMapSize({ largeView: false });
+        // focusRectangle(selectedPoly);
+        mapEditingState = false;
+    });
+
+    map.on(L.Draw.Event.CREATED, function (event) {
+        if (event.layerType === 'rectangle') {
+
+            var layer = event.layer;
+            layer.on('edit', editRect);
+            layer.on('click', onRectClick);
+            layer.setStyle(boxActive)
+            boxlayer.addLayer(layer);
+            var polyid = boxlayer.getLayerId(layer)
+            var newbb = new Box({
+                polyid: polyid,
+                text: '',
+                x1: Math.round(layer._latlngs[0][0].lng),
+                y1: Math.round(layer._latlngs[0][0].lat),
+                x2: Math.round(layer._latlngs[0][2].lng),
+                y2: Math.round(layer._latlngs[0][2].lat)
+            })
+            var idx;
+            if (selectedBox) {
+                idx = boxdata.findIndex(function (x) {
+                    return x.polyid == selectedBox.polyid;
+                });
+            } else {
+                idx = 0;
+            } boxdata.splice(idx + 1, 0, newbb);
+            sortAllBoxes();
+            initializeSlider();
+            fillAndFocusRect(newbb);
+            map.addLayer(boxlayer)
+            // return;
+        }
+        if (event.layerType === 'polyline') {
+            setMainLoadingStatus(true);
+            setButtons({ state: 'disabled' });
+            // if (event.layerType === 'polygon') {
+            // cut all boxes by the polygon line
+            var poly = event.layer;
+            var polybounds = poly.getBounds();
+            var newboxes = [];
+            // delete set
+            var deleteBoxes = [];
+            for (var i = 0; i < boxdata.length; i++) {
+                var box = boxdata[i];
+                var boxbounds = L.latLngBounds([box.y1, box.x1], [box.y2, box.x2]);
+                var intersection = polybounds.intersects(boxbounds);
+                if (intersection) {
+                    var boxes = cutBoxByPoly(box, poly);
+                    deleteBoxes.push(box);
+                    if (boxes.length > 0) {
+                        newboxes = newboxes.concat(boxes);
+                    }
+                }
+            }
+            deleteBoxes.forEach(function (box) {
+                layer = boxlayer.getLayer(box.polyid);
+                boxlayer.removeLayer(layer);
+                deleteBox(box);
+            });
+            // for (var i = 0; i < newboxes.length; i++) {
+            // update all newboxes to Box objects in place
+            newboxes = newboxes.map(function (box) {
+                var newbox = new Box(box);
+                return newbox;
+            });
+
+            newboxes.forEach(function (newbox) {
+                // var newbox = new Box(box);
+                var newpoly = L.rectangle([[newbox.y1, newbox.x1], [newbox.y2, newbox.x2]]);
+                newpoly.on('edit', editRect);
+                newpoly.on('click', onRectClick);
+                newpoly.setStyle(boxInactive);
+                boxlayer.addLayer(newpoly);
+                var polyid = boxlayer.getLayerId(newpoly)
+                newbox.polyid = polyid;
+                boxdata.push(newbox);
+            });
+
+            redetectText(newboxes);
+            sortAllBoxes();
+            updateProgressBar({ type: 'tagging' });
+            updateSlider({ max: boxdata.length });
+            setMainLoadingStatus(false);
+            setButtons({ state: 'disabled' });
+        }
+        focusRectangle(selectedPoly);
+    });
+
+    setButtons({ state: 'disabled' });
+    $('#nextBB').on('click', getNextAndFill);
+    $('#previousBB').on('click', getPrevAndFill);
+    $("#downloadBoxFileButton").on("click", downloadBoxFile);
+    $('#downloadGroundTruthButton').on("click", downloadGroundTruth);
+    $('#invisiblesToggle').on("click", toggleInvisibles);
+    $('#regenerateTextSuggestions').on("click", regenerateTextSuggestions);
+    $('#redetectAllBoxes').on("click", regenerateInitialBoxes);
+    $('#regenerateTextSuggestionForSelectedBox').on("click", regenerateTextSuggestionForSelectedBox);
+    $('#settingsButton').on("click", settingsPopup);
+
+    await $.ajax({
+        url: '../../assets/unicodeData.csv',
+        dataType: 'text',
+        success: function (data) {
+            parsedData = $.csv.toObjects(data, {
+                separator: ';',
+                delimiter: '"'
+            });
+            unicodeData = parsedData;
+        }
+    });
+
+    $('#formtxt').bind('mouseup', showCharInfoPopup);
+    $('#formtxt').bind('keyup', showCharInfoPopup);
+
+
+
+    $('#settingsMenu .item')
+        .tab()
+        ;
+    $('.ui.settings.modal')
+        .modal({
+            inverted: false,
+            blurring: true,
+            onHidden: function () {
+                $("#settingsModalStatus").text("");
+            },
+        })
+    const cookieValue = Cookies.get("appSettings");
+    if (cookieValue) {
+        cookieSettings = JSON.parse(cookieValue);
+        updateAppSettings({ cookie: cookieSettings });
+    }
+});
