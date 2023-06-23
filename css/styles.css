@@ -33,7 +33,7 @@ a.more.external {
 }
 
 .maprow {
-  height: 280px;
+  height: 400px;
   border: 2px solid gray;
   margin-top: 20px;
   margin-bottom: 20px;
@@ -44,8 +44,11 @@ a.more.external {
   height: 30rem
 }
 
-.ui.vertical.divider {
-  left: 62.5%;
+#text-output.ui.text-output.segment {
+  height: 100%;
+  width: 100%;
+  max-width: 100%;
+  resize: none;
 }
 
 /* // apply style to popup

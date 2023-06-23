@@ -1,0 +1,1417 @@
+{
+"_comments":
+[
+	"These comments are for information only. Should be ignored by the JSON parser.",
+	"Case sensitive (2 rules: lower and upper case).",
+	"Use https://regex101.com/ to check the regex.",
+	"rule-types: basic for character to character mapping; complex for complex rules.",
+	"Check https://docs.google.com/spreadsheets/d/1NNyDXABLMBatntxb5QQOjfvXD00FVeaM for cyrillic chars",
+	"priority: 0 for highest, 1 for second highest, etc. If some rules are conflicting it can be used to prioritize them."
+],
+
+"transliteration-rules":
+[
+	{
+		"original-character":"а",
+		"rule-type":"basic",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^а]*)(а)([\\w]*)",
+				"output":"a",
+				"priority":0
+			}
+
+		]
+	},
+	{
+		"original-character":"А",
+		"rule-type":"basic",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^А]*)(А)([\\w]*)",
+				"output":"A",
+				"priority":0
+			}
+
+		]
+	},
+	{
+		"original-character":"е",
+		"rule-type":"basic",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^е]*)(е)([\\w]*)",
+				"output":"e",
+				"priority":0
+			}
+
+		]
+	},
+	{
+		"original-character":"Е",
+		"rule-type":"basic",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^Е]*)(Е)([\\w]*)",
+				"output":"E",
+				"priority":0
+			}
+
+		]
+	},
+	{
+		"original-character":"о",
+		"rule-type":"basic",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^о]*)(о)([\\w]*)",
+				"output":"o",
+				"priority":0
+			}
+
+		]
+	},
+	{
+		"original-character":"О",
+		"rule-type":"basic",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^О]*)(О)([\\w]*)",
+				"output":"O",
+				"priority":0
+			}
+
+		]
+	},
+	{
+		"original-character":"т",
+		"rule-type":"basic",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^т]*)(т)([\\w]*)",
+				"output":"t",
+				"priority":0
+			}
+
+		]
+	},
+	{
+		"original-character":"Т",
+		"rule-type":"basic",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^Т]*)(Т)([\\w]*)",
+				"output":"T",
+				"priority":0
+			}
+
+		]
+	},
+	{
+		"original-character":"б",
+		"rule-type":"basic",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^б]*)(б)([\\w]*)",
+				"output":"b",
+				"priority":0
+			}
+
+		]
+	},
+	{
+		"original-character":"Б",
+		"rule-type":"basic",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^Б]*)(Б)([\\w]*)",
+				"output":"B",
+				"priority":0
+			}
+
+		]
+	},
+	{
+		"original-character":"в",
+		"rule-type":"basic",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^в]*)(в)([\\w]*)",
+				"output":"v",
+				"priority":0
+			}
+
+		]
+	},
+	{
+		"original-character":"В",
+		"rule-type":"basic",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^В]*)(В)([\\w]*)",
+				"output":"V",
+				"priority":0
+			}
+
+		]
+	},
+	{
+		"original-character":"г",
+		"rule-type":"complex",
+		"rule-source":"Ursu, Problema interpretarii grafiei romanesti din jurul anului 1800, 1960, pp. 33-46",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^г]*)(г)([аАоОъЪѫѪ][\\w]*)",
+				"_comments":"for cyrillic chars",
+				"output":"g",
+				"priority":0
+			},
+			{
+				"context":"([\\w]*[^г]*)(г)([ԑԐиИїЇꙗꙖѧѦѣѢюЮ][\\w]*)",
+				"output":"gh",
+				"priority":0
+			},
+			{
+				"context":"([\\w]*[^г]*)(г)([aAoO][\\w]*)",
+				"_comments":"for latin chars",
+				"output":"g",
+				"priority":1
+			},
+			{
+				"context":"([\\w]*[^г]*)(г)([\\w]*)",
+				"_comments":"for any other case",
+				"output":"g",
+				"priority":0
+			}
+		]
+	},
+	{
+		"original-character":"Г",
+		"rule-type":"complex",
+		"rule-source":"Ursu, Problema interpretarii grafiei romanesti din jurul anului 1800, 1960, pp. 33-46",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^Г]*)(Г)([аАоОъЪѫѪ][\\w]*)",
+				"output":"G",
+				"priority":0
+			},
+			{
+				"context":"([\\w]*[^Г]*)(Г)([ԑԐиИїЇѵѴꙗꙖѧѦѣѢюЮ][\\w]*)",
+				"output":"Gh",
+				"priority":0
+			},
+			{
+				"context":"([\\w]*[^Г]*)(Г)([aAoO][\\w]*)",
+				"_comments":"for latin chars",
+				"output":"G",
+				"priority":1
+			}
+		]
+	},
+	{
+		"original-character":"к",
+		"rule-type":"complex",
+		"rule-source":"Ursu, Problema interpretarii grafiei romanesti din jurul anului 1800, 1960, pp. 33-46",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^к]*)(к)([аАоОъЪѫѪ][\\w]*)",
+				"output":"c",
+				"priority":0
+			},
+			{
+				"context":"([\\w]*[^к]*)(к)([ԑԐиИїЇѵѴꙗꙖѧѦѣѢюЮ][\\w]*)",
+				"output":"ch",
+				"priority":0
+			},
+			{
+				"context":"([\\w]*[^к]*)(к)([aAoO][\\w]*)",
+				"_comments":"for latin chars",
+				"output":"c",
+				"priority":1
+			}
+		]
+	},
+	{
+		"original-character":"К",
+		"rule-type":"complex",
+		"rule-source":"Ursu, Problema interpretarii grafiei romanesti din jurul anului 1800, 1960, pp. 33-46",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^К]*)(К)([аАоОъЪѫѪ][\\w]*)",
+				"output":"C",
+				"priority":0
+			},
+			{
+				"context":"([\\w]*[^К]*)(К)([ԑԐиИїЇѵѴꙗꙖѧѦѣѢюЮ][\\w]*)",
+				"output":"Ch",
+				"priority":0
+			},
+			{
+				"context":"([\\w]*[^К]*)(К)([aAoO][\\w]*)",
+				"_comments":"for latin chars",
+				"output":"C",
+				"priority":1
+			}
+
+		]
+	},
+	{
+		"original-character":"џ",
+		"rule-type":"complex",
+		"rule-source":"Ursu, Problema interpretarii grafiei romanesti din jurul anului 1800, 1960, pp. 33-46",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^џ]*)(џ)([аАԑԐиИоОꙋꙊ][\\w]*)",
+				"output":"ge",
+				"priority":0
+			},
+			{
+				"context":"([\\w]*[^џ]*)(џ)([аАԑԐиИоОꙋꙊ][\\w]*)",
+				"_comments":"this rules seems to contradict the previous one but Ursu is unclear on how to differentiate between them so a lower priority has been assigned to it.",
+				"output":"gi",
+				"priority":2
+			},
+			{
+				"context":"([\\w]*[^џ]*)(џ)([aAoO][\\w]*)",
+				"_comments":"for latin chars",
+				"output":"ge",
+				"priority":1
+			}
+
+		]
+	},
+	{
+		"original-character":"Џ",
+		"rule-type":"complex",
+		"rule-source":"Ursu, Problema interpretarii grafiei romanesti din jurul anului 1800, 1960, pp. 33-46",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^Џ]*)(Џ)([аАԑԐиИоОꙋꙊ][\\w]*)",
+				"output":"Ge",
+				"priority":0
+			},
+			{
+				"context":"([\\w]*[^Џ]*)(Џ)([аАԑԐиИоОꙋꙊ][\\w]*)",
+				"_comments":"this rules seems to contradict the previous one but Ursu is unclear on how to differentiate between them so a lower priority has been assigned to it.",
+				"output":"Gi",
+				"priority":1
+			},
+			{
+				"context":"([\\w]*[^Џ]*)(Џ)([aAoO][\\w]*)",
+				"_comments":"for latin chars",
+				"output":"Ge",
+				"priority":1
+			}
+
+		]
+	},
+	{
+		"original-character":"ч",
+		"rule-type":"complex",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^ч]*)(ч)([eEиИiIеЕ][\\w]*)",
+				"output":"c",
+				"priority":0
+			},
+			{
+				"context":"([\\w]*[^ч]*)(ч)([eEiIеЕ][\\w]*)",
+				"_comments":"for latin chars",
+				"output":"c",
+				"priority":1
+			},
+			{
+				"context":"([\\w]*[^ч]*)(ч)([aAаА][\\w]*)",
+				"output":"ce",
+				"priority":0
+			},
+			{
+				"context":"([\\w]*[^ч]*)(ч)([oOоО][\\w]*)",
+				"output":"ci",
+				"priority":0
+			},
+			{
+				"context":"([\\w]*[^ч]*)(ч)\\b",
+				"output":"ci",
+				"priority":0
+			},
+			{
+				"context":"([\\w]*[^ч]*)(ч)([^аАеЕоОъЪѫѪԑԐꙋꙊꙟꙞѣѢїЇиИꙗꙖѧѦюЮaAeEoO][\\w]*)",
+				"output":"ci",
+				"priority":0
+			}
+		]
+	},
+	{
+		"original-character":"Ч",
+		"rule-type":"complex",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^Ч]*)(Ч)([eEиИiIеЕ][\\w]*)",
+				"output":"C",
+				"priority":0
+			},
+			{
+				"context":"([\\w]*[^Ч]*)(Ч)([aAаА][\\w]*)",
+				"output":"Ce",
+				"priority":0
+			},
+			{
+				"context":"([\\w]*[^Ч]*)(Ч)([oOоО][\\w]*)",
+				"output":"Ci",
+				"priority":0
+			},
+			{
+				"context":"([\\w]*[^Ч]*)(Ч)\\b",
+				"output":"Ci",
+				"priority":0
+			},
+			{
+				"context":"([\\w]*[^Ч]*)(Ч)([^аАеЕоОъЪѫѪԑԐꙋꙊꙟꙞѣѢїЇиИꙗꙖѧѦюЮaAeEoO][\\w]*)",
+				"output":"Ci",
+				"priority":0
+			}
+		]
+	},
+	{
+		"original-character":"ж",
+		"rule-type":"basic",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^ж]*)(ж)([\\w]*)",
+				"output":"j",
+				"priority":0
+			}
+
+		]
+	},
+	{
+		"original-character":"Ж",
+		"rule-type":"basic",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^Ж]*)(Ж)([\\w]*)",
+				"output":"J",
+				"priority":0
+			}
+
+		]
+	},
+	{
+		"original-character":"л",
+		"rule-type":"basic",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^л]*)(л)([\\w]*)",
+				"output":"l",
+				"priority":0
+			}
+
+		]
+	},
+	{
+		"original-character":"Л",
+		"rule-type":"basic",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^Л]*)(Л)([\\w]*)",
+				"output":"L",
+				"priority":0
+			}
+
+		]
+	},
+	{
+		"original-character":"п",
+		"rule-type":"basic",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^п]*)(п)([\\w]*)",
+				"output":"p",
+				"priority":0
+			}
+
+		]
+	},
+	{
+		"original-character":"П",
+		"rule-type":"basic",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^П]*)(П)([\\w]*)",
+				"output":"P",
+				"priority":0
+			}
+
+		]
+	},
+	{
+		"original-character":"р",
+		"rule-type":"basic",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^р]*)(р)([\\w]*)",
+				"output":"r",
+				"priority":0
+			}
+
+		]
+	},
+	{
+		"original-character":"Р",
+		"rule-type":"basic",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^Р]*)(Р)([\\w]*)",
+				"output":"R",
+				"priority":0
+			}
+
+		]
+	},
+	{
+		"original-character":"с",
+		"rule-type":"basic",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*)(с)([\\w]*)",
+				"output":"s",
+				"priority":0
+			}
+
+		]
+	},
+	{
+		"original-character":"С",
+		"rule-type":"basic",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^С]*)(С)([\\w]*)",
+				"output":"S",
+				"priority":0
+			}
+
+		]
+	},
+	{
+		"original-character":"ф",
+		"rule-type":"basic",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^ф]*)(ф)([\\w]*)",
+				"output":"f",
+				"priority":0
+			}
+
+		]
+	},
+	{
+		"original-character":"Ф",
+		"rule-type":"basic",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^Ф]*)(Ф)([\\w]*)",
+				"output":"F",
+				"priority":0
+			}
+
+		]
+	},
+	{
+		"original-character":"х",
+		"rule-type":"basic",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^х]*)(х)([\\w]*)",
+				"output":"h",
+				"priority":0
+			}
+
+		]
+	},
+	{
+		"original-character":"Х",
+		"rule-type":"basic",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^Х]*)(Х)([\\w]*)",
+				"output":"H",
+				"priority":0
+			}
+
+		]
+	},
+	{
+		"original-character":"ш",
+		"rule-type":"basic",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^ш]*)(ш)([\\w]*)",
+				"output":"ș",
+				"priority":0
+			}
+
+		]
+	},
+	{
+		"original-character":"Ш",
+		"rule-type":"basic",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^Ш]*)(Ш)([\\w]*)",
+				"output":"Ș",
+				"priority":0
+			}
+
+		]
+	},
+	{
+		"original-character":"ъ",
+		"rule-type":"basic",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*?[^ъ]*?)(ъ)([\\w]*?[^ъ]*?)",
+				"output":"ă",
+				"priority":0
+			}
+
+		]
+	},
+	{
+		"original-character":"Ъ",
+		"rule-type":"basic",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^Ъ]*)(Ъ)([\\w]*)",
+				"output":"Ă",
+				"priority":0
+			}
+
+		]
+	},
+	{
+		"original-character":"ѫ",
+		"rule-type":"basic",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^ѫ]*)(ѫ)([\\w]*)",
+				"output":"â",
+				"priority":0
+			}
+
+		]
+	},
+	{
+		"original-character":"Ѫ",
+		"rule-type":"basic",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^Ѫ]*)(Ѫ)([\\w]*)",
+				"output":"Â",
+				"priority":0
+			}
+
+		]
+	},
+	{
+		"original-character":"ԑ",
+		"rule-type":"basic",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^ԑ]*)(ԑ)([\\w]*)",
+				"output":"e",
+				"priority":0
+			}
+
+		]
+	},
+	{
+		"original-character":"Ԑ",
+		"rule-type":"basic",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^Ԑ]*)(Ԑ)([\\w]*)",
+				"output":"E",
+				"priority":0
+			}
+
+		]
+	},
+	{
+		"original-character":"з",
+		"rule-type":"basic",
+		"rule-source":"",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^з]*)(з)([\\w]*)",
+				"output":"e",
+				"priority":0
+			}
+
+		]
+	},
+	{
+		"original-character":"З",
+		"rule-type":"basic",
+		"rule-source":"",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^З]*)(З)([\\w]*)",
+				"output":"E",
+				"priority":0
+			}
+
+		]
+	},
+	{
+		"original-character":"ꙋ",
+		"rule-type":"basic",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^ꙋ]*)(ꙋ)([\\w]*)",
+				"output":"u",
+				"priority":0
+			}
+		]
+	},
+	{
+		"original-character":"Ꙋ",
+		"rule-type":"basic",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^Ꙋ]*)(Ꙋ)([\\w]*)",
+				"output":"U",
+				"priority":0
+			}
+		]
+	},
+	{
+		"original-character":"ꙟ",
+		"rule-type":"complex",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^ꙟ]*)(ꙟ)([пПбБ][\\w]*)",
+				"output":"îm",
+				"priority":0
+			},
+			{
+				"context":"([\\w]*[^ꙟ]*)(ꙟ)([мМnN][\\w]*)",
+				"output":"î",
+				"priority":0
+			},
+			{
+				"context":"([\\w]*[^ꙟ]*)(ꙟ)([^пПбБмМnN][\\w]*)",
+				"output":"în",
+				"priority":0
+			}
+		]
+	},
+	{
+		"original-character":"Ꙟ",
+		"rule-type":"complex",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^Ꙟ]*)(Ꙟ)([пПбБ][\\w]*)",
+				"output":"Îm",
+				"priority":0
+			},
+			{
+				"context":"([\\w]*[^Ꙟ]*)(Ꙟ)([мМnN][\\w]*)",
+				"output":"Î",
+				"priority":0
+			},
+			{
+				"context":"([\\w]*[^Ꙟ]*)(Ꙟ)([^пПбБмМnN][\\w]*)",
+				"output":"În",
+				"priority":0
+			}
+		]
+	},
+	{
+		"original-character":"ꚏ",
+		"rule-type":"basic",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^ꚏ]*)(ꚏ)([\\w]*)",
+				"output":"ț",
+				"priority":0
+			}
+		]
+	},
+	{
+		"original-character":"Ꚏ",
+		"rule-type":"basic",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^Ꚏ]*)(Ꚏ)([\\w]*)",
+				"output":"Ț",
+				"priority":0
+			}
+		]
+	},
+	{
+		"original-character":"ц",
+		"rule-type":"basic",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^ц]*)(ц)([\\w]*)",
+				"output":"ț",
+				"priority":0
+			}
+		]
+	},
+	{
+		"original-character":"Ц",
+		"rule-type":"basic",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^Ц]*)(Ц)([\\w]*)",
+				"output":"Ț",
+				"priority":0
+			}
+		]
+	},
+	{
+		"original-character":"ꚗ",
+		"rule-type":"basic",
+		"rule-source":"Ursu, Problema interpretarii grafiei romanesti din jurul anului 1800, 1960, pp. 33-46",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^ꚗ]*)(ꚗ)([\\w]*)",
+				"output":"șt",
+				"priority":0
+			}
+		]
+	},
+	{
+		"original-character":"Ꚗ",
+		"rule-type":"basic",
+		"rule-source":"Ursu, Problema interpretarii grafiei romanesti din jurul anului 1800, 1960, pp. 33-46",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^Ꚗ]*)(Ꚗ)([\\w]*)",
+				"output":"Șt",
+				"priority":0
+			}
+		]
+	},
+	{
+		"original-character":"щ",
+		"rule-type":"basic",
+		"rule-source":"Ursu, Problema interpretarii grafiei romanesti din jurul anului 1800, 1960, pp. 33-46",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^щ]*)(щ)([\\w]*)",
+				"output":"șt",
+				"priority":0
+			}
+		]
+	},
+	{
+		"original-character":"Щ",
+		"rule-type":"basic",
+		"rule-source":"Ursu, Problema interpretarii grafiei romanesti din jurul anului 1800, 1960, pp. 33-46",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^Щ]*)(Щ)([\\w]*)",
+				"output":"Șt",
+				"priority":0
+			}
+		]
+	},
+	{
+		"original-character":"ѕ",
+		"rule-type":"basic",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^ѕ]*)(ѕ)([\\w]*)",
+				"output":"s",
+				"priority":0
+			}
+		]
+	},
+	{
+		"original-character":"Ѕ",
+		"rule-type":"basic",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^Ѕ]*)(Ѕ)([\\w]*)",
+				"output":"S",
+				"priority":0
+			}
+		]
+	},
+	{
+		"original-character":"д",
+		"rule-type":"basic",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^д]*)(д)([\\w]*)",
+				"output":"d",
+				"priority":0
+			}
+		]
+	},
+	{
+		"original-character":"Д",
+		"rule-type":"basic",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^Д]*)(Д)([\\w]*)",
+				"output":"D",
+				"priority":0
+			}
+		]
+	},
+	{
+		"original-character":"м",
+		"rule-type":"basic",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^м]*)(м)([\\w]*)",
+				"output":"m",
+				"priority":0
+			}
+		]
+	},
+	{
+		"original-character":"М",
+		"rule-type":"basic",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^М]*)(М)([\\w]*)",
+				"output":"M",
+				"priority":0
+			}
+		]
+	},
+	{
+		"original-character":"ѣ",
+		"rule-type":"basic",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^ѣ]*)(ѣ)([\\w]*)",
+				"output":"ea",
+				"priority":0
+			}
+		]
+	},
+	{
+		"original-character":"Ѣ",
+		"rule-type":"basic",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^Ѣ]*)(Ѣ)([\\w]*)",
+				"output":"Ea",
+				"priority":0
+			}
+		]
+	},
+	{
+		"original-character":"ї",
+		"rule-type":"basic",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^ї]*)(ї)([\\w]*)",
+				"output":"i",
+				"priority":0
+			}
+		]
+	},
+	{
+		"original-character":"Ї",
+		"rule-type":"basic",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^Ї]*)(Ї)([\\w]*)",
+				"output":"I",
+				"priority":0
+			}
+		]
+	},
+	{
+		"original-character":"и",
+		"rule-type":"basic",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^и]*)(и)([\\w]*)",
+				"output":"i",
+				"priority":0
+			}
+		]
+	},
+	{
+		"original-character":"И",
+		"rule-type":"basic",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^И]*)(И)([\\w]*)",
+				"output":"I",
+				"priority":0
+			}
+		]
+	},
+	{
+		"original-character":"ꙗ",
+		"rule-type":"basic",
+		"rule-source":"Ursu, Problema interpretarii grafiei romanesti din jurul anului 1800, 1960, pp. 33-46",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^ꙗ]*)(ꙗ)([\\w]*)",
+				"output":"ia",
+				"priority":0
+			}
+		]
+	},
+	{
+		"original-character":"Ꙗ",
+		"rule-type":"basic",
+		"rule-source":"Ursu, Problema interpretarii grafiei romanesti din jurul anului 1800, 1960, pp. 33-46",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^Ꙗ]*)(Ꙗ)([\\w]*)",
+				"output":"Ia",
+				"priority":0
+			}
+		]
+	},
+	{
+		"original-character":"ѧ",
+		"rule-type":"basic",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^ѧ]*)(ѧ)([\\w]*)",
+				"output":"â",
+				"priority":0
+			}
+		]
+	},
+	{
+		"original-character":"Ѧ",
+		"rule-type":"basic",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^Ѧ]*)(Ѧ)([\\w]*)",
+				"output":"Â",
+				"priority":0
+			}
+		]
+	},
+	{
+		"original-character":"ѥ",
+		"rule-type":"basic",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^ѥ]*)(ѥ)([\\w]*)",
+				"output":"ia",
+				"priority":0
+			}
+		]
+	},
+	{
+		"original-character":"Ѥ",
+		"rule-type":"basic",
+		"rule-source":"Demidova, digitizarea si prezentarea alfabetului chirilic romanesc de tranzitie (1830-1860), akademos, 2017",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^Ѥ]*)(Ѥ)([\\w]*)",
+				"output":"Ia",
+				"priority":0
+			}
+		]
+	},
+	{
+		"original-character":"ю",
+		"rule-type":"basic",
+		"rule-source":"Ursu, Problema interpretarii grafiei romanesti din jurul anului 1800, 1960, pp. 33-46",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^ю]*)(ю)([\\w]*)",
+				"output":"iu",
+				"priority":0
+			}
+		]
+	},
+	{
+		"original-character":"Ю",
+		"rule-type":"basic",
+		"rule-source":"Ursu, Problema interpretarii grafiei romanesti din jurul anului 1800, 1960, pp. 33-46",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^Ю]*)(Ю)([\\w]*)",
+				"output":"Iu",
+				"priority":0
+			}
+		]
+	},
+	{
+		"original-character":"н",
+		"rule-type":"basic",
+		"rule-source":"Ursu, Problema interpretarii grafiei romanesti din jurul anului 1800, 1960, pp. 33-46",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^н]*)(н)([\\w]*)",
+				"output":"n",
+				"priority":0
+			}
+		]
+	},
+	{
+		"original-character":"Н",
+		"rule-type":"basic",
+		"rule-source":"Ursu, Problema interpretarii grafiei romanesti din jurul anului 1800, 1960, pp. 33-46",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^Н]*)(Н)([\\w]*)",
+				"output":"N",
+				"priority":0
+			}
+		]
+	},
+	{
+		"original-character":" ꙼",
+		"rule-type":"basic",
+		"rule-source":"",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^ ꙼]*)( ꙼)([\\w]*)",
+				"output":"",
+				"priority":0
+			}
+		]
+	},
+	{
+		"original-character":" ̀ ",
+		"rule-type":"basic",
+		"rule-source":"",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^ ̀ ]*)( ̀ )([\\w]*)",
+				"output":"",
+				"priority":0
+			}
+		]
+	},
+	{
+		"original-character":" ́ ",
+		"rule-type":"basic",
+		"rule-source":"",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^ ́ ]*)( ́ )([\\w]*)",
+				"output":"",
+				"priority":0
+			}
+		]
+	},
+	{
+		"original-character":"і",
+		"rule-type":"basic",
+		"rule-source":"",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^і]*)(і)([\\w]*)",
+				"output":"i",
+				"priority":0
+			}
+		]
+	},
+	{
+		"original-character":"І",
+		"rule-type":"basic",
+		"rule-source":"",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^І]*)(І)([\\w]*)",
+				"output":"I",
+				"priority":0
+			}
+		]
+	},
+	{
+		"original-character":"ο",
+		"rule-type":"basic",
+		"rule-source":"",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^ο]*)(ο)([\\w]*)",
+				"output":"o",
+				"priority":0
+			}
+		]
+	},
+	{
+		"original-character":"ꙇ",
+		"rule-type":"basic",
+		"rule-source":"",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^ꙇ]*)(ꙇ)([\\w]*)",
+				"output":"i",
+				"priority":0
+			}
+		]
+	},
+	{
+		"original-character":"Ꙇ",
+		"rule-type":"basic",
+		"rule-source":"",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^Ꙇ]*)(Ꙇ)([\\w]*)",
+				"output":"I",
+				"priority":0
+			}
+		]
+	},
+	{
+		"original-character":"ь",
+		"rule-type":"basic",
+		"rule-source":"",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^ь]*)(ь)([\\w]*)",
+				"output":"?",
+				"priority":0
+			}
+		]
+	},
+	{
+		"original-character":"ԁ",
+		"rule-type":"basic",
+		"rule-source":"",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^ԁ]*)(ԁ)([\\w]*)",
+				"output":"d",
+				"priority":0
+			}
+		]
+	},
+	{
+		"original-character":"ё",
+		"rule-type":"basic",
+		"rule-source":"",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^ё]*)(ё)([\\w]*)",
+				"output":"e",
+				"priority":0
+			}
+		]
+	},
+	{
+		"original-character":"Ҫ",
+		"rule-type":"basic",
+		"rule-source":"",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^Ҫ]*)(Ҫ)([\\w]*)",
+				"output":"?",
+				"priority":0
+			}
+		]
+	},
+	{
+		"original-character":"у",
+		"rule-type":"basic",
+		"rule-source":"",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^у]*)(у)([\\w]*)",
+				"output":"u",
+				"priority":0
+			}
+		]
+	},
+	{
+		"original-character":"Ş",
+		"rule-type":"basic",
+		"rule-source":"",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^Ş]*)(Ş)([\\w]*)",
+				"output":"Ș",
+				"priority":0
+			}
+		]
+	},
+	{
+		"original-character":"ӗ",
+		"rule-type":"basic",
+		"rule-source":"",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^ӗ]*)(ӗ)([\\w]*)",
+				"output":"e",
+				"priority":0
+			}
+		]
+	},
+	{
+		"original-character":"ї",
+		"rule-type":"basic",
+		"rule-source":"",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^ї]*)(ї)([\\w]*)",
+				"output":"i",
+				"priority":0
+			}
+		]
+	}
+]
+}
