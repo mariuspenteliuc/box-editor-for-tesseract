@@ -5,13 +5,14 @@
   <meta charset="utf-8" class="force-dark-theme">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Box Editor for Tesseract</title>
+  <title>Playground | OCR Model for RTS</title>
 
   <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
   <!-- <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script> -->
   <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.3/dist/jquery.min.js"></script>
   <script src="../../js/jquery.hotkeys.js"></script>
-
+  <!-- Unicode normalize -->
+  <script src="https://unpkg.com/unorm@1.6.0/lib/unorm.js"></script>
   <!-- Leaftlet -->
   <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"
     integrity="sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM=" crossorigin=""></script>
@@ -43,7 +44,7 @@
   <script src="https://cdn.jsdelivr.net/npm/js-cookie@3"></script>
   <!-- Custom JS and CSS -->
   <script src="../../js/jquery.csv.min.js"></script>
-  <script src="../../js/app-box-editor.js"></script>
+  <script src="../../js/app-playground.js"></script>
   <link rel="stylesheet" href="../../css/styles.css">
 </head>
 
@@ -52,12 +53,15 @@
     <div class="ui basic horizontal segments">
       <div class="ui basic horizontally fitted segment">
         <h1 class="ui header">
-          Box Editor for Tesseract
+          OCR Model for RTS
         </h1>
       </div>
       <div class="ui basic horizontally fitted compact segment">
         <div id="navigationMenu" class="ui right secondary menu">
           <a class="active item">
+            Playground
+          </a>
+          <a href="../../module/box-editor" class="item">
             Box Editor
           </a>
           <a href="../../module/words-pairing" class="item">
@@ -101,159 +105,61 @@
         </div>
       </div>
     </div>
-    <div class="ui segments">
-      <div class="ui secondary segment">
-        <div class="ui two column stackable grid">
-          <div class="eight wide column">
-            <h4 class="ui dividing header">Upload Documents</h4>
-            <form class="ui form">
-              <div class="two fields">
-                <div class="field">
-                  <label for="imageFile">Image</label>
-                  <input class="form-control" type="file" disabled id="imageFile" name="imageFile" accept="image/*" />
-                </div>
-                <div class="field">
-                  <label for="boxFile">Box File</label>
-                  <input class="form-control" type="file" disabled id="boxFile" name="boxFile" accept=".box" />
-                </div>
-              </div>
-            </form>
-          </div>
-          <div class="eight wide column">
-            <h4 class="ui dividing header">
-              Download Documents
-              <div id="unsavedChanges" class="ui hidden mini red empty circular label"
-                title="You have unsaved changes."></div>
-            </h4>
-            <form class="ui equal width form">
-              <div class="two fields">
-                <div class="field">
-                  <label for="download">Box File</label>
-                  <button id="downloadBoxFileButton" name="download" tabindex="0" class="disabled fluid ui button">
-                    <i class="download icon"></i>
-                    Download
-                  </button>
-                </div>
-                <div class="field">
-                  <label for="download">Ground Truth</label>
-                  <button id="downloadGroundTruthButton" name="download" tabindex="0" class="disabled fluid ui button">
-                    <i class="download icon"></i>
-                    Download
-                  </button>
-                </div>
-              </div>
-            </form>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div id="taggingSegment" class="ui disable secondary segment">
-      <div id="custom-controls" class="ui form">
-        <div class="inline fields">
-          <div class="field">
-            <button id="invisiblesToggle" name="interface.toolbarActions.invisiblesToggle"
-              class="ui compact icon button" title="Toggle Invisibles" tabindex="0">
-              <i class="paragraph icon"></i>
-            </button>
-          </div>
-          <div class="field">
-            <button id="redetectAllBoxes" name="interface.toolbarActions.detectAllLines" class="ui compact icon button"
-              title="Find all text in image" tabindex="0">
-              <i class="magic icon"></i>
-            </button>
-          </div>
-          <div class="field">
-            <button id="regenerateTextSuggestions" name="interface.toolbarActions.detectAllBoxes"
-              class="ui compact icon button" title="Regenerate Text Suggestions" tabindex="0">
-              <i class="sync icon"></i>
-            </button>
-          </div>
-          <div class="field">
-            <button id="regenerateTextSuggestionForSelectedBox" name="interface.toolbarActions.detectSelectedBox"
-              class="ui compact icon button" title="Regenerate Text Suggestion for Selected Box" tabindex="0">
-              <i class="redo icon"></i>
-            </button>
-          </div>
-          <!-- <div class="field">
-                    <div class="ui animated fade button" tabindex="0">
-                      <div class="hidden content">Invisibles</div>
-                      <div class="visible content">
-                          <i class="paragraph icon"></i>
-                      </div>
-                    </div>
-                  </div> -->
-          <!-- <div class="field">
-                    <div class="ui tiny toggle checkbox">
-                      <input type="checkbox">
-                      <label>Toggle</label>
-                    </div>
-                  </div>
-                  <div class="field">
-                    <div class="ui tiny slider checkbox">
-                      <input type="checkbox">
-                      <label>Slider</label>
-                    </div>
-                  </div> -->
-        </div>
-      </div>
-      <div id="main-edit-area" class="ui basic fitted segment">
-        <!-- <div class="ui top attached progress" id="positionProgress">
-          <div class="bar"></div>
-        </div> -->
-        <div class="ui maprow fitted segment" id="mapid"></div>
-        <div class="ui tiny indicating progress" id="editingProgress">
-          <div class="bar"></div>
-          <div class="label"></div>
-        </div>
-        <div class="ui small grey labeled slider"></div>
-        <form class="ui big form" id="updateTxt" spellcheck="false">
-          <div id="myInputContainer" class="disabled field">
-            <label class="col-sm-2 control-label" for="formtxt" id="txtlabel">Text</label>
-            <div id="myInputBackground">&nbsp;</div>
-            <!-- <input type="text" id="forsmtxt" boxid="" name="txt" value="" onkeyup="updateBackground()"> -->
-          </div>
-          <div class="field">
-            <label class="col-sm-2 control-label" for="formtxt" id="txtlabel">Text</label>
-            <input disabled type="text" id="formtxt" boxid="" name="txt" value="">
-          </div>
-        </form>
-        <div class="ui mini blue empty circular label text-highlighter"></div>
-        Latin
-        <div class="ui mini red empty circular label text-highlighter"></div> Cyrillic
-        <div class="ui basic fitted segment">
-          <form id="formbox" class="ui form" spellcheck="false">
-            <div class="four fields">
-              <div class="field">
-                <label for="x1">Left</label>
-                <input disabled type="number" id="x1" name="x1" value="">
-              </div>
-              <div class="field">
-                <label for="y1">Bottom</label>
-                <input disabled type="number" id="y1" name="y1" value="">
-              </div>
-              <div class="field">
-                <label for="x2">Right</label>
-                <input disabled type="number" id="x2" name="x2" value="">
-              </div>
-              <div class="field">
-                <label for="y2">Top</label>
-                <input disabled type="number" id="y2" name="y2" value="">
-              </div>
+    <div class="ui borderless secondary segment">
+      <!-- <div class="ui borderless secondary icon menu">
+        <input type="file" disabled id="imageFile" name="imageFile" accept="image/*" class="ui invisible file input">
+        <a class="item">
+          <label for="imageFile" id="uploadNewImage" name="interface.toolbarActions.uploadNewImageButton"
+            title="Upload a new image">
+            <i class="upload icon"></i>
+          </label>
+        </a>
+        <a class="item">
+          <i class="video camera icon"></i>
+        </a>
+        <a class="item">
+          <i class="video play icon"></i>
+        </a>
+      </div> -->
+      <div class="ui row">
+        <div id="custom-controls" class="ui form">
+          <div class="inline fields">
+            <div class="field">
+              <input type="file" disabled id="imageFile" name="imageFile" accept="image/*"
+                class="ui invisible file input">
+              <label for="imageFile" id="uploadNewImage" name="interface.toolbarActions.uploadNewImageButton"
+                class="ui compact icon button" title="Upload a new image">
+                <i class="upload icon"></i>
+              </label>
             </div>
-          </form>
+            <div class="field">
+              <button id="redetectAllBoxes" name="interface.toolbarActions.detectAllLines"
+                class="ui compact icon button" title="Find all text in image" tabindex="0">
+                <i class="magic icon"></i>
+              </button>
+            </div>
+            <div class="field">
+              <button id="regenerateTextSuggestions" name="interface.toolbarActions.detectAllBoxes"
+                class="ui compact icon button" title="Regenerate Text Suggestions" tabindex="0">
+                <i class="sync icon"></i>
+              </button>
+            </div>
+            <div class="field">
+              <button id="regenerateTextSuggestionForSelectedBox" name="interface.toolbarActions.detectSelectedBox"
+                class="ui compact icon button" title="Regenerate Text Suggestion for Selected Box" tabindex="0">
+                <i class="redo icon"></i>
+              </button>
+            </div>
+          </div>
+          <div class="ui hidden divider"></div>
         </div>
-        <div class="ui center aligned basic segment">
-          <button id="previousBB" class="ui disabled left labeled icon button">
-            <i class="left chevron icon"></i>
-            Previous
-          </button>
-
-          <!-- <button id="updateText" class="ui disabled button" type="submit">Update Line</button> -->
-
-          <button id="nextBB" class="ui disabled right labeled icon button">
-            Next
-            <i class="right chevron icon"></i>
-          </button>
+      </div>
+      <div class="ui equal width grid">
+        <div class="ui column">
+          <div class="ui maprow fitted segment" id="mapid"></div>
+        </div>
+        <div class="ui column">
+          <textarea id="text-output" class="ui text-output fitted segment"></textarea>
         </div>
       </div>
     </div>
