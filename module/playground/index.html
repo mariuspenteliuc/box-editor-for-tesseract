@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" class="force-dark-theme">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Box Editor for Tesseract</title>
+
+  <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+  <!-- <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script> -->
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.3/dist/jquery.min.js"></script>
+  <script src="../../js/jquery.hotkeys.js"></script>
+
+  <!-- Leaftlet -->
+  <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"
+    integrity="sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM=" crossorigin=""></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"
+    integrity="sha256-kLaT2GOSpHechhsozzB+flnD+zUyjE2LlfWPgU04xyI=" crossorigin="" />
+  <script src="../../js/leaflet.js"></script>
+  <link rel="stylesheet" href="../../css/leaflet.css">
+
+  <!-- Leaflet Draw -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.3/leaflet.draw.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.3/leaflet.draw.js"></script>
+  <!-- <script src="../../js/leaflet.draw.js"></script> -->
+  <!-- <link rel="stylesheet" href="css/leaflet.draw.css" /> -->
+
+  <!-- Turf -->
+  <script src='https://unpkg.com/@turf/turf@6/turf.min.js'></script>
+  <!-- <script>
+    var bbox = turf.bbox(features);
+  </script> -->
+
+  <!-- Tesseract -->
+  <script src='https://unpkg.com/tesseract.js@4.0.2/dist/tesseract.min.js'></script>
+
+  <!-- Fomanic UI -->
+  <script src="https://cdn.jsdelivr.net/npm/fomantic-ui@2.9.2/dist/semantic.min.js"></script>
+  <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/fomantic-ui@2.9.2/dist/semantic.min.css">
+
+  <!-- JS Cookie -->
+  <script src="https://cdn.jsdelivr.net/npm/js-cookie@3"></script>
+  <!-- Custom JS and CSS -->
+  <script src="../../js/jquery.csv.min.js"></script>
+  <script src="../../js/app-box-editor.js"></script>
+  <link rel="stylesheet" href="../../css/styles.css">
+</head>
+
+<body>
+  <div class="ui container">
+    <div class="ui basic horizontal segments">
+      <div class="ui basic horizontally fitted segment">
+        <h1 class="ui header">
+          Box Editor for Tesseract
+        </h1>
+      </div>
+      <div class="ui basic horizontally fitted compact segment">
+        <div id="navigationMenu" class="ui right secondary menu">
+          <a class="active item">
+            Box Editor
+          </a>
+          <a href="../../module/words-pairing" class="item">
+            Words Pairing
+          </a>
+          <div class="item">
+            <i class="large fitted question circle icon"></i>
+            <div class="ui fixed very wide popup">
+              <div class="header">Welcome!</div>
+              <div class="content">
+                <p>
+                  Upload an image to tag it with the ground truth. Bounding boxes are automatically generated and can be
+                  edited. You
+                  can also upload an existing <code>.box</code> file to edit it, but the generated bounding boxes will
+                  be
+                  overwritten.
+                </p>
+                <p>
+                  The progress bar shows the progress of the tagging. When done, download the <code>.box</code> file and
+                  the
+                  <code>.gt.txt</code> file to use in Tesseract.
+                </p>
+                <p>
+                  Box handles appear after clicking on it. You can drag them to move the box or resize it. Create boxes
+                  using the
+                  square tool and delete them using the trash can tool.
+                </p>
+                <div class="ui sub header">Tips</div>
+                <p>
+                  Select characters in the input field to see their Unicode name.
+                </p>
+                <p>
+                  While tagging use <code>return</code> and <code>shift+return</code> to move forward and backward.
+                </p>
+              </div>
+            </div>
+          </div>
+          <a id="settingsButton" class="item">
+            <i class="large fitted cog circle icon"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+    <div class="ui segments">
+      <div class="ui secondary segment">
+        <div class="ui two column stackable grid">
+          <div class="eight wide column">
+            <h4 class="ui dividing header">Upload Documents</h4>
+            <form class="ui form">
+              <div class="two fields">
+                <div class="field">
+                  <label for="imageFile">Image</label>
+                  <input class="form-control" type="file" disabled id="imageFile" name="imageFile" accept="image/*" />
+                </div>
+                <div class="field">
+                  <label for="boxFile">Box File</label>
+                  <input class="form-control" type="file" disabled id="boxFile" name="boxFile" accept=".box" />
+                </div>
+              </div>
+            </form>
+          </div>
+          <div class="eight wide column">
+            <h4 class="ui dividing header">
+              Download Documents
+              <div id="unsavedChanges" class="ui hidden mini red empty circular label"
+                title="You have unsaved changes."></div>
+            </h4>
+            <form class="ui equal width form">
+              <div class="two fields">
+                <div class="field">
+                  <label for="download">Box File</label>
+                  <button id="downloadBoxFileButton" name="download" tabindex="0" class="disabled fluid ui button">
+                    <i class="download icon"></i>
+                    Download
+                  </button>
+                </div>
+                <div class="field">
+                  <label for="download">Ground Truth</label>
+                  <button id="downloadGroundTruthButton" name="download" tabindex="0" class="disabled fluid ui button">
+                    <i class="download icon"></i>
+                    Download
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="taggingSegment" class="ui disable secondary segment">
+      <div id="custom-controls" class="ui form">
+        <div class="inline fields">
+          <div class="field">
+            <button id="invisiblesToggle" name="interface.toolbarActions.invisiblesToggle"
+              class="ui compact icon button" title="Toggle Invisibles" tabindex="0">
+              <i class="paragraph icon"></i>
+            </button>
+          </div>
+          <div class="field">
+            <button id="redetectAllBoxes" name="interface.toolbarActions.detectAllLines" class="ui compact icon button"
+              title="Find all text in image" tabindex="0">
+              <i class="magic icon"></i>
+            </button>
+          </div>
+          <div class="field">
+            <button id="regenerateTextSuggestions" name="interface.toolbarActions.detectAllBoxes"
+              class="ui compact icon button" title="Regenerate Text Suggestions" tabindex="0">
+              <i class="sync icon"></i>
+            </button>
+          </div>
+          <div class="field">
+            <button id="regenerateTextSuggestionForSelectedBox" name="interface.toolbarActions.detectSelectedBox"
+              class="ui compact icon button" title="Regenerate Text Suggestion for Selected Box" tabindex="0">
+              <i class="redo icon"></i>
+            </button>
+          </div>
+          <!-- <div class="field">
+                    <div class="ui animated fade button" tabindex="0">
+                      <div class="hidden content">Invisibles</div>
+                      <div class="visible content">
+                          <i class="paragraph icon"></i>
+                      </div>
+                    </div>
+                  </div> -->
+          <!-- <div class="field">
+                    <div class="ui tiny toggle checkbox">
+                      <input type="checkbox">
+                      <label>Toggle</label>
+                    </div>
+                  </div>
+                  <div class="field">
+                    <div class="ui tiny slider checkbox">
+                      <input type="checkbox">
+                      <label>Slider</label>
+                    </div>
+                  </div> -->
+        </div>
+      </div>
+      <div id="main-edit-area" class="ui basic fitted segment">
+        <!-- <div class="ui top attached progress" id="positionProgress">
+          <div class="bar"></div>
+        </div> -->
+        <div class="ui maprow fitted segment" id="mapid"></div>
+        <div class="ui tiny indicating progress" id="editingProgress">
+          <div class="bar"></div>
+          <div class="label"></div>
+        </div>
+        <div class="ui small grey labeled slider"></div>
+        <form class="ui big form" id="updateTxt" spellcheck="false">
+          <div id="myInputContainer" class="disabled field">
+            <label class="col-sm-2 control-label" for="formtxt" id="txtlabel">Text</label>
+            <div id="myInputBackground">&nbsp;</div>
+            <!-- <input type="text" id="forsmtxt" boxid="" name="txt" value="" onkeyup="updateBackground()"> -->
+          </div>
+          <div class="field">
+            <label class="col-sm-2 control-label" for="formtxt" id="txtlabel">Text</label>
+            <input disabled type="text" id="formtxt" boxid="" name="txt" value="">
+          </div>
+        </form>
+        <div class="ui mini blue empty circular label text-highlighter"></div>
+        Latin
+        <div class="ui mini red empty circular label text-highlighter"></div> Cyrillic
+        <div class="ui basic fitted segment">
+          <form id="formbox" class="ui form" spellcheck="false">
+            <div class="four fields">
+              <div class="field">
+                <label for="x1">Left</label>
+                <input disabled type="number" id="x1" name="x1" value="">
+              </div>
+              <div class="field">
+                <label for="y1">Bottom</label>
+                <input disabled type="number" id="y1" name="y1" value="">
+              </div>
+              <div class="field">
+                <label for="x2">Right</label>
+                <input disabled type="number" id="x2" name="x2" value="">
+              </div>
+              <div class="field">
+                <label for="y2">Top</label>
+                <input disabled type="number" id="y2" name="y2" value="">
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="ui center aligned basic segment">
+          <button id="previousBB" class="ui disabled left labeled icon button">
+            <i class="left chevron icon"></i>
+            Previous
+          </button>
+
+          <!-- <button id="updateText" class="ui disabled button" type="submit">Update Line</button> -->
+
+          <button id="nextBB" class="ui disabled right labeled icon button">
+            Next
+            <i class="right chevron icon"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="ui container">
+      <div class="ui basic fitted segments">
+        <div class="ui horizontal basic segments">
+          <div class="ui basic fitted segment">
+            <div class="ui horizontal small list">
+              <div class="item">
+                By: <a href="https://penteliuc.com">Marius E. Penteliuc</a>
+              </div>
+              <div class="item">
+                Originally: <a href="https://johanjunkka.com">Johan Junkka</a>
+              </div>
+            </div>
+          </div>
+          <div class="ui right aligned basic fitted segment">
+            <a href="https://github.com/mariuspenteliuc/box-editor-for-tesseract" target="_blank">
+              <i class="github icon"></i>
+            </a>
+          </div>
+        </div>
+        <div class="ui basic horizontally fitted segment">
+          <p>This work was supported by a grant of the Romanian Ministry of Research, Innovation and Digitization, CCCDI
+            -
+            UEFISCDI,
+            project number PN-III-P2-2.1-PED-2021-0693, within PNCDI III.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="ui settings modal">
+    <i class="inside close icon"></i>
+    <div class="header">
+      Box Editor Settings
+    </div>
+    <div id="settingsMenuStickyContext" class="scrolling content">
+      <div class="ui two column grid">
+        <div class="four wide column">
+          <div id="settingsMenu" class="ui secondary vertical menu">
+            <a class="item active" data-tab="interface-settings">Interface</a>
+            <a class="item" data-tab="behavior-settings">Behavior</a>
+            <div class="ui divider"></div>
+            <a class="bottom attached item" data-tab="about-section">About</a>
+          </div>
+        </div>
+        <div class="twelve wide column">
+          <div class="ui tab active" data-tab="interface-settings">
+            <div class="ui relaxed list">
+              <div class="item">
+                <div class="header">Appearance</div>
+                <div class="description">
+                  Adjust the appearance of the interface.
+                </div>
+                <div class="list">
+                  <div class="item">
+                    <div class="ui child radio checkbox">
+                      <input type="radio" name="interface.appearance" value="light-theme">
+                      <label>Light</label>
+                    </div>
+                  </div>
+                  <div class="item">
+                    <div class="ui child radio checkbox">
+                      <input type="radio" name="interface.appearance" value="dark-theme">
+                      <label>Dark</label>
+                    </div>
+                  </div>
+                  <div class="item">
+                    <div class="ui child radio checkbox">
+                      <input type="radio" name="interface.appearance" value="match-device">
+                      <label>Match Device</label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="item">
+                <div class="header">Toolbar Actions</div>
+                <div class="description">
+                  Choose which toolbar actions are available.
+                </div>
+                <div class="list">
+                  <div class="item">
+                    <div class="ui child checkbox">
+                      <input type="checkbox" name="interface.toolbarActions.detectAllLines">
+                      <label>Detect lines</label>
+                    </div>
+                  </div>
+                  <div class="item">
+                    <div class="ui child checkbox">
+                      <input type="checkbox" name="interface.toolbarActions.detectAllBoxes">
+                      <label>Suggest text for all lines</label>
+                    </div>
+                  </div>
+                  <div class="item">
+                    <div class="ui child checkbox">
+                      <input type="checkbox" name="interface.toolbarActions.detectSelectedBox">
+                      <label>Suggest text for current line</label>
+                    </div>
+                  </div>
+                  <div class="item">
+                    <div class="ui child checkbox">
+                      <input type="checkbox" name="interface.toolbarActions.invisiblesToggle">
+                      <label>Invisibles toggle</label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="item">
+                <div class="header">Image View</div>
+                <div class="description">
+                  Adjust the height of the image view in the main screen.
+                </div>
+                <div class="list">
+                  <div class="item">
+                    <div class="ui child radio checkbox">
+                      <input type="radio" name="interface.imageView" value="short">
+                      <label>Short</label>
+                    </div>
+                  </div>
+                  <div class="item">
+                    <div class="ui child radio checkbox">
+                      <input type="radio" name="interface.imageView" value="medium">
+                      <label>Medium</label>
+                    </div>
+                  </div>
+                  <div class="item">
+                    <div class="ui child radio checkbox">
+                      <input type="radio" name="interface.imageView" value="tall">
+                      <label>Tall</label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="ui tab" data-tab="behavior-settings">
+            <div class="ui relaxed list">
+              <div class="item" name="onImageLoad">
+                <div class="header">On Image Load</div>
+                <div class="description">
+                  Perform actions when a new image is loaded.
+                </div>
+                <div class="list">
+                  <div class="item">
+                    <div class="ui child checkbox">
+                      <input type="checkbox" name="behavior.onImageLoad.detectAllLines">
+                      <label>Detect all lines of text</label>
+                    </div>
+                  </div>
+                  <div class="item">
+                    <div class="ui child checkbox">
+                      <input type="checkbox" name="behavior.onImageLoad.includeTextForDetectedLines">
+                      <label>Include text for detected lines</label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="item" name="alerting">
+                <div class="header">Alerting</div>
+                <div class="description">
+                  Enable or surpress the following warning messages.
+                </div>
+                <div class="list">
+                  <div class="item">
+                    <div class="ui child checkbox">
+                      <input type="checkbox" name="behavior.alerting.enableWarrningMessagesForDifferentFileNames">
+                      <label>Box and image file names do not match</label>
+                    </div>
+                  </div>
+                  <div class="item">
+                    <div class="ui child checkbox">
+                      <input type="checkbox" name="behavior.alerting.enableWarrningMessagesForUncommittedChanges">
+                      <label>Leaving or loading an image without first downloading</label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="ui tab" data-tab="about-section">
+            <div class="ui relaxed list">
+              <h3 class="ui header">About</h3>
+              <div class="description">
+                <p>This tool provides a powerful Box Editor for Tesseract. It allows you to efficiently generate, edit,
+                  and manage
+                  boxes in WordStr format.</p>
+                <p>For more information and support, please visit the project's website:
+                  <a class="more external" href="https://transitional-romanian-transliteration.azurewebsites.net/"
+                    target="_blank" title="ROTLA Website">ROTLA</a>
+                </p>
+                <p>Source code is available on <a class="more external"
+                    href="https://github.com/mariuspenteliuc/box-editor-for-tesseract" target="_blank"
+                    title="GitHub">GitHub</a></p>
+                <p>This tool is extended from the work of <a class="more external" href="https://johanjunkka.com"
+                    target="_blank" title="Initial Source Code">Johan Junkka</a>
+                </p>
+                <div class="description">
+                  <h4 class="ui header">Acknowledgements</h4>
+                  <p>This work was supported by a grant from the Romanian Ministry of Research, Innovation and
+                    Digitization, CCCDI -
+                    UEFISCDI, project number PN-III-P2-2.1-PED-2021-0693, within PNCDI III.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="actions">
+      <div id="settingsModalStatus" class="ui disabled tertiary button"></div>
+      <div class="ui button ok">OK</div>
+    </div>
+  </div>
+</body>
+
+</html>
