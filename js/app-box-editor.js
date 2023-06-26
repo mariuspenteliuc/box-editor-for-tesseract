@@ -31,6 +31,36 @@ function updateCookie() {
     Cookies.set("appSettings", JSON.stringify(appSettings));
 }
 
+async function resetAppSettingsAndCookies() {
+    response = await askUser({
+        title: 'Reset App',
+        message: 'The app will reset it\'s settings and reload. Are you sure you want to continue?',
+        // confirmText: 'Reset',
+        // denyText: 'No',
+        type: 'replacingTextWarning',
+        actions: [{
+            text: 'Cancel',
+            class: 'cancel',
+        }, {
+            text: 'Reset',
+            class: 'red ok',
+        }]
+    });
+    console.log("response:", response);
+    if (response) {
+        clearCookies();
+    }
+}
+
+function clearCookies() {
+    // remove all cookies
+    const cookies = Cookies.get();
+    for (const cookie in cookies) {
+        Cookies.remove(cookie);
+    }
+    location.reload();
+}
+
 // Update appSettings based on user modifications
 function updateAppSettings({ path, value, cookie }) {
 
@@ -2002,5 +2032,7 @@ $(document).ready(async function () {
     if (cookieValue) {
         cookieSettings = JSON.parse(cookieValue);
         updateAppSettings({ cookie: cookieSettings });
+    } else {
+        updateSettingsModal();
     }
 });

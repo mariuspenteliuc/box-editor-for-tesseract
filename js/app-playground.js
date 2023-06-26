@@ -27,6 +27,36 @@ function updateCookie() {
     Cookies.set("appSettings", JSON.stringify(appSettings));
 }
 
+async function resetAppSettingsAndCookies() {
+    response = await askUser({
+        title: 'Reset App',
+        message: 'The app will reset it\'s settings and reload. Are you sure you want to continue?',
+        // confirmText: 'Reset',
+        // denyText: 'No',
+        type: 'replacingTextWarning',
+        actions: [{
+            text: 'Cancel',
+            class: 'cancel',
+        }, {
+            text: 'Reset',
+            class: 'red ok',
+        }]
+    });
+    console.log("response:", response);
+    if (response) {
+        clearCookies();
+    }
+}
+
+function clearCookies() {
+    // remove all cookies
+    const cookies = Cookies.get();
+    for (const cookie in cookies) {
+        Cookies.remove(cookie);
+    }
+    location.reload();
+}
+
 // Update appSettings based on user modifications
 function updateAppSettings({ path, value, cookie }) {
 
@@ -951,12 +981,15 @@ async function askUser(object) {
         return true;
     }
     setPromptKeyboardControl();
-    // if (object.confirmText == undefined) {
-    //     object.confirmText = 'OK';
-    // }
-    // if (object.denyText == undefined) {
-    //     object.denyText = 'Cancel';
-    // }
+    if (object.actions == []) {
+        object.actions = [{
+            confirmText: 'Yes',
+            confirmTextClass: 'green positive',
+        }, {
+            denyText: 'No',
+            denyTextClass: 'red negative',
+        }]
+    }
     return new Promise((resolve, reject) => {
         $.modal({
             inverted: false,
@@ -977,15 +1010,7 @@ async function askUser(object) {
                 resolve(false);
             },
             content: object.message,
-            actions: [
-                {
-                    text: object.confirmText,
-                    class: 'green positive'
-                }, {
-                    text: object.denyText,
-                    class: 'red negative'
-                }
-            ]
+            actions: object.actions,
         }).modal('show');
     });
 }
@@ -1994,6 +2019,7 @@ $(document).ready(async function () {
     $('#toggleBetweenTransliterationAndOCR').on("click", toggleBetweenTransliterationAndOCR);
     $('#copyOutputToClipboard').on("click", copyOutputToClipboard);
     $('#settingsButton').on("click", settingsPopup);
+    $('#resetAppSettingsAndCookies').on("click", resetAppSettingsAndCookies);
 
     await $.ajax({
         url: '../../assets/unicodeData.csv',
@@ -2027,5 +2053,7 @@ $(document).ready(async function () {
     if (cookieValue) {
         cookieSettings = JSON.parse(cookieValue);
         updateAppSettings({ cookie: cookieSettings });
+    } else {
+        updateSettingsModal();
     }
 });
