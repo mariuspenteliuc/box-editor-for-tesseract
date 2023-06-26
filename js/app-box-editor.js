@@ -1274,16 +1274,23 @@ async function colorize(text) {
     return colored_text;
 }
 
-window.onbeforeunload = async function () {
+// window.onbeforeunload = async function () {
+//     if (boxdataIsDirty || lineIsDirty) {
+//         // return 'You have unsaved changes. Are you sure you want to leave?';
+//         return await askUser({
+//             message: 'You have unsaved changes. Are you sure you want to continue?',
+//             title: 'Unsaved Changes',
+//             type: 'uncommittedChangesWarning',
+//             confirmText: 'Yes',
+//             denyText: 'No',
+//         });
+//     }
+// }
+window.onbeforeunload = function (event) {
     if (boxdataIsDirty || lineIsDirty) {
-        // return 'You have unsaved changes. Are you sure you want to leave?';
-        return await askUser({
-            message: 'You have unsaved changes. Are you sure you want to continue?',
-            title: 'Unsaved Changes',
-            type: 'uncommittedChangesWarning',
-            confirmText: 'Yes',
-            denyText: 'No',
-        });
+        const confirmationMessage = 'You have unsaved changes. Are you sure you want to continue?';
+        event.returnValue = confirmationMessage; // This is required for most browsers
+        return confirmationMessage; // This will show the custom dialog box
     }
 }
 
@@ -1947,7 +1954,7 @@ $(document).ready(async function () {
             updateProgressBar({ type: 'tagging' });
             updateSlider({ max: boxdata.length });
             setMainLoadingStatus(false);
-            setButtons({ state: 'disabled' });
+            setButtons({ state: 'enabled' });
         }
         focusRectangle(selectedPoly);
     });
