@@ -5,7 +5,7 @@
   <meta charset="utf-8" class="force-dark-theme">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Playground | OCR Model for RTS</title>
+  <title>Playground | RTS to Latin Transliteration</title>
 
   <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
   <!-- <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script> -->
@@ -53,7 +53,8 @@
     <div class="ui basic horizontal segments">
       <div class="ui basic horizontally fitted segment">
         <h1 class="ui header">
-          OCR Model for RTS
+          RTS to Latin
+          <div class="sub header">Transliteration Service</div>
         </h1>
       </div>
       <div class="ui basic horizontally fitted compact segment">
@@ -106,54 +107,43 @@
       </div>
     </div>
     <div class="ui borderless secondary segment">
-      <!-- <div class="ui borderless secondary icon menu">
-        <input type="file" disabled id="imageFile" name="imageFile" accept="image/*" class="ui invisible file input">
-        <a class="item">
-          <label for="imageFile" id="uploadNewImage" name="interface.toolbarActions.uploadNewImageButton"
-            title="Upload a new image">
-            <i class="upload icon"></i>
-          </label>
-        </a>
-        <a class="item">
-          <i class="video camera icon"></i>
-        </a>
-        <a class="item">
-          <i class="video play icon"></i>
-        </a>
-      </div> -->
       <div class="ui row">
-        <div id="custom-controls" class="ui form">
-          <div class="inline fields">
-            <div class="field">
+        <div id="custom-controls">
+          <div class="ui icon buttons">
+            <label for="imageFile" id="uploadNewImage" name="interface.toolbarActions.uploadNewImageButton"
+              class="ui button" title="Upload a new image">
               <input type="file" disabled id="imageFile" name="imageFile" accept="image/*"
                 class="ui invisible file input">
-              <label for="imageFile" id="uploadNewImage" name="interface.toolbarActions.uploadNewImageButton"
-                class="ui compact icon button" title="Upload a new image">
-                <i class="upload icon"></i>
-              </label>
-            </div>
-            <div class="field">
-              <button id="redetectAllBoxes" name="interface.toolbarActions.detectAllLines"
-                class="ui compact icon button" title="Find all text in image" tabindex="0">
-                <i class="magic icon"></i>
-              </button>
-            </div>
-            <div class="field">
-              <button id="regenerateTextSuggestions" name="interface.toolbarActions.detectAllBoxes"
-                class="ui compact icon button" title="Regenerate Text Suggestions" tabindex="0">
-                <i class="sync icon"></i>
-              </button>
-            </div>
-            <div class="field">
-              <button id="regenerateTextSuggestionForSelectedBox" name="interface.toolbarActions.detectSelectedBox"
-                class="ui compact icon button" title="Regenerate Text Suggestion for Selected Box" tabindex="0">
-                <i class="redo icon"></i>
-              </button>
-            </div>
+              <i class="upload icon"></i>
+            </label>
+            <button id="redetectAllBoxes" name="interface.toolbarActions.detectAllLines" class="ui button"
+              title="Find all text in image" tabindex="0">
+              <i class="magic icon"></i>
+            </button>
+            <button id="regenerateTextSuggestions" name="interface.toolbarActions.detectAllBoxes" class="ui button"
+              title="Regenerate Text Suggestions" tabindex="0">
+              <i class="sync icon"></i>
+            </button>
+            <button id="regenerateTextSuggestionForSelectedBox" name="interface.toolbarActions.detectSelectedBox"
+              class="ui button" title="Regenerate Text Suggestion for Selected Box" tabindex="0">
+              <i class="redo icon"></i>
+            </button>
           </div>
-          <div class="ui hidden divider"></div>
+          <div class="ui right floated icon buttons">
+            <button id="toggleBetweenTransliterationAndOCR" class="ui button">
+              <!-- Latin ⇆ RTS -->
+              <i class="globe icon"></i>
+            </button>
+            <button id="copyOutputToClipboard" class="ui button">
+              <i class="copy icon"></i>
+            </button>
+          </div>
+          <div class="ui right floated spaced icon buttons">
+          </div>
         </div>
       </div>
+      <div class="ui hidden divider"></div>
+      <div class="ui row">
       <div class="ui equal width grid">
         <div class="ui column">
           <div class="ui maprow fitted segment" id="mapid"></div>
@@ -161,6 +151,7 @@
         <div class="ui column">
           <textarea id="text-output" class="ui text-output fitted segment"></textarea>
         </div>
+      </div>
       </div>
     </div>
     <div class="ui container">
@@ -232,7 +223,7 @@
                   </div>
                 </div>
               </div>
-              <div class="item">
+              <!-- <div class="item">
                 <div class="header">Toolbar Actions</div>
                 <div class="description">
                   Choose which toolbar actions are available.
@@ -263,7 +254,7 @@
                     </div>
                   </div>
                 </div>
-              </div>
+              </div> -->
               <div class="item">
                 <div class="header">Image View</div>
                 <div class="description">
@@ -306,15 +297,9 @@
                       <label>Detect all lines of text</label>
                     </div>
                   </div>
-                  <div class="item">
-                    <div class="ui child checkbox">
-                      <input type="checkbox" name="behavior.onImageLoad.includeTextForDetectedLines">
-                      <label>Include text for detected lines</label>
-                    </div>
-                  </div>
                 </div>
               </div>
-              <div class="item" name="alerting">
+              <!-- <div class="item" name="alerting">
                 <div class="header">Alerting</div>
                 <div class="description">
                   Enable or surpress the following warning messages.
@@ -322,18 +307,12 @@
                 <div class="list">
                   <div class="item">
                     <div class="ui child checkbox">
-                      <input type="checkbox" name="behavior.alerting.enableWarrningMessagesForDifferentFileNames">
-                      <label>Box and image file names do not match</label>
-                    </div>
-                  </div>
-                  <div class="item">
-                    <div class="ui child checkbox">
                       <input type="checkbox" name="behavior.alerting.enableWarrningMessagesForUncommittedChanges">
                       <label>Leaving or loading an image without first downloading</label>
                     </div>
                   </div>
                 </div>
-              </div>
+              </div> -->
             </div>
           </div>
           <div class="ui tab" data-tab="about-section">

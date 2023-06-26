@@ -6,13 +6,9 @@ var appSettings = {
     interface: {
         appearance: "match-device",
         toolbarActions: {
-            detectAllLines: true,
-            detectSelectedBox: true,
-            detectAllBoxes: true,
-            invisiblesToggle: true,
         },
         imageView: "medium",
-        showInvisibles: false,
+        showTransliteratedText: true,
     },
     behavior: {
         onImageLoad: {
@@ -64,12 +60,12 @@ function updateAppSettings({ path, value, cookie }) {
 // Update settings modal to reflect the current settings
 function updateSettingsModal() {
     // Toolbar actions
-    for (const [key, value] of Object.entries(appSettings.interface.toolbarActions)) {
-        const path = `interface.toolbarActions.${key}`;
-        document.querySelector(`input[name='${path}']`).checked = value;
-        // find parent of button with name attribute equal to path and hide toggle visibility
-        $("button[name='" + path + "']").parent().toggle(appSettings.interface.toolbarActions[key]);
-    }
+    // for (const [key, value] of Object.entries(appSettings.interface.toolbarActions)) {
+    //     const path = `interface.toolbarActions.${key}`;
+    //     document.querySelector(`input[name='${path}']`).checked = value;
+    //     // find parent of button with name attribute equal to path and hide toggle visibility
+    //     $("button[name='" + path + "']").parent().toggle(appSettings.interface.toolbarActions[key]);
+    // }
     // Appearance
     const appearancePath = "interface.appearance";
     document.querySelector(`input[name='${appearancePath}'][value='${appSettings.interface.appearance}']`).checked = true;
@@ -125,6 +121,8 @@ var mapEditingState = false;
 var currentSliderPosition = -1;
 var showInvisibles = false;
 
+var ocrOutput = "";
+var transliteratedOutput = "";
 
 class Box {
     constructor({
@@ -662,7 +660,8 @@ async function regenerateTextSuggestions() {
     $("#regenerateTextSuggestions").addClass("disabled");
     if (boxdata.length > 0) {
         result = await recognizeText(boxdata);
-        pasteOutput(result);
+        // ocrOutput = result;
+        await pasteOutput();
     } else {
         displayMessage({
             type: "error",
@@ -705,7 +704,7 @@ function applyTransliterationRules(text, rules) {
     return text;
 }
 
-function transliterateText(text, callback) {
+async function transliterateText(text, callback) {
     // read json file
     fetch("../../assets/transliterationRules.json")
         .then((response) => response.json())
@@ -714,30 +713,38 @@ function transliterateText(text, callback) {
             let transliteratedText = [];
             var line = text
             // for (let line of text) {
-                // remove combining characters ( ̀, ́, ꙼, etc.)
+            // remove combining characters ( ̀, ́, ꙼, etc.)
             line = unorm.nfc(text).replace(/[\u0300-\u036F\u1DC0-\u1DFF]/g, "");
 
-                line = Array.from(line)
-                    .filter((c) => !/[\u0300-\u036F\u1DC0-\u1DFF]/.test(c))
-                    .join("");
+            line = Array.from(line)
+                .filter((c) => !/[\u0300-\u036F\u1DC0-\u1DFF]/.test(c))
+                .join("");
 
-                let transliteratedLine = applyTransliterationRules(
-                    line,
-                    transliterationRules
-                );
-                transliteratedText.push(transliteratedLine);
+            let transliteratedLine = applyTransliterationRules(
+                line,
+                transliterationRules
+            );
+            transliteratedText.push(transliteratedLine);
             // }
-
-            callback(transliteratedText);
+            transliteratedOutput = transliteratedText[0];
+            callback(transliteratedText[0]);
+            // return transliteratedText[0];
         })
         .catch((error) => console.error(error));
 }
 
 
-async function pasteOutput(text) {
-    transliterateText(text, (transliteratedText) => {
-        $('#text-output').text(transliteratedText);
-    });
+async function pasteOutput() {
+    if (appSettings.interface.showTransliteratedText) {
+        if (transliteratedOutput == "" || transliteratedOutput == undefined) {
+            transliterateText(ocrOutput, (transliteratedText) => {
+                $('#text-output').text(transliteratedText);
+            });
+        }
+        $('#text-output').text(transliteratedOutput);
+    } else {
+        $('#text-output').text(ocrOutput);
+    }
 }
 
 async function findAllTextInImage() {
@@ -753,7 +760,8 @@ async function findAllTextInImage() {
         boxlayer.clearLayers();
         boxdata = [];
         var result = await recognizeText();
-        pasteOutput(result);
+        // ocrOutput = result;
+        await pasteOutput();
     }
     $("#redetectAllBoxes").removeClass("double loading");
     $("#redetectAllBoxes").removeClass("disabled");
@@ -764,7 +772,8 @@ async function regenerateTextSuggestionForSelectedBox() {
     $("#regenerateTextSuggestionForSelectedBox").addClass("disabled");
     if (selectedBox) {
         var result = await recognizeText([selectedBox]);
-        pasteOutput(result);
+        // ocrOutput = result;
+        await pasteOutput();
     } else {
         if (boxdata.lenght > 0) {
             displayMessage({
@@ -800,6 +809,8 @@ async function recognizeText(boxes = []) {
         }
     }
     setMainLoadingStatus(false);
+    transliteratedOutput = "";
+    ocrOutput = recognizedText;
     return recognizedText;
 }
 
@@ -845,8 +856,9 @@ async function generateInitialBoxes(includeSuggestions = true) {
     // const results = await worker.recognize(image, { rectangle });
     // await worker.terminate();
     recognizedLinesOfText = results.data.lines;
+    ocrOutput = results.data.text;
 
-    await pasteOutput(results.data.text);
+    await pasteOutput();
 
     if (recognizedLinesOfText.length == 0) {
         setMainLoadingStatus(false);
@@ -1223,7 +1235,9 @@ async function loadImageFile(e) {
             tessedit_pageseg_mode: 1,// 12
         });
         if (appSettings.behavior.onImageLoad.detectAllLines) {
-            result = await generateInitialBoxes(includeSuggestions = appSettings.behavior.onImageLoad.includeTextForDetectedLines);
+            // result = await generateInitialBoxes(includeSuggestions = appSettings.behavior.onImageLoad.includeTextForDetectedLines);
+            await recognizeText();
+            await pasteOutput();
         }
         setButtons({ state: 'enabled' });
         $('#formtxt').focus();
@@ -1380,16 +1394,11 @@ async function colorize(text) {
     return colored_text;
 }
 
-window.onbeforeunload = async function () {
+window.onbeforeunload = function (event) {
     if (boxdataIsDirty || lineIsDirty) {
-        // return 'You have unsaved changes. Are you sure you want to leave?';
-        return await askUser({
-            message: 'You have unsaved changes. Are you sure you want to continue?',
-            title: 'Unsaved Changes',
-            type: 'uncommittedChangesWarning',
-            confirmText: 'Yes',
-            denyText: 'No',
-        });
+        const confirmationMessage = 'You have unsaved changes. Are you sure you want to continue?';
+        event.returnValue = confirmationMessage; // This is required for most browsers
+        return confirmationMessage; // This will show the custom dialog box
     }
 }
 
@@ -1432,7 +1441,7 @@ function displayMessage(object) {
     });
 }
 
-var zoomControl = new L.Control.Zoom({ position: 'topright' });
+var zoomControl = new L.Control.Zoom({ position: 'topleft' });
 
 var drawControl = new L.Control.Draw({
     draw: {
@@ -1443,59 +1452,13 @@ var drawControl = new L.Control.Draw({
         rectangle: true,
         circlemarker: false
     },
-    position: 'topright',
+    position: 'topleft',
     edit: {
         featureGroup: boxlayer,
         edit: false,
         remove: true
     }
 });
-
-// L.Control.Region = L.Control.extend({
-//     options: {
-//         position: 'topright'
-//     },
-//     onAdd: function (map) {
-//         var container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
-//         var section = L.DomUtil.create('div', 'leaflet-draw-section', container);
-//         // var toolbar = L.DomUtil.create('div', 'leaflet-draw-toolbar leaflet-bar leaflet-draw-toolbar-top', section);
-//         var inclusiveRegion = L.DomUtil.create('a', 'leaflet-control-button', section);
-//         inclusiveRegion.innerHTML = '<i class="large grey fitted plus circle icon"></i>';
-//         var exclusiveRegion = L.DomUtil.create('a', 'leaflet-control-button', section);
-//         exclusiveRegion.innerHTML = '<i class="large grey fitted minus circle icon"></i>';
-//         L.DomEvent.disableClickPropagation(inclusiveRegion);
-//         L.DomEvent.on(inclusiveRegion, 'click', function () {
-//             console.log('click');
-//             // Get bounds of image from map
-//             var imageBounds = map.getBounds();
-//             // get image height and width
-//             var imageHeight = imageBounds.getNorth() - imageBounds.getSouth();
-//             var imageWidth = imageBounds.getEast() - imageBounds.getWest();
-//             // get aspect ratio of image
-//             var imageAspectRatio = imageBounds.getEast() - imageBounds.getWest();
-//             imageAspectRatio = imageAspectRatio / (imageBounds.getNorth() - imageBounds.getSouth());
-//             // increase height of #mapid to fit aspect ratio. use smooth animation
-//             var mapHeight = $('#mapid').height();
-//             var mapWidth = $('#mapid').width();
-//             var mapAspectRatio = mapWidth / mapHeight;
-//             console.log(imageAspectRatio, mapAspectRatio);
-//             if (imageAspectRatio > .5) {
-//                 var newHeight = mapWidth * imageAspectRatio;
-//                 var newHeight = imageHeight;
-//                 $('#mapid').animate({ height: newHeight }, 500);
-//             }
-
-//             // set map bounds
-//             map.fitBounds(imageBounds);
-
-//         });
-
-//         container.title = "Title";
-
-//         return container;
-//     },
-//     onRemove: function (map) { },
-// });
 
 async function setMapSize(options, animate = true) {
     if (options.height == 'short') {
@@ -1842,6 +1805,34 @@ function settingsPopup() {
         ;
 }
 
+function copyOutputToClipboard() {
+    $('#copyOutputToClipboard').addClass('double loading disabled');
+    var output = document.getElementById('text-output').value;
+    if (output.length > 0) {
+        navigator.clipboard.writeText(output).then(function () {
+            displayMessage({ message: 'Copied ' + output.length + ' characters.' });
+        }, function (err) {
+            displayMessage({ message: 'Could not copy output. ' + err });
+        });
+    } else {
+        displayMessage({ message: 'No text to copy.' });
+    }
+    setTimeout(() => {
+        $('#copyOutputToClipboard').removeClass('double loading disabled');
+    }, 100);
+
+}
+
+function toggleBetweenTransliterationAndOCR(e) {
+    appSettings.interface.showTransliteratedText = !appSettings.interface.showTransliteratedText
+    pasteOutput();
+    // if (appSettings.interface.showTransliteratedText) {
+    //     $('#toggleBetweenTransliterationAndOCR')[0].textContent = 'L'
+    // } else {
+    //     $('#toggleBetweenTransliterationAndOCR')[0].textContent = 'Л'
+    // }
+}
+
 $(document).ready(async function () {
     $('#imageFile').prop('disabled', false);
     // displayMessage({ message: 'Hover over the question mark in the top right corner for help and keyboard shortcuts.' });
@@ -1980,12 +1971,12 @@ $(document).ready(async function () {
                 boxdata.push(newbox);
             });
 
-            redetectText(newboxes);
-            sortAllBoxes();
-            updateProgressBar({ type: 'tagging' });
-            updateSlider({ max: boxdata.length });
+            // redetectText(newboxes);
+            // sortAllBoxes();
+            // updateProgressBar({ type: 'tagging' });
+            // updateSlider({ max: boxdata.length });
             setMainLoadingStatus(false);
-            setButtons({ state: 'disabled' });
+            setButtons({ state: 'enabled' });
         }
         focusRectangle(selectedPoly);
     });
@@ -2000,6 +1991,8 @@ $(document).ready(async function () {
     $('#uploadNewImage').on("click", loadImageFile);
     $('#redetectAllBoxes').on("click", findAllTextInImage);
     $('#regenerateTextSuggestionForSelectedBox').on("click", regenerateTextSuggestionForSelectedBox);
+    $('#toggleBetweenTransliterationAndOCR').on("click", toggleBetweenTransliterationAndOCR);
+    $('#copyOutputToClipboard').on("click", copyOutputToClipboard);
     $('#settingsButton').on("click", settingsPopup);
 
     await $.ajax({
