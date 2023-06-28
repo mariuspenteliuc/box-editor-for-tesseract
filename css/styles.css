@@ -97,6 +97,29 @@ $('#updateTxt').popup('get popup').css('scrollbar-width', 'none'); */
   display: none;
 }
 
+.leaflet-draw-toolbar a.leaflet-draw-draw-polyline,
+.leaflet-draw-toolbar a.leaflet-draw-draw-rectangle,
+.leaflet-draw-toolbar a.leaflet-draw-edit-remove {
+  background: white;
+}
+.leaflet-draw-draw-polyline::before {
+  content: "\f0c4";
+}
+.leaflet-draw-draw-rectangle::before {
+  content: "\f0c8";
+}
+.leaflet-draw-edit-remove::before {
+  /* content: "\f1f8"; */
+  content: "\f2ed";
+}
+
+
+
+.leaflet-draw-toolbar a,
+.leaflet-control-zoom a{
+  font-family: icons;
+}
+
 /* Custom Controls */
 #custom-controls.ui.form .inline.fields {
   margin-bottom: 0;

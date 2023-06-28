@@ -27,6 +27,11 @@ function updateCookie() {
     Cookies.set("appSettings", JSON.stringify(appSettings));
 }
 
+async function useSampleImage(e) {
+    loadImageFile(e, true);
+    closeSettingsPopup();
+}
+
 async function resetAppSettingsAndCookies() {
     response = await askUser({
         title: 'Reset App',
@@ -763,6 +768,9 @@ async function transliterateText(text, callback) {
         .catch((error) => console.error(error));
 }
 
+function clearOutput() {
+    $('#text-output').text('');
+}
 
 async function pasteOutput() {
     if (appSettings.interface.showTransliteratedText) {
@@ -784,6 +792,13 @@ async function findAllTextInImage() {
         var result = await askUser({
             title: 'Redetect all text in image?',
             message: 'You already drew some boxes. Do you want to find all text in the image and delete your existing boxes?',
+            actions: [{
+                text: 'No',
+                class: 'cancel',
+            }, {
+                text: 'Yes',
+                class: 'positive',
+            }]
         })
     }
     if (result || !boxdata.length) {
@@ -1184,7 +1199,7 @@ function updateProgressBar(options = {}) {
     }
 }
 
-async function loadImageFile(e) {
+async function loadImageFile(e, sample = false) {
     if (boxdataIsDirty || lineIsDirty) {
         var result = await askUser({
             message: 'You did not download current progress. Are you sure you want to load a new image?',
@@ -1200,14 +1215,30 @@ async function loadImageFile(e) {
     }
     setButtons({ state: 'disabled' });
 
-    if ((file = this.files[0])) {
+    // if (sample) {
+    //     // load image from '/sampleImage.jpg',
+    //     file =
+    // }
+    var defaultImageUrl = '../../assets/sampleImage.jpg';
+    if (sample) {
+        imageFileName = defaultImageUrl.split('.').slice(0, -1).join('.');
+        imageFileNameForButton = defaultImageUrl;
+        filename = 'sampleImage.jpg';
+    } else if (file = this.files[0]) {
         imageFileName = file.name.split('.').slice(0, -1).join('.');
         imageFileNameForButton = file;
+        filename = file.name;
+    }
         img = new Image();
         img.onload = async function () {
             map.eachLayer(function (layer) {
                 map.removeLayer(layer);
             });
+            boxlayer.clearLayers();
+            boxdata = [];
+            boxdataIsDirty = false;
+            lineIsDirty = false;
+            clearOutput();
 
             h = this.height
             w = this.width
@@ -1224,7 +1255,7 @@ async function loadImageFile(e) {
                     $(image._image).fadeIn(500);
                 });
             } else {
-                map.fitBounds(bounds2);
+                map.fitBounds(bounds);
                 image = new L.imageOverlay(img.src, bounds, imageOverlayOptions).addTo(map);
                 $(image._image).fadeIn(750);
             }
@@ -1232,7 +1263,7 @@ async function loadImageFile(e) {
             imageWidth = this.width;
         };
         img.onerror = function () {
-            var ext = file.name.split('.').pop();
+            var ext = filename.split('.').pop();
             displayMessage({
                 type: 'error',
                 message: 'Expected image file. Received ' + ext + ' file.',
@@ -1240,7 +1271,11 @@ async function loadImageFile(e) {
             })
             $('#imageFile').val(imageFileNameForButton);
         };
-        img.src = _URL.createObjectURL(file);
+        if (sample) {
+            img.src = defaultImageUrl;
+        } else {
+            img.src = _URL.createObjectURL(file);
+        }
         updateDownloadButtonsLabels({
             boxDownloadButton: imageFileName + '.box',
             groundTruthDownloadButton: imageFileName + '.gt.txt'
@@ -1269,7 +1304,7 @@ async function loadImageFile(e) {
         $('#formtxt').select();
         // fade image opacity back to 1 during 500ms
         $(image._image).animate({ opacity: 1 }, 500);
-    }
+
 }
 
 function initializeSlider() {
@@ -1824,7 +1859,33 @@ function showCharInfoPopup(e) { // prevent modifier keys from triggering popup
     }
 }
 
+function closeSettingsPopup() {
+    $('.ui.settings.modal').modal('hide');
+    return;
+}
+
+function helpSettingsPopup() {
+    $('.popup')
+        .popup('hide')
+        ;
+    $('.ui.settings.modal')
+        .modal('show')
+        ;
+    $('#settingsMenu .item').removeClass('active');
+    $('.ui.tab').removeClass('active');
+
+    // set data-tab="help-section" active and show help-section
+    $('#settingsMenu .item').filter('#helpTab').addClass('active')
+    $('.ui.tab').filter('#helpTab').addClass('active')
+    // $('#help-section').addClass('active');
+
+}
+
+
 function settingsPopup() {
+    $('.popup')
+        .popup('hide')
+        ;
     $('.ui.settings.modal')
         .modal('show')
         ;
@@ -1851,18 +1912,15 @@ function copyOutputToClipboard() {
 function toggleBetweenTransliterationAndOCR(e) {
     appSettings.interface.showTransliteratedText = !appSettings.interface.showTransliteratedText
     pasteOutput();
-    // if (appSettings.interface.showTransliteratedText) {
-    //     $('#toggleBetweenTransliterationAndOCR')[0].textContent = 'L'
-    // } else {
-    //     $('#toggleBetweenTransliterationAndOCR')[0].textContent = 'Л'
-    // }
+    if (appSettings.interface.showTransliteratedText) {
+        $("#toggleBetweenTransliterationAndOCR span")[0].setAttribute('data-tooltip', 'Switch to recognized RTS text');
+    } else {
+        $("#toggleBetweenTransliterationAndOCR span")[0].setAttribute('data-tooltip', 'Switch to transliterated text');
+    }
 }
 
 $(document).ready(async function () {
     $('#imageFile').prop('disabled', false);
-    // displayMessage({ message: 'Hover over the question mark in the top right corner for help and keyboard shortcuts.' });
-
-    $('.menu .question.circle.icon').popup({ inline: true });
     setFormKeyboardControl();
 
     map = new L.map('mapid', {
@@ -2018,8 +2076,10 @@ $(document).ready(async function () {
     $('#regenerateTextSuggestionForSelectedBox').on("click", regenerateTextSuggestionForSelectedBox);
     $('#toggleBetweenTransliterationAndOCR').on("click", toggleBetweenTransliterationAndOCR);
     $('#copyOutputToClipboard').on("click", copyOutputToClipboard);
-    $('#settingsButton').on("click", settingsPopup);
+    $('.settingsPopup').on("click", settingsPopup);
+    $('.helpSettingsPopup').on("click", helpSettingsPopup);
     $('#resetAppSettingsAndCookies').on("click", resetAppSettingsAndCookies);
+    $('#useSampleImage').on("click", useSampleImage);
 
     await $.ajax({
         url: '../../assets/unicodeData.csv',
@@ -2036,7 +2096,24 @@ $(document).ready(async function () {
     $('#formtxt').bind('mouseup', showCharInfoPopup);
     $('#formtxt').bind('keyup', showCharInfoPopup);
 
+    $('#uploadNewImage')
+        .popup({
+            popup: '.ui.useSampleImage.popup',
+            // position: 'top center',
+            position: 'top left',
+            hoverable: true,
+        })
+        ;
 
+    $('.message .close')
+        .on('click', function () {
+            $(this)
+                .closest('.message')
+                .transition('fade')
+                ;
+            // $('.ui.bottom.attached.borderless.secondary.segment').removeClass('bottom attached');
+        })
+        ;
 
     $('#settingsMenu .item')
         .tab()
