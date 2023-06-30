@@ -67,38 +67,6 @@
           <a href="../../module/words-pairing" class="item">
             Words Pairing
           </a>
-          <div class="item">
-            <i class="large fitted question circle icon"></i>
-            <div class="ui fixed very wide popup">
-              <div class="header">Welcome!</div>
-              <div class="content">
-                <p>
-                  Upload an image to tag it with the ground truth. Bounding boxes are automatically generated and can be
-                  edited. You
-                  can also upload an existing <code>.box</code> file to edit it, but the generated bounding boxes will
-                  be
-                  overwritten.
-                </p>
-                <p>
-                  The progress bar shows the progress of the tagging. When done, download the <code>.box</code> file and
-                  the
-                  <code>.gt.txt</code> file to use in Tesseract.
-                </p>
-                <p>
-                  Box handles appear after clicking on it. You can drag them to move the box or resize it. Create boxes
-                  using the
-                  square tool and delete them using the trash can tool.
-                </p>
-                <div class="ui sub header">Tips</div>
-                <p>
-                  Select characters in the input field to see their Unicode name.
-                </p>
-                <p>
-                  While tagging use <code>return</code> and <code>shift+return</code> to move forward and backward.
-                </p>
-              </div>
-            </div>
-          </div>
           <a id="settingsButton" class="item">
             <i class="large fitted cog circle icon"></i>
           </a>
@@ -178,26 +146,6 @@
               <i class="redo icon"></i>
             </button>
           </div>
-          <!-- <div class="field">
-                    <div class="ui animated fade button" tabindex="0">
-                      <div class="hidden content">Invisibles</div>
-                      <div class="visible content">
-                          <i class="paragraph icon"></i>
-                      </div>
-                    </div>
-                  </div> -->
-          <!-- <div class="field">
-                    <div class="ui tiny toggle checkbox">
-                      <input type="checkbox">
-                      <label>Toggle</label>
-                    </div>
-                  </div>
-                  <div class="field">
-                    <div class="ui tiny slider checkbox">
-                      <input type="checkbox">
-                      <label>Slider</label>
-                    </div>
-                  </div> -->
         </div>
       </div>
       <div id="main-edit-area" class="ui basic fitted segment">
@@ -301,6 +249,7 @@
             <a class="item active" data-tab="interface-settings">Interface</a>
             <a class="item" data-tab="behavior-settings">Behavior</a>
             <div class="ui divider"></div>
+            <a id="helpTab" class="bottom attached item" data-tab="help-section">Help</a>
             <a class="bottom attached item" data-tab="about-section">About</a>
           </div>
         </div>
@@ -432,6 +381,99 @@
                       <input type="checkbox" name="behavior.alerting.enableWarrningMessagesForUncommittedChanges">
                       <label>Leaving or loading an image without first downloading</label>
                     </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div id="helpTab" class="ui tab" data-tab="help-section">
+            <div class="ui relaxed list">
+              <h3 class="ui header">How to use the Box Editor</h3>
+              <p>
+                To start, you must pick an image to tag it with the ground truth. Bounding boxes are automatically generated and can be
+                edited. You
+                can also upload an existing <code>.box</code> file to edit it, but the generated bounding boxes will
+                be
+                overwritten.
+              </p>
+              <p>
+                The progress bar shows the progress of the tagging. When done, download the <code>.box</code> file and
+                the
+                <code>.gt.txt</code> file to use in Tesseract.
+              </p>
+              <p>
+                Box handles appear after clicking on it. You can drag them to move the box or resize it. Create boxes
+                using the
+                square tool and delete them using the trash can tool.
+              </p>
+              <div class="ui sub header">Tips</div>
+              <p>
+                Select characters in the input field to see their Unicode name.
+              </p>
+              <p>
+                While tagging use <code>return</code> and <code>shift+return</code> to move forward and backward.
+              </p>
+              <button id="useSampleImage" class="ui right labeled basic icon button">
+                <i class="right arrow icon"></i>
+                Use sample
+              </button>
+              <h4>Toolbar Actions:</h4>
+              <div class="ui list">
+                <div class="item">
+                  <i class="paragraph icon"></i>
+                  <div class="content">
+                    Toggle invisibles on or off.
+                  </div>
+                </div>
+                <div class="item">
+                  <i class="magic icon"></i>
+                  <div class="content">
+                    Detect all lines of text and draw boxes for them.
+                  </div>
+                </div>
+                <div class="item">
+                  <i class="sync icon"></i>
+                  <div class="content">
+                    Redetect text in boxes and regenerate output.
+                  </div>
+                </div>
+                <div class="item">
+                  <i class="redo icon"></i>
+                  <div class="content">
+                    Redetect text for selected box and regenerate output.
+                  </div>
+                </div>
+              </div>
+              <h4>Image Actions:</h4>
+              <div class="ui list">
+                <div class="item">
+                  <i class="plus icon"></i>
+                  <div class="content">
+                    Zoom into the image.
+                  </div>
+                </div>
+                <div class="item">
+                  <i class="minus icon"></i>
+                  <div class="content">
+                    Zoom out of the image.
+                  </div>
+                </div>
+                <div class="item">
+                  <i class="cut icon"></i>
+                  <div class="content">
+                    Split boxes into columns.
+                  </div>
+                </div>
+                <div class="item">
+                  <i class="square icon"></i>
+                  <div class="content">
+                    Draw boxes to define regions of text.
+                  </div>
+                </div>
+                <div class="item">
+                  <i class="trash alternate icon"></i>
+                  <div class="content">
+                    Clear drawn boxes selectively.
                   </div>
                 </div>
               </div>
