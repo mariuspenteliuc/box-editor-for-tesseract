@@ -31,6 +31,36 @@ function updateCookie() {
     Cookies.set("appSettings", JSON.stringify(appSettings));
 }
 
+async function resetAppSettingsAndCookies() {
+    response = await askUser({
+        title: 'Reset App',
+        message: 'The app will reset it\'s settings and reload. Are you sure you want to continue?',
+        // confirmText: 'Reset',
+        // denyText: 'No',
+        type: 'replacingTextWarning',
+        actions: [{
+            text: 'Cancel',
+            class: 'cancel',
+        }, {
+            text: 'Reset',
+            class: 'red ok',
+        }]
+    });
+    console.log("response:", response);
+    if (response) {
+        clearCookies();
+    }
+}
+
+function clearCookies() {
+    // remove all cookies
+    const cookies = Cookies.get();
+    for (const cookie in cookies) {
+        Cookies.remove(cookie);
+    }
+    location.reload();
+}
+
 // Update appSettings based on user modifications
 function updateAppSettings({ path, value, cookie }) {
 
@@ -1274,16 +1304,23 @@ async function colorize(text) {
     return colored_text;
 }
 
-window.onbeforeunload = async function () {
+// window.onbeforeunload = async function () {
+//     if (boxdataIsDirty || lineIsDirty) {
+//         // return 'You have unsaved changes. Are you sure you want to leave?';
+//         return await askUser({
+//             message: 'You have unsaved changes. Are you sure you want to continue?',
+//             title: 'Unsaved Changes',
+//             type: 'uncommittedChangesWarning',
+//             confirmText: 'Yes',
+//             denyText: 'No',
+//         });
+//     }
+// }
+window.onbeforeunload = function (event) {
     if (boxdataIsDirty || lineIsDirty) {
-        // return 'You have unsaved changes. Are you sure you want to leave?';
-        return await askUser({
-            message: 'You have unsaved changes. Are you sure you want to continue?',
-            title: 'Unsaved Changes',
-            type: 'uncommittedChangesWarning',
-            confirmText: 'Yes',
-            denyText: 'No',
-        });
+        const confirmationMessage = 'You have unsaved changes. Are you sure you want to continue?';
+        event.returnValue = confirmationMessage; // This is required for most browsers
+        return confirmationMessage; // This will show the custom dialog box
     }
 }
 
@@ -1947,7 +1984,7 @@ $(document).ready(async function () {
             updateProgressBar({ type: 'tagging' });
             updateSlider({ max: boxdata.length });
             setMainLoadingStatus(false);
-            setButtons({ state: 'disabled' });
+            setButtons({ state: 'enabled' });
         }
         focusRectangle(selectedPoly);
     });
@@ -1995,5 +2032,7 @@ $(document).ready(async function () {
     if (cookieValue) {
         cookieSettings = JSON.parse(cookieValue);
         updateAppSettings({ cookie: cookieSettings });
+    } else {
+        updateSettingsModal();
     }
 });

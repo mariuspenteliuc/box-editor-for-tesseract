@@ -884,9 +884,11 @@ function colorize(text) {
 }
 
 // warn user if they try to leave page with unsaved changes
-window.onbeforeunload = function () {
+window.onbeforeunload = function (event) {
   if (boxdataIsDirty || lineIsDirty) {
-    return 'You have unsaved changes. Are you sure you want to leave?';
+    const confirmationMessage = 'You have unsaved changes. Are you sure you want to continue?';
+    event.returnValue = confirmationMessage; // This is required for most browsers
+    return confirmationMessage; // This will show the custom dialog box
   }
 }
 

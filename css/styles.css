@@ -33,7 +33,7 @@ a.more.external {
 }
 
 .maprow {
-  height: 280px;
+  height: 400px;
   border: 2px solid gray;
   margin-top: 20px;
   margin-bottom: 20px;
@@ -44,8 +44,11 @@ a.more.external {
   height: 30rem
 }
 
-.ui.vertical.divider {
-  left: 62.5%;
+#text-output.ui.text-output.segment {
+  height: 100%;
+  width: 100%;
+  max-width: 100%;
+  resize: none;
 }
 
 /* // apply style to popup
@@ -92,6 +95,29 @@ $('#updateTxt').popup('get popup').css('scrollbar-width', 'none'); */
 
 .leaflet-image-layer {
   display: none;
+}
+
+.leaflet-draw-toolbar a.leaflet-draw-draw-polyline,
+.leaflet-draw-toolbar a.leaflet-draw-draw-rectangle,
+.leaflet-draw-toolbar a.leaflet-draw-edit-remove {
+  background: white;
+}
+.leaflet-draw-draw-polyline::before {
+  content: "\f0c4";
+}
+.leaflet-draw-draw-rectangle::before {
+  content: "\f0c8";
+}
+.leaflet-draw-edit-remove::before {
+  /* content: "\f1f8"; */
+  content: "\f2ed";
+}
+
+
+
+.leaflet-draw-toolbar a,
+.leaflet-control-zoom a{
+  font-family: icons;
 }
 
 /* Custom Controls */
