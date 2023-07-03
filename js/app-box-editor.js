@@ -31,25 +31,10 @@ function updateCookie() {
     Cookies.set("appSettings", JSON.stringify(appSettings));
 }
 
-async function resetAppSettingsAndCookies() {
-    response = await askUser({
-        title: 'Reset App',
-        message: 'The app will reset it\'s settings and reload. Are you sure you want to continue?',
-        // confirmText: 'Reset',
-        // denyText: 'No',
-        type: 'replacingTextWarning',
-        actions: [{
-            text: 'Cancel',
-            class: 'cancel',
-        }, {
-            text: 'Reset',
-            class: 'red ok',
-        }]
-    });
-    console.log("response:", response);
-    if (response) {
-        clearCookies();
-    }
+async function useSampleImage(e) {
+    loadImageFile(e, true);
+    loadBoxFile(e, true);
+    closeSettingsPopup();
 }
 
 async function resetAppSettingsAndCookies() {
@@ -919,7 +904,7 @@ async function askUser(object) {
 }
 
 
-async function loadBoxFile(e) {
+async function loadBoxFile(e, sample = false) {
     if (boxdataIsDirty) {
         var result = await askUser({
             message: 'You did not download current progress. Do you want to overwrite existing data?',
@@ -934,34 +919,38 @@ async function loadBoxFile(e) {
     }
     var reader = new FileReader();
     var file;
-    if ((file = this.files[0])) {
-        var ext = file.name.split('.').pop();
-        if (ext != 'box') {
-            displayMessage({
-                type: 'error',
-                message: 'Expected box file. Received ' + ext + ' file.',
-                title: 'Invalid File Type'
-            });
-            $('#boxFile').val(boxFileName);
-            return;
-        } else if (imageFileName != file.name.split('.').slice(0, -1).join('.') && imageFileName != undefined) {
-            result = await askUser({
-                message: 'Chosen file has name <code>' + file.name + '</code> instead of expected <code>' + imageFileName + '.box</code>.<br> Are you sure you want to continue?',
-                title: 'Unexpected File Name',
-                type: 'differentFileNameWarning',
-                confirmText: 'Yes',
-                denyText: 'No',
-            });
-            if (!result) {
-                $('#boxFile').val(boxFileNameForButton);
-                return;
-            }
-        }
-        reader.readAsText(file);
-        file.name.split('.').slice(0, -1).join('.');
-        boxFileNameForButton = file;
-        $(reader).on('load', processFile);
+    var defaultBoxUrl = '../../assets/sampleImage.box';
+    if (sample) {
+        file = new File([await (await fetch(defaultBoxUrl)).blob()], 'sampleImage.box');
+    } else {
+        file = this.files[0];
     }
+    var ext = file.name.split('.').pop();
+    if (ext != 'box') {
+        displayMessage({
+            type: 'error',
+            message: 'Expected box file. Received ' + ext + ' file.',
+            title: 'Invalid File Type'
+        });
+        $('#boxFile').val(boxFileName);
+        return;
+    } else if (imageFileName != file.name.split('.').slice(0, -1).join('.') && imageFileName != undefined) {
+        result = await askUser({
+            message: 'Chosen file has name <code>' + file.name + '</code> instead of expected <code>' + imageFileName + '.box</code>.<br> Are you sure you want to continue?',
+            title: 'Unexpected File Name',
+            type: 'differentFileNameWarning',
+            confirmText: 'Yes',
+            denyText: 'No',
+        });
+        if (!result) {
+            $('#boxFile').val(boxFileNameForButton);
+            return;
+        }
+    }
+    reader.readAsText(file);
+    file.name.split('.').slice(0, -1).join('.');
+    boxFileNameForButton = file;
+    $(reader).on('load', processFile);
 }
 
 async function setButtons({ state }) {
@@ -1087,7 +1076,7 @@ function updateProgressBar(options = {}) {
     }
 }
 
-async function loadImageFile(e) {
+async function loadImageFile(e, sample = false) {
     if (boxdataIsDirty || lineIsDirty) {
         var result = await askUser({
             message: 'You did not download current progress. Are you sure you want to load a new image?',
@@ -1103,74 +1092,84 @@ async function loadImageFile(e) {
     }
     setButtons({ state: 'disabled' });
 
-    if ((file = this.files[0])) {
+    var defaultImageUrl = '../../assets/sampleImage.jpg';
+    if (sample) {
+        imageFileName = defaultImageUrl.split('/').pop().split('.').slice(0, -1).join('.');
+        imageFileNameForButton = defaultImageUrl;
+        filename = 'sampleImage.jpg';
+    } else if (file = this.files[0]) {
         imageFileName = file.name.split('.').slice(0, -1).join('.');
         imageFileNameForButton = file;
-        img = new Image();
-        img.onload = async function () {
-            map.eachLayer(function (layer) {
-                map.removeLayer(layer);
-            });
-
-            h = this.height
-            w = this.width
-            bounds = [[0, 0], [parseInt(h), parseInt(w)]]
-            var bounds2 = [[h - 300, 0], [h, w]]
-            imageOverlayOptions = {
-                opacity: appSettings.behavior.onImageLoad.detectAllLines ? 0.25 : 1
-            }
-            if (image) {
-                $(image._image).fadeOut(750, function () {
-                    map.removeLayer(image);
-                    // map.fitBounds(bounds2,);
-                    image = new L.imageOverlay(img.src, bounds, imageOverlayOptions).addTo(map);
-                    $(image._image).fadeIn(500);
-                });
-            } else {
-                map.fitBounds(bounds2);
-                image = new L.imageOverlay(img.src, bounds, imageOverlayOptions).addTo(map);
-                $(image._image).fadeIn(750);
-            }
-            imageHeight = this.height;
-            imageWidth = this.width;
-        };
-        img.onerror = function () {
-            var ext = file.name.split('.').pop();
-            displayMessage({
-                type: 'error',
-                message: 'Expected image file. Received ' + ext + ' file.',
-                title: 'Invalid File Type'
-            })
-            $('#imageFile').val(imageFileNameForButton);
-        };
-        img.src = _URL.createObjectURL(file);
-        updateDownloadButtonsLabels({
-            boxDownloadButton: imageFileName + '.box',
-            groundTruthDownloadButton: imageFileName + '.gt.txt'
-        });
-        worker = await Tesseract.createWorker({
-            langPath: '../../assets',
-            gzip: false,
-            logger: m => processWorkerLogMessage(m)
-        });
-        await worker.loadLanguage('RTS_from_Cyrillic');
-        await worker.initialize('RTS_from_Cyrillic');
-        await worker.setParameters({
-            // tessedit_ocr_engine_mode: OcrEngineMode.OEM_LSTM_ONLY,
-            // tessedit_ocr_engine_mode: "OcrEngineMode.OEM_LSTM_ONLY",
-            // tessedit_pageseg_mode: "PSM_AUTO_OSD"
-            tessedit_ocr_engine_mode: 1,
-            tessedit_pageseg_mode: 1,// 12
-        });
-        if (appSettings.behavior.onImageLoad.detectAllLines) {
-            result = await generateInitialBoxes(includeSuggestions = appSettings.behavior.onImageLoad.includeTextForDetectedLines);
-        }
-        setButtons({ state: 'enabled' });
-        $('#formtxt').focus();
-        $('#formtxt').select();
-        // fade image opacity back to 1 during 500ms
-        $(image._image).animate({ opacity: 1 }, 500);
+        filename = file.name;
     }
+    img = new Image();
+    img.onload = async function () {
+        map.eachLayer(function (layer) {
+            map.removeLayer(layer);
+        });
+
+        h = this.height
+        w = this.width
+        bounds = [[0, 0], [parseInt(h), parseInt(w)]]
+        var bounds2 = [[h - 300, 0], [h, w]]
+        imageOverlayOptions = {
+            opacity: appSettings.behavior.onImageLoad.detectAllLines ? 0.25 : 1
+        }
+        if (image) {
+            $(image._image).fadeOut(750, function () {
+                map.removeLayer(image);
+                // map.fitBounds(bounds2,);
+                image = new L.imageOverlay(img.src, bounds, imageOverlayOptions).addTo(map);
+                $(image._image).fadeIn(500);
+            });
+        } else {
+            map.fitBounds(bounds2);
+            image = new L.imageOverlay(img.src, bounds, imageOverlayOptions).addTo(map);
+            $(image._image).fadeIn(750);
+        }
+        imageHeight = this.height;
+        imageWidth = this.width;
+    };
+    img.onerror = function () {
+        var ext = file.name.split('.').pop();
+        displayMessage({
+            type: 'error',
+            message: 'Expected image file. Received ' + ext + ' file.',
+            title: 'Invalid File Type'
+        })
+        $('#imageFile').val(imageFileNameForButton);
+    };
+    if (sample) {
+        img.src = defaultImageUrl;
+    } else {
+        img.src = _URL.createObjectURL(file);
+    }
+    updateDownloadButtonsLabels({
+        boxDownloadButton: imageFileName + '.box',
+        groundTruthDownloadButton: imageFileName + '.gt.txt'
+    });
+    worker = await Tesseract.createWorker({
+        langPath: '../../assets',
+        gzip: false,
+        logger: m => processWorkerLogMessage(m)
+    });
+    await worker.loadLanguage('RTS_from_Cyrillic');
+    await worker.initialize('RTS_from_Cyrillic');
+    await worker.setParameters({
+        // tessedit_ocr_engine_mode: OcrEngineMode.OEM_LSTM_ONLY,
+        // tessedit_ocr_engine_mode: "OcrEngineMode.OEM_LSTM_ONLY",
+        // tessedit_pageseg_mode: "PSM_AUTO_OSD"
+        tessedit_ocr_engine_mode: 1,
+        tessedit_pageseg_mode: 1,// 12
+    });
+    if (appSettings.behavior.onImageLoad.detectAllLines && !sample) {
+        result = await generateInitialBoxes(includeSuggestions = appSettings.behavior.onImageLoad.includeTextForDetectedLines);
+    }
+    setButtons({ state: 'enabled' });
+    $('#formtxt').focus();
+    $('#formtxt').select();
+    // fade image opacity back to 1 during 500ms
+    $(image._image).animate({ opacity: 1 }, 500);
 }
 
 function initializeSlider() {
@@ -1791,7 +1790,33 @@ function showCharInfoPopup(e) { // prevent modifier keys from triggering popup
     }
 }
 
+function closeSettingsPopup() {
+    $('.ui.settings.modal').modal('hide');
+    return;
+}
+
+function helpSettingsPopup() {
+    $('.popup')
+        .popup('hide')
+        ;
+    $('.ui.settings.modal')
+        .modal('show')
+        ;
+    $('#settingsMenu .item').removeClass('active');
+    $('.ui.tab').removeClass('active');
+
+    // set data-tab="help-section" active and show help-section
+    $('#settingsMenu .item').filter('#helpTab').addClass('active')
+    $('.ui.tab').filter('#helpTab').addClass('active')
+    // $('#help-section').addClass('active');
+
+}
+
+
 function settingsPopup() {
+    $('.popup')
+        .popup('hide')
+        ;
     $('.ui.settings.modal')
         .modal('show')
         ;
@@ -2015,6 +2040,7 @@ $(document).ready(async function () {
     $('#redetectAllBoxes').on("click", regenerateInitialBoxes);
     $('#regenerateTextSuggestionForSelectedBox').on("click", regenerateTextSuggestionForSelectedBox);
     $('#settingsButton').on("click", settingsPopup);
+    $('.helpSettingsPopup').on("click", helpSettingsPopup);
     $('#resetAppSettingsAndCookies').on("click", resetAppSettingsAndCookies);
     $('#useSampleImage').on("click", useSampleImage);
 
@@ -2033,7 +2059,14 @@ $(document).ready(async function () {
     $('#formtxt').bind('mouseup', showCharInfoPopup);
     $('#formtxt').bind('keyup', showCharInfoPopup);
 
-
+    $('#imageFile')
+        .popup({
+            popup: '.ui.useSampleImage.popup',
+            // position: 'top center',
+            position: 'top left',
+            hoverable: true,
+        })
+        ;
 
     $('#settingsMenu .item')
         .tab()
