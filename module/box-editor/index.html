@@ -31,6 +31,9 @@
   <!-- <script>
     var bbox = turf.bbox(features);
   </script> -->
+  <!-- Dropzone -->
+  <script src="https://unpkg.com/dropzone@5/dist/min/dropzone.min.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/dropzone@5/dist/min/dropzone.min.css" type="text/css" />
 
   <!-- Tesseract -->
   <script src='https://unpkg.com/tesseract.js@4.0.2/dist/tesseract.min.js'></script>
@@ -73,8 +76,16 @@
         </div>
       </div>
     </div>
-    <div class="ui segments">
-      <div class="ui secondary segment">
+    <!-- <div class="ui placeholder segment my-dropzone"></div> -->
+      <div class="ui blurring secondary segment my-dropzone">
+        <div class="ui inverted dimmer">
+          <div class="content">
+            <h2 class="ui inverted icon header">
+              <i class="file upload icon"></i>
+              Drop the image / box pair here!
+            </h2>
+          </div>
+        </div>
         <div class="ui two column stackable grid">
           <div class="eight wide column">
             <h4 class="ui dividing header">Upload Documents</h4>
@@ -129,7 +140,6 @@
           </div>
         </div>
       </div>
-    </div>
     <div id="taggingSegment" class="ui disable secondary segment">
       <div id="custom-controls" class="ui form">
         <div class="inline fields">

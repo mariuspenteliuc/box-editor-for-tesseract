@@ -160,7 +160,7 @@ var mapDeletingState = false;
 var mapEditingState = false;
 var currentSliderPosition = -1;
 var showInvisibles = false;
-
+var dropzone = undefined;
 
 class Box {
     constructor({
@@ -1822,6 +1822,33 @@ function settingsPopup() {
         ;
 }
 
+function receiveDroppedFiles(e) {
+    if (e.length > 2) {
+        displayMessage({
+            title: 'Drag Box',
+            message: 'Too many files dropped!',
+            type: 'error'
+        });
+        return;
+    }
+    if (e.length == 1 && e[0].name.endsWith('.box')) {
+        displayMessage({
+            title: 'Drag Box',
+            message: 'You need at least one image.',
+        });
+        return;
+    }
+    loadImageFile(e);
+    loadBoxFile(e);
+}
+
+function confirmDrag() {
+    displayMessage({
+        title: 'Drag Box',
+        message: 'Files dragged',
+    });
+}
+
 $(document).ready(async function () {
     colorizedFields = [];
     colorizedFields.push($('#myInputBackground')[0]);
@@ -2050,11 +2077,64 @@ $(document).ready(async function () {
         success: function (data) {
             parsedData = $.csv.toObjects(data, {
                 separator: ';',
-                delimiter: '"'
+            delimiter: '"'
             });
             unicodeData = parsedData;
         }
     });
+    html = $('html')
+    // dropzone = $("div.my-dropzone *")
+    highlightzone = $("div.my-dropzone")
+    html.dropzone({
+        url: receiveDroppedFiles,
+        uploadMultiple: true,
+    })
+    // when 'dz-drag-hover' class is toggled on/off turn on dimmer
+    // var hoverObserver = new MutationObserver(function (mutations, observer) {
+    //     mutations.forEach(function (mutationRecord) {
+    //         if (mutationRecord.attributeName == "class") {
+    //             if (mutationRecord.target.classList.contains('dz-drag-hover')) {
+    //                 highlightzone.dimmer('show')
+    //             } else {
+    //                 highlightzone.dimmer('hide')
+    //             }
+    //         }
+    //     });
+    // });
+    // hoverObserver.observe($(highlightzone)[0], { attributes: true });
+    $(html).on('drag dragenter dragover', function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        if (html.hasClass('dz-drag-hover')) {
+            highlightzone.dimmer('show');
+        }
+        window.setTimeout(function () {
+            if (!html.hasClass('dz-drag-hover')) {
+                highlightzone.dimmer('hide');
+            }
+        }, 500);
+        // highlightzone.addClass('raised placeholder')
+        // highlightzone.removeClass('secondary')
+
+        // $('.my-dropzone .ui.two.column.stackable.grid')
+    });
+
+    // $(html).on('dragleave dragend', function (event) {
+    //     event.preventDefault()
+    //     event.stopPropagation();
+    //     // highlightzone.addClass('secondary')
+    //     // highlightzone.removeClass('raised placeholder')
+    //     if (!html.hasClass('dz-drag-hover')) {
+    //         highlightzone.dimmer('hide');
+    //     }
+    // });
+
+
+
+
+
+
+
 
     $('#formtxt').bind('mouseup', showCharInfoPopup);
     $('#formtxt').bind('keyup', showCharInfoPopup);
