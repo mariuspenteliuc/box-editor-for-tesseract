@@ -52,6 +52,27 @@ async function resetAppSettingsAndCookies() {
     }
 }
 
+async function resetAppSettingsAndCookies() {
+    response = await askUser({
+        title: 'Reset App',
+        message: 'The app will reset it\'s settings and reload. Are you sure you want to continue?',
+        // confirmText: 'Reset',
+        // denyText: 'No',
+        type: 'replacingTextWarning',
+        actions: [{
+            text: 'Cancel',
+            class: 'cancel',
+        }, {
+            text: 'Reset',
+            class: 'red ok',
+        }]
+    });
+    console.log("response:", response);
+    if (response) {
+        clearCookies();
+    }
+}
+
 function clearCookies() {
     // remove all cookies
     const cookies = Cookies.get();
@@ -863,12 +884,15 @@ async function askUser(object) {
         return true;
     }
     setPromptKeyboardControl();
-    // if (object.confirmText == undefined) {
-    //     object.confirmText = 'OK';
-    // }
-    // if (object.denyText == undefined) {
-    //     object.denyText = 'Cancel';
-    // }
+    if (object.actions == []) {
+        object.actions = [{
+            confirmText: 'Yes',
+            confirmTextClass: 'green positive',
+        }, {
+            denyText: 'No',
+            denyTextClass: 'red negative',
+        }]
+    }
     return new Promise((resolve, reject) => {
         $.modal({
             inverted: false,
@@ -889,15 +913,7 @@ async function askUser(object) {
                 resolve(false);
             },
             content: object.message,
-            actions: [
-                {
-                    text: object.confirmText,
-                    class: 'green positive'
-                }, {
-                    text: object.denyText,
-                    class: 'red negative'
-                }
-            ]
+            actions: object.actions,
         }).modal('show');
     });
 }
@@ -1999,6 +2015,8 @@ $(document).ready(async function () {
     $('#redetectAllBoxes').on("click", regenerateInitialBoxes);
     $('#regenerateTextSuggestionForSelectedBox').on("click", regenerateTextSuggestionForSelectedBox);
     $('#settingsButton').on("click", settingsPopup);
+    $('#resetAppSettingsAndCookies').on("click", resetAppSettingsAndCookies);
+    $('#useSampleImage').on("click", useSampleImage);
 
     await $.ajax({
         url: '../../assets/unicodeData.csv',
