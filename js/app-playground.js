@@ -1214,7 +1214,7 @@ async function loadImageFile(e, sample = false) {
         }
     }
     setButtons({ state: 'disabled' });
-
+    $('.guideMessage').dimmer('hide');
     // if (sample) {
     //     // load image from '/sampleImage.jpg',
     //     file =
@@ -1300,8 +1300,8 @@ async function loadImageFile(e, sample = false) {
             await pasteOutput();
         }
         setButtons({ state: 'enabled' });
-        $('#formtxt').focus();
-        $('#formtxt').select();
+        // $('#formtxt').focus();
+        // $('#formtxt').select();
         // fade image opacity back to 1 during 500ms
         $(image._image).animate({ opacity: 1 }, 500);
 
@@ -2114,7 +2114,7 @@ $(document).ready(async function () {
             // $('.ui.bottom.attached.borderless.secondary.segment').removeClass('bottom attached');
         })
         ;
-
+    $('.guideMessage').dimmer('show');
     $('#settingsMenu .item')
         .tab()
         ;

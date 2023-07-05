@@ -56,6 +56,15 @@ a.more.external {
   resize: none;
 }
 
+.guideMessage .dimmer {
+  z-index: 999;
+}
+
+.leaflet-control-container .leaflet-top,
+.leaflet-control-container .leaflet-bottom {
+  z-index: 998;
+}
+
 .mapalt {
   height: 580px;
   border: 2px solid gray;
