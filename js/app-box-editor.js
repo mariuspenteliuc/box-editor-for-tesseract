@@ -922,6 +922,8 @@ async function loadBoxFile(e, sample = false) {
     var defaultBoxUrl = '../../assets/sampleImage.box';
     if (sample) {
         file = new File([await (await fetch(defaultBoxUrl)).blob()], 'sampleImage.box');
+    } else if (e.name.includes('box')) {
+        file = e;
     } else {
         file = this.files[0];
     }
@@ -1097,6 +1099,11 @@ async function loadImageFile(e, sample = false) {
         imageFileName = defaultImageUrl.split('/').pop().split('.').slice(0, -1).join('.');
         imageFileNameForButton = defaultImageUrl;
         filename = 'sampleImage.jpg';
+    } else if (e.type.includes('image')) {
+        imageFileName = e.name.split('.').slice(0, -1).join('.');
+        imageFileNameForButton = e;
+        filename = e.name;
+        file = e;
     } else if (file = this.files[0]) {
         imageFileName = file.name.split('.').slice(0, -1).join('.');
         imageFileNameForButton = file;
@@ -1166,10 +1173,13 @@ async function loadImageFile(e, sample = false) {
         result = await generateInitialBoxes(includeSuggestions = appSettings.behavior.onImageLoad.includeTextForDetectedLines);
     }
     setButtons({ state: 'enabled' });
-    $('#formtxt').focus();
-    $('#formtxt').select();
+    if (appSettings.behavior.onImageLoad.detectAllLines) {
+        $('#formtxt').focus();
+        $('#formtxt').select();
+    }
     // fade image opacity back to 1 during 500ms
     $(image._image).animate({ opacity: 1 }, 500);
+    imageIsProcessed = true;
 }
 
 function initializeSlider() {
@@ -1822,25 +1832,60 @@ function settingsPopup() {
         ;
 }
 
-function receiveDroppedFiles(e) {
+async function receiveDroppedFiles(e) {
     if (e.length > 2) {
         displayMessage({
-            title: 'Drag Box',
-            message: 'Too many files dropped!',
+            title: 'Too many files',
+            message: 'Upload an image and, optionally, a box file.',
             type: 'error'
         });
         return;
     }
-    if (e.length == 1 && e[0].name.endsWith('.box')) {
+    if (e.length < 1) {
         displayMessage({
-            title: 'Drag Box',
-            message: 'You need at least one image.',
+            title: 'No files',
+            message: 'You need to drop at least one file.',
+            type: 'error'
         });
         return;
     }
-    loadImageFile(e);
-    loadBoxFile(e);
+
+    let imageFile = null;
+    let boxFile = null;
+
+    // Find the image and box file (if present)
+    for (let i = 0; i < e.length; i++) {
+        if (e[i].type.includes('image')) {
+            imageFile = e[i];
+        } else if (e[i].name.endsWith('.box')) {
+            boxFile = e[i];
+        } else {
+            displayMessage({
+                title: 'Invalid file type',
+                message: 'You can only upload an image and a box file.',
+                type: 'error'
+            });
+            return;
+        }
+    }
+
+    if (!imageFile && !imageIsProcessed) {
+        displayMessage({
+            title: 'No image file',
+            message: 'You need at least one image file.',
+            type: 'error'
+        });
+        return;
+    }
+
+    if (imageFile) {
+        await loadImageFile(imageFile);
+    }
+    if (boxFile) {
+        await loadBoxFile(boxFile);
+    }
 }
+
 
 function confirmDrag() {
     displayMessage({
@@ -2088,35 +2133,35 @@ $(document).ready(async function () {
     html.dropzone({
         url: receiveDroppedFiles,
         uploadMultiple: true,
+        parallelUploads: 3,
+        disablePreviews: true,
+        // maxFiles: 3,
     })
-    // when 'dz-drag-hover' class is toggled on/off turn on dimmer
-    // var hoverObserver = new MutationObserver(function (mutations, observer) {
-    //     mutations.forEach(function (mutationRecord) {
-    //         if (mutationRecord.attributeName == "class") {
-    //             if (mutationRecord.target.classList.contains('dz-drag-hover')) {
-    //                 highlightzone.dimmer('show')
-    //             } else {
-    //                 highlightzone.dimmer('hide')
-    //             }
-    //         }
-    //     });
-    // });
-    // hoverObserver.observe($(highlightzone)[0], { attributes: true });
     $(html).on('drag dragenter dragover', function (event) {
         event.preventDefault();
         event.stopPropagation();
         if (html.hasClass('dz-drag-hover')) {
-            highlightzone.dimmer('show');
+            highlightzone
+            .dimmer('show')
+            // .transition('pulsating')
+            .addClass('raised')
         }
         window.setTimeout(function () {
             if (!html.hasClass('dz-drag-hover')) {
-                highlightzone.dimmer('hide');
+                highlightzone
+                .dimmer('hide')
+                // .transition('stop all')
+                .removeClass('raised')
             }
-        }, 500);
-        // highlightzone.addClass('raised placeholder')
-        // highlightzone.removeClass('secondary')
-
-        // $('.my-dropzone .ui.two.column.stackable.grid')
+        }, 1500);
+    });
+    $(html).on('drop', function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        if (!html.hasClass('dz-drag-hover')) {
+            highlightzone
+                .transition('pulse')
+        }
     });
 
     // $(html).on('dragleave dragend', function (event) {
