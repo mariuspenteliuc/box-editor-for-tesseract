@@ -2144,6 +2144,7 @@ $(document).ready(async function () {
         parallelUploads: 3,
         disablePreviews: true,
         clickable: false,
+        acceptedFiles: "image/*,.box",
         // maxFiles: 3,
     })
     $(html).on('drag dragenter dragover', function (event) {
