@@ -2143,6 +2143,7 @@ $(document).ready(async function () {
         uploadMultiple: true,
         parallelUploads: 3,
         disablePreviews: true,
+        clickable: false,
         // maxFiles: 3,
     })
     $(html).on('drag dragenter dragover', function (event) {
