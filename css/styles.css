@@ -44,24 +44,16 @@ a.more.external {
   height: 30rem
 }
 
+#mainSettingsPane {
+  float: right;
+  overscroll-behavior: auto;
+}
+
 #text-output.ui.text-output.segment {
   height: 100%;
   width: 100%;
   max-width: 100%;
   resize: none;
-}
-
-/* // apply style to popup
-// max-height: 40em;overflow: scroll;
-$('#updateTxt').popup('get popup').css('max-height', '40em');
-$('#updateTxt').popup('get popup').css('overflow', 'scroll');
-$('#updateTxt').popup('get popup').css('scrollbar-width', 'none');
-$('#updateTxt').popup('get popup').css('scrollbar-width', 'none');
-$('#updateTxt').popup('get popup').css('-ms-overflow-style', 'none');
-// apply popup scrollbar for webkit
-$('#updateTxt').popup('get popup').css('scrollbar-width', 'none'); */
-.ui.popup::-webkit-scrollbar {
-  display: none;
 }
 
 .mapalt {

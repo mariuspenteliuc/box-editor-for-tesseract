@@ -1221,7 +1221,7 @@ async function loadImageFile(e, sample = false) {
     // }
     var defaultImageUrl = '../../assets/sampleImage.jpg';
     if (sample) {
-        imageFileName = defaultImageUrl.split('.').slice(0, -1).join('.');
+        imageFileName = defaultImageUrl.split('/').pop().split('.').slice(0, -1).join('.');
         imageFileNameForButton = defaultImageUrl;
         filename = 'sampleImage.jpg';
     } else if (file = this.files[0]) {
