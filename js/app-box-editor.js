@@ -817,9 +817,14 @@ async function insertSuggestions(includeSuggestions) {
         var result = await askUser({
             title: 'Warning',
             message: 'Suggestions will be generated from the current lines. Do you want to continue?',
-            confirmText: 'Yes',
-            denyText: 'No',
             type: 'replacingTextWarning',
+            actions: [{
+                text: 'Cancel',
+                class: 'cancel',
+            }, {
+                text: 'yes',
+                class: 'positive',
+            }]
         });
         if (!result) {
             return;
@@ -910,8 +915,13 @@ async function loadBoxFile(e, sample = false) {
             message: 'You did not download current progress. Do you want to overwrite existing data?',
             title: 'Unsaved Changes',
             type: 'uncommittedChangesWarning',
-            confirmText: 'Yes',
-            denyText: 'No',
+            actions: [{
+                text: 'Cancel',
+                class: 'cancel',
+            }, {
+                text: 'Yes',
+                class: 'positive',
+            }]
         });
         if (!result) {
             return;
@@ -941,8 +951,13 @@ async function loadBoxFile(e, sample = false) {
             message: 'Chosen file has name <code>' + file.name + '</code> instead of expected <code>' + imageFileName + '.box</code>.<br> Are you sure you want to continue?',
             title: 'Unexpected File Name',
             type: 'differentFileNameWarning',
-            confirmText: 'Yes',
-            denyText: 'No',
+            actions: [{
+                text: 'No',
+                class: 'cancel',
+            }, {
+                text: 'Yes',
+                class: 'positive',
+            }]
         });
         if (!result) {
             $('#boxFile').val(boxFileNameForButton);
@@ -1084,8 +1099,13 @@ async function loadImageFile(e, sample = false) {
             message: 'You did not download current progress. Are you sure you want to load a new image?',
             title: 'Unsaved Changes',
             type: 'uncommittedChangesWarning',
-            confirmText: 'Yes',
-            denyText: 'No',
+            actions: [{
+                text: 'Cancel',
+                class: 'cancel',
+            }, {
+                text: 'Yes',
+                class: 'positive',
+            }]
         });
         if (!result) {
             $('#imageFile').val(imageFileNameForButton);
@@ -1329,18 +1349,6 @@ async function colorize(text) {
     return colored_text;
 }
 
-// window.onbeforeunload = async function () {
-//     if (boxdataIsDirty || lineIsDirty) {
-//         // return 'You have unsaved changes. Are you sure you want to leave?';
-//         return await askUser({
-//             message: 'You have unsaved changes. Are you sure you want to continue?',
-//             title: 'Unsaved Changes',
-//             type: 'uncommittedChangesWarning',
-//             confirmText: 'Yes',
-//             denyText: 'No',
-//         });
-//     }
-// }
 window.onbeforeunload = function (event) {
     if (boxdataIsDirty || lineIsDirty) {
         const confirmationMessage = 'You have unsaved changes. Are you sure you want to continue?';
