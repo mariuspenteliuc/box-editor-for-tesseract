@@ -77,69 +77,69 @@
       </div>
     </div>
     <!-- <div class="ui placeholder segment my-dropzone"></div> -->
-      <div class="ui blurring secondary segment my-dropzone">
-        <div class="ui inverted dimmer">
-          <div class="content">
-            <h2 class="ui inverted icon header">
-              <i class="file upload icon"></i>
-              Drop the image / box pair here!
-            </h2>
-          </div>
-        </div>
-        <div class="ui two column stackable grid">
-          <div class="eight wide column">
-            <h4 class="ui dividing header">Upload Documents</h4>
-            <form class="ui form">
-              <div class="two fields">
-                <div class="field">
-                  <div class="ui useSampleImage flowing center aligned popup">
-                    <h4 class="ui header">Use Sample Image</h4>
-                    <div>
-                      <a class="helpSettingsPopup">
-                        <i class="fitted cog circle icon"></i>
-                        Settings
-                        <i class="fitted caret right icon"></i>
-                        Help
-                      </a>
-                    </div>
-                  </div>
-                  <label for="imageFile">Image</label>
-                  <input class="form-control" type="file" disabled id="imageFile" name="imageFile" accept="image/*" />
-                </div>
-                <div class="field">
-                  <label for="boxFile">Box File</label>
-                  <input class="form-control" type="file" disabled id="boxFile" name="boxFile" accept=".box" />
-                </div>
-              </div>
-            </form>
-          </div>
-          <div class="eight wide column">
-            <h4 class="ui dividing header">
-              Download Documents
-              <div id="unsavedChanges" class="ui hidden mini red empty circular label"
-                title="You have unsaved changes."></div>
-            </h4>
-            <form class="ui equal width form">
-              <div class="two fields">
-                <div class="field">
-                  <label for="download">Box File</label>
-                  <button id="downloadBoxFileButton" name="download" tabindex="0" class="disabled fluid ui button">
-                    <i class="download icon"></i>
-                    Download
-                  </button>
-                </div>
-                <div class="field">
-                  <label for="download">Ground Truth</label>
-                  <button id="downloadGroundTruthButton" name="download" tabindex="0" class="disabled fluid ui button">
-                    <i class="download icon"></i>
-                    Download
-                  </button>
-                </div>
-              </div>
-            </form>
-          </div>
+    <div class="ui blurring secondary segment my-dropzone">
+      <div class="ui inverted dimmer">
+        <div class="content">
+          <h2 class="ui inverted icon header">
+            <i class="file upload icon"></i>
+            Drop the image / box pair here!
+          </h2>
         </div>
       </div>
+      <div class="ui two column stackable grid">
+        <div class="eight wide column">
+          <h4 class="ui dividing header">Upload Documents</h4>
+          <form class="ui form">
+            <div class="two fields">
+              <div class="field">
+                <div class="ui useSampleImage flowing center aligned popup">
+                  <h4 class="ui header">Use Sample Image</h4>
+                  <div>
+                    <a class="helpSettingsPopup">
+                      <i class="fitted cog circle icon"></i>
+                      Settings
+                      <i class="fitted caret right icon"></i>
+                      Help
+                    </a>
+                  </div>
+                </div>
+                <label for="imageFile">Image</label>
+                <input class="form-control" type="file" disabled id="imageFile" name="imageFile" accept="image/*" />
+              </div>
+              <div class="field">
+                <label for="boxFile">Box File</label>
+                <input class="form-control" type="file" disabled id="boxFile" name="boxFile" accept=".box" />
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="eight wide column">
+          <h4 class="ui dividing header">
+            Download Documents
+            <div id="unsavedChanges" class="ui hidden mini red empty circular label" title="You have unsaved changes.">
+            </div>
+          </h4>
+          <form class="ui equal width form">
+            <div class="two fields">
+              <div class="field">
+                <label for="download">Box File</label>
+                <button id="downloadBoxFileButton" name="download" tabindex="0" class="disabled fluid ui button">
+                  <i class="download icon"></i>
+                  Download
+                </button>
+              </div>
+              <div class="field">
+                <label for="download">Ground Truth</label>
+                <button id="downloadGroundTruthButton" name="download" tabindex="0" class="disabled fluid ui button">
+                  <i class="download icon"></i>
+                  Download
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
     <div id="taggingSegment" class="ui disable secondary segment">
       <div id="custom-controls" class="ui form">
         <div class="inline fields">
@@ -407,93 +407,99 @@
       </div>
       <div id="helpTab" class="ui tab" data-tab="help-section">
         <div class="ui relaxed list">
-          <h3 class="ui header">How to use the Box Editor</h3>
-          <p>
-            To start, you must pick an image to tag it with the ground truth. Bounding boxes are automatically
-            generated and can be
-            edited. You
-            can also upload an existing <code>.box</code> file to edit it, but the generated bounding boxes will
-            be
-            overwritten.
-          </p>
-          <p>
-            The progress bar shows the progress of the tagging. When done, download the <code>.box</code> file and
-            the
-            <code>.gt.txt</code> file to use in Tesseract.
-          </p>
-          <p>
-            Box handles appear after clicking on it. You can drag them to move the box or resize it. Create boxes
-            using the
-            square tool and delete them using the trash can tool.
-          </p>
-          <div class="ui sub header">Tips</div>
-          <p>
-            Select characters in the input field to see their Unicode name.
-          </p>
-          <p>
-            While tagging use <code>return</code> and <code>shift+return</code> to move forward and backward.
-          </p>
-          <button id="useSampleImage" class="ui right labeled basic icon button">
-            <i class="right arrow icon"></i>
-            Use sample
-          </button>
-          <h4>Toolbar Actions:</h4>
-          <div class="ui list">
-            <div class="item">
-              <i class="paragraph icon"></i>
-              <div class="content">
-                Toggle invisibles on or off.
+          <div class="item">
+            <h3 class="ui header">How to use the Box Editor</h3>
+            <p>
+              To start, you must pick an image to tag it with the ground truth. Bounding boxes are automatically
+              generated and can be
+              edited. You
+              can also upload an existing <code>.box</code> file to edit it, but the generated bounding boxes will
+              be
+              overwritten.
+            </p>
+            <p>
+              The progress bar shows the progress of the tagging. When done, download the <code>.box</code> file and
+              the
+              <code>.gt.txt</code> file to use in Tesseract.
+            </p>
+            <p>
+              Box handles appear after clicking on it. You can drag them to move the box or resize it. Create boxes
+              using the
+              square tool and delete them using the trash can tool.
+            </p>
+            <div class="ui sub header">Tips</div>
+            <p>
+              Select characters in the input field to see their Unicode name.
+            </p>
+            <p>
+              While tagging use <code>return</code> and <code>shift+return</code> to move forward and backward.
+            </p>
+            <button id="useSampleImage" class="ui right labeled basic icon button">
+              <i class="right arrow icon"></i>
+              Use sample
+            </button>
+          </div>
+          <div class="item">
+            <h3>Toolbar Actions:</h3>
+            <div class="ui list">
+              <div class="item">
+                <i class="paragraph icon"></i>
+                <div class="content">
+                  Toggle invisibles on or off.
+                </div>
               </div>
-            </div>
-            <div class="item">
-              <i class="magic icon"></i>
-              <div class="content">
-                Detect all lines of text and draw boxes for them.
+              <div class="item">
+                <i class="magic icon"></i>
+                <div class="content">
+                  Detect all lines of text and draw boxes for them.
+                </div>
               </div>
-            </div>
-            <div class="item">
-              <i class="sync icon"></i>
-              <div class="content">
-                Redetect text in boxes and regenerate output.
+              <div class="item">
+                <i class="sync icon"></i>
+                <div class="content">
+                  Redetect text in boxes and regenerate output.
+                </div>
               </div>
-            </div>
-            <div class="item">
-              <i class="redo icon"></i>
-              <div class="content">
-                Redetect text for selected box and regenerate output.
+              <div class="item">
+                <i class="redo icon"></i>
+                <div class="content">
+                  Redetect text for selected box and regenerate output.
+                </div>
               </div>
             </div>
           </div>
-          <h4>Image Actions:</h4>
-          <div class="ui list">
-            <div class="item">
-              <i class="plus icon"></i>
-              <div class="content">
-                Zoom into the image.
+          <div class="item">
+            <h3>Image Actions:</h3>
+            <div class="ui list">
+              <div class="item">
+                <i class="plus icon"></i>
+                <div class="content">
+                  Zoom into the image.
+                </div>
               </div>
-            </div>
-            <div class="item">
-              <i class="minus icon"></i>
-              <div class="content">
-                Zoom out of the image.
+              <div class="item">
+                <i class="minus icon"></i>
+                <div class="content">
+                  Zoom out of the image.
+                </div>
               </div>
-            </div>
-            <div class="item">
-              <i class="cut icon"></i>
-              <div class="content">
-                Split boxes into columns.
+              <div class="item">
+                <i class="cut icon"></i>
+                <div class="content">
+                  Split boxes into columns.
+                </div>
               </div>
-            </div>
-            <div class="item">
-              <i class="square icon"></i>
-              <div class="content">
-                Draw boxes to define regions of text.
+              <div class="item">
+                <i class="square icon"></i>
+                <div class="content">
+                  Draw boxes to define regions of text.
+                </div>
               </div>
-            </div>
-            <div class="item">
-              <i class="trash alternate icon"></i>
-              <div class="content">
-                Clear drawn boxes selectively.
+              <div class="item">
+                <i class="trash alternate icon"></i>
+                <div class="content">
+                  Clear drawn boxes selectively.
+                </div>
               </div>
             </div>
           </div>
@@ -501,31 +507,48 @@
       </div>
       <div class="ui tab" data-tab="about-section">
         <div class="ui relaxed list">
-          <h3 class="ui header">About</h3>
-          <div class="description">
+          <div class="item">
+            <h3 class="ui header">About</h3>
             <p>This tool provides a powerful Box Editor for Tesseract. It allows you to efficiently generate, edit,
               and manage
-              boxes in WordStr format.</p>
-            <p>For more information and support, please visit the project's website:
-              <a class="more external" href="https://transitional-romanian-transliteration.azurewebsites.net/"
-                target="_blank" title="ROTLA Website">ROTLA</a>
-            </p>
-            <p>Source code is available on <a class="more external"
-                href="https://github.com/mariuspenteliuc/box-editor-for-tesseract" target="_blank"
-                title="GitHub">GitHub</a>
-            </p>
-            <p>This tool is extended from the work of <a class="more external" href="https://johanjunkka.com"
-                target="_blank" title="Initial Source Code">Johan Junkka</a>
-            </p>
+              boxes in WordStr format. For more information and support, please visit the following links:</p>
+            <div class="ui small list">
+              <div class="item">
+                Project Website: <a class="more external"
+                  href="https://transitional-romanian-transliteration.azurewebsites.net/" target="_blank"
+                  title="ROTLA Website">ROTLA</a>
+              </div>
+              <div class="item">
+                Source code: <a class="more external" href="https://github.com/mariuspenteliuc/box-editor-for-tesseract"
+                  target="_blank" title="GitHub">GitHub</a>
+              </div>
+              <div class="item">
+                Author: <a class="more external" href="https://penteliuc.com" target="_blank"
+                  title="Author's Website">Marius E. Penteliuc</a>
+              </div>
+              <div class="item">
+                Extended from: <a class="more external" href="https://johanjunkka.com" target="_blank"
+                  title="Initial Source Code">Johan Junkka</a>
+              </div>
+            </div>
           </div>
-          <h4 class="ui header">Acknowledgements</h4>
-          <div class="description">
+          <div class="item">
+            <h3 class="ui header">Acknowledgements</h3>
             <p>This work was supported by a grant from the Romanian Ministry of Research, Innovation and
               Digitization, CCCDI -
               UEFISCDI, project number PN-III-P2-2.1-PED-2021-0693, within PNCDI III.</p>
-          </div>
-          <h4 class="ui header">Reset</h4>
-          <div class="description">
+            </div>
+            <div class="item">
+              <div class="ui basic label">
+                Version: <div class="detail">1.3.4</div>
+              </div>
+              <div class="ui basic label">
+                Updated: <div class="detail">July 5th, 2023</div>
+              </div>
+            </div>
+          <div class="ui hidden divider"></div>
+          <div class="item">
+            <h3 class="ui header">Reset</h3>
             <p>In case of unexpected behavior, you can reset all settings to their default values.</p>
             <div id="resetAppSettingsAndCookies" class="ui left floating negative button">Reset App...</div>
           </div>
