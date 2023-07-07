@@ -255,6 +255,12 @@
 				"_comments":"for latin chars",
 				"output":"c",
 				"priority":1
+			},
+			{
+				"context":"([\\w]*[^к]*)(к)([\\w]*)",
+				"_comments":"every other case",
+				"output":"c",
+				"priority":0
 			}
 		]
 	},
@@ -279,6 +285,12 @@
 				"_comments":"for latin chars",
 				"output":"C",
 				"priority":1
+			},
+			{
+				"context":"([\\w]*[^К]*)(К)",
+				"_comments":"for latin chars",
+				"output":"C",
+				"priority":0
 			}
 
 		]
