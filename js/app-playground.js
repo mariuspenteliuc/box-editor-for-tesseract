@@ -13,11 +13,6 @@ var appSettings = {
     behavior: {
         onImageLoad: {
             detectAllLines: false,
-            includeTextForDetectedLines: false,
-        },
-        alerting: {
-            enableWarrningMessagesForDifferentFileNames: true,
-            enableWarrningMessagesForUncommittedChanges: true,
         },
     },
 };
@@ -115,10 +110,10 @@ function updateSettingsModal() {
         document.querySelector(`input[name='${path}']`).checked = value;
     }
     // Alerting
-    for (const [key, value] of Object.entries(appSettings.behavior.alerting)) {
-        const path = `behavior.alerting.${key}`;
-        document.querySelector(`input[name='${path}']`).checked = value;
-    }
+    // for (const [key, value] of Object.entries(appSettings.behavior.alerting)) {
+    //     const path = `behavior.alerting.${key}`;
+    //     document.querySelector(`input[name='${path}']`).checked = value;
+    // }
 }
 
 // Listen for changes to the settings and update the appSettings object and the cookie accordingly
