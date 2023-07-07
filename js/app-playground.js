@@ -720,6 +720,8 @@ function applyTransliterationRules(text, rules) {
 
             let subst = `$1${output}$3`;
 
+            text = text.normalize("NFKD").replace(/[\u0300-\u036f\ua67c]/g, "");
+
             // if regex context finds matches in text
             if (text.search(context) !== -1) {
                 // apply substitution
