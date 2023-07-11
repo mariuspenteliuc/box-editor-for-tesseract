@@ -231,6 +231,12 @@
 				"_comments":"for latin chars",
 				"output":"G",
 				"priority":1
+			},
+			{
+				"context":"([\\w]*[^Г]*)(Г)([\\w]*)",
+				"_comments":"for latin chars",
+				"output":"G",
+				"priority":1
 			}
 		]
 	},
@@ -317,6 +323,12 @@
 				"_comments":"for latin chars",
 				"output":"ge",
 				"priority":1
+			},
+			{
+				"context":"([\\w]*[^џ]*)(џ)",
+				"_comments":"for latin chars",
+				"output":"g",
+				"priority":1
 			}
 
 		]
@@ -342,6 +354,12 @@
 				"context":"([\\w]*[^Џ]*)(Џ)([aAoO][\\w]*)",
 				"_comments":"for latin chars",
 				"output":"Ge",
+				"priority":1
+			},
+			{
+				"context":"([\\w]*[^Џ]*)(Џ)",
+				"_comments":"for latin chars",
+				"output":"G",
 				"priority":1
 			}
 
@@ -375,7 +393,7 @@
 				"priority":0
 			},
 			{
-				"context":"([\\w]*[^ч]*)(ч)\\b",
+				"context":"([\\w]*[^ч]*)(ч)",
 				"output":"ci",
 				"priority":0
 			},
@@ -417,6 +435,20 @@
 				"output":"Ci",
 				"priority":0
 			}
+		]
+	},
+	{
+		"original-character":"ј",
+		"rule-type":"basic",
+		"rule-source":"",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^ј]*)(ј)([\\w]*)",
+				"output":"j",
+				"priority":0
+			}
+
 		]
 	},
 	{
@@ -1382,6 +1414,45 @@
 			{
 				"context":"([\\w]*[^у]*)(у)([\\w]*)",
 				"output":"u",
+				"priority":0
+			}
+		]
+	},
+	{
+		"original-character":"У",
+		"rule-type":"basic",
+		"rule-source":"",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^У]*)(У)([\\w]*)",
+				"output":"U",
+				"priority":0
+			}
+		]
+	},
+	{
+		"original-character":"ӡ",
+		"rule-type":"basic",
+		"rule-source":"",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^ӡ]*)(ӡ)([\\w]*)",
+				"output":"z",
+				"priority":0
+			}
+		]
+	},
+	{
+		"original-character":"Ӡ",
+		"rule-type":"basic",
+		"rule-source":"",
+		"conditions":
+		[
+			{
+				"context":"([\\w]*[^Ӡ]*)(Ӡ)([\\w]*)",
+				"output":"Z",
 				"priority":0
 			}
 		]
