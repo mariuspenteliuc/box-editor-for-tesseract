@@ -1827,7 +1827,6 @@ function helpSettingsPopup() {
     $('#settingsMenu .item').filter('#helpTab').addClass('active')
     $('.ui.tab').filter('#helpTab').addClass('active')
     // $('#help-section').addClass('active');
-
 }
 
 
@@ -1838,6 +1837,14 @@ function settingsPopup() {
     $('.ui.settings.modal')
         .modal('show')
         ;
+}
+
+function openSettingsPane(tabID) {
+    settingsPopup();
+    $('#settingsMenu .item').removeClass('active');
+    $('.ui.tab').removeClass('active');
+    $('#settingsMenu .item').filter(tabID).addClass('active')
+    $('.ui.tab').filter(tabID).addClass('active')
 }
 
 async function receiveDroppedFiles(e) {
