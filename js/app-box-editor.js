@@ -24,11 +24,283 @@ var appSettings = {
             enableWarrningMessagesForUncommittedChanges: true,
         },
     },
+    highlighter: {
+        textHighlighting: {
+            textHighlightingEnabled: true,
+            patterns: [],
+        },
+    }
 };
 
 // Function to update the cookie with the current settings
 function updateCookie() {
     Cookies.set("appSettings", JSON.stringify(appSettings));
+}
+
+async function addNewHighlighterPattern(e) {
+    // Get the table body
+    const tableBody = document.querySelector('.ui.definition.celled.table tbody');
+
+    newRow = createTableRow(true, 'New Highlighter', false, '/./');
+
+    // Append the new row to the table body
+    tableBody.appendChild(newRow);
+    savePatternsToSettings();
+}
+
+// Function to create an "Enabled" cell with a checkbox
+function createCheckboxCell(name) {
+    const checkboxCell = document.createElement('td');
+    checkboxCell.setAttribute('data-label', 'Enabled');
+
+    const checkboxDiv = document.createElement('div');
+    checkboxDiv.className = 'ui fitted checkbox text-highlighter-checkbox';
+
+    const checkboxInput = document.createElement('input');
+    checkboxInput.type = 'checkbox';
+    checkboxInput.name = name;
+    checkboxInput.checked = true;
+
+    checkboxDiv.appendChild(checkboxInput);
+    $(checkboxDiv).checkbox({
+        onChange: function (value, text, $selected) {
+            savePatternsToSettings();
+        }
+    });
+    checkboxCell.appendChild(checkboxDiv);
+
+    return checkboxCell;
+}
+
+// Function to create an editable cell with specified content
+function createEditableCell(content) {
+    const cell = document.createElement('td');
+    cell.contentEditable = true;
+    cell.innerText = content;
+    $(cell).on('input', function (e) {
+        savePatternsToSettings();
+    });
+    return cell;
+}
+
+function updatePatternLabels() {
+    labelsList = $('#highlighters-labels');
+    labelsList.empty();
+    highlights = getHighlighters();
+
+    // for (const key in highlights) {
+    //     if (highlights.hasOwnProperty(key)) {
+    //         const highlight = highlights[key];
+    //         console.log(highlight.name, highlight.pattern, char);
+    //         if (highlight.pattern.test(char)) {
+    //             foundHighlight = highlight;
+    //             break;
+    //         }
+    //     }
+    // }
+    for (const key in highlights) {
+        if (highlights.hasOwnProperty(key)) {
+            const highlight = highlights[key];
+            const color = highlight.color;
+            // <div class="item">
+            //     <div class="ui mini blue empty circular label text-highlighter"></div>
+            //     <span class="ui text">Latin</span>
+            // </div>
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'item';
+            const colorDiv = document.createElement('div');
+            colorDiv.className = `ui mini ${color} empty circular label text-highlighter`;
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'ui text';
+            nameSpan.innerText = highlight.name;
+            itemDiv.appendChild(colorDiv);
+            itemDiv.appendChild(nameSpan);
+            labelsList.append(itemDiv);
+        }
+    }
+}
+
+function savePatternsToSettings() {
+    if (appSettings.highlighter.textHighlighting.textHighlightingEnabled) {
+        // Get the table body
+        const tableBody = document.querySelector('.ui.definition.celled.table tbody');
+        // Get all rows
+        const allRows = tableBody.querySelectorAll('tr');
+        let patterns = [];
+        let errorMessages = []; // Array to store error messages
+
+        allRows.forEach(function (row) {
+            unhighlightCell(row.querySelector('td:nth-child(4)'));
+            const enabled = row.querySelector('td:nth-child(1) .checkbox input').checked;
+            const name = row.querySelector('td:nth-child(2)').innerText;
+            const color = row.querySelector('td:nth-child(3) input[name=color]').value;
+            const patternString = row.querySelector('td:nth-child(4)').innerText;
+            try {
+                const pattern = new RegExp(patternString.slice(1, patternString.length - 1), 'i');
+                patterns.push({
+                    enabled: enabled,
+                    name: name,
+                    color: color,
+                    pattern: pattern,
+                });
+            } catch (error) {
+                highlightCell(row.querySelector('td:nth-child(4)'));
+                errorMessages.push(`Invalid regex pattern: ${error}`);
+            }
+        });
+        // Log the error messages
+        invalidPatterns = false;
+        if (errorMessages.length > 0) {
+            invalidPatterns = true;
+            console.error('Regex pattern errors:');
+            errorMessages.forEach(function (errorMessage) {
+                console.error(errorMessage);
+            });
+        }
+        appSettings.highlighter.textHighlighting.patterns = patterns;
+    }
+    updateInputBackground();
+    updatePreviewBackground();
+    updatePatternLabels();
+    // updateCookie();
+}
+
+function highlightCell(cell, color) {
+    $(cell).addClass('red colored');
+}
+
+function unhighlightCell(cell) {
+    $(cell).removeClass('red colored');
+}
+
+// Function to create a color cell with a dropdown
+function createColorCell(activeColor) {
+    const cell = document.createElement('td');
+    cell.className = 'collapsing';
+    cell.setAttribute('data-label', 'Color');
+
+    const dropdownDiv = document.createElement('div');
+    dropdownDiv.className = 'ui fluid search selection dropdown';
+
+    const hiddenInput = document.createElement('input');
+    hiddenInput.type = 'hidden';
+    hiddenInput.name = 'color';
+
+    const dropdownIcon = document.createElement('i');
+    dropdownIcon.className = 'dropdown icon';
+
+    const defaultText = document.createElement('div');
+    defaultText.className = 'default text';
+    defaultText.textContent = 'Color...';
+
+    const menuDiv = document.createElement('div');
+    menuDiv.className = 'menu';
+
+    const colors = ['red', 'orange', 'yellow', 'olive', 'green', 'teal', 'blue', 'violet', 'purple', 'pink', 'brown', 'grey'];
+    colors.forEach(function (color) {
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'item';
+        itemDiv.setAttribute('data-value', color);
+
+        const colorIcon = document.createElement('i');
+        colorIcon.className = `ui ${color} small empty circular label icon link text-highlighter`;
+
+        const colorText = document.createElement('span');
+        colorText.textContent = color.charAt(0).toUpperCase() + color.slice(1);
+
+        itemDiv.appendChild(colorIcon);
+        itemDiv.appendChild(colorText);
+        menuDiv.appendChild(itemDiv);
+    });
+    dropdownDiv.appendChild(hiddenInput);
+    dropdownDiv.appendChild(dropdownIcon);
+    dropdownDiv.appendChild(defaultText);
+    dropdownDiv.appendChild(menuDiv);
+
+    $(dropdownDiv).dropdown({
+        onChange: function (value, text, $selected) {
+            savePatternsToSettings();
+        }
+    })
+
+    if (activeColor) {
+        $(dropdownDiv).dropdown('set selected', activeColor, true)
+    } else {
+        $(dropdownDiv).dropdown('set selected', colors[Math.floor(Math.random() * colors.length)], true)
+    }
+
+    cell.appendChild(dropdownDiv);
+
+    return cell;
+}
+
+// Function to create a delete cell with the delete button
+function createDeleteCell() {
+    const deleteCell = document.createElement('td');
+    deleteCell.className = 'single line';
+    deleteCell.setAttribute('data-label', 'Edit');
+
+    const deleteButton = document.createElement('i');
+    deleteButton.className = 'large red minus circle link icon';
+
+    deleteCell.appendChild(deleteButton);
+
+    // Add event listener to the delete button
+    deleteButton.addEventListener('click', function () {
+        const row = this.closest('tr');
+        row.remove();
+        savePatternsToSettings();
+    });
+
+    return deleteCell;
+}
+
+function constructDefaultTable() {
+    const table = document.createElement('table');
+    table.className = 'ui unstackable definition celled table';
+
+    const thead = document.createElement('thead');
+    const theadRow = document.createElement('tr');
+    thead.appendChild(theadRow);
+
+    const headers = ['', 'Name', 'Color', 'Pattern', ''];
+    headers.forEach(function (header) {
+        const th = document.createElement('th');
+        th.className = header ? '' : 'collapsing';
+        th.className = header === 'Color' ? 'four wide' : '';
+        th.textContent = header;
+        theadRow.appendChild(th);
+    });
+
+    const tbody = document.createElement('tbody');
+    const row1 = createTableRow(true, 'Latin', 'blue', '/[\\u0000-\\u007F\\u0080-\\u00FF]/');
+    const row2 = createTableRow(true, 'Cyrillic', 'red', '/[\\u0400-\\u04FF\\u0500-\\u052F\\u2DE0-\\u2DFF\\uA640-\\uA69F\\u1C80-\\u1CBF]/');
+    tbody.appendChild(row1);
+    tbody.appendChild(row2);
+
+    table.appendChild(thead);
+    table.appendChild(tbody);
+
+    return table;
+}
+
+// Helper function to create a table row with cells
+function createTableRow(enabled, name, color, pattern) {
+    const row = document.createElement('tr');
+
+    const checkboxCell = createCheckboxCell(name);
+    const nameCell = createEditableCell(name);
+    const colorCell = createColorCell(color);
+    const patternCell = createEditableCell(pattern);
+    const deleteCell = createDeleteCell();
+
+    row.appendChild(checkboxCell);
+    row.appendChild(nameCell);
+    row.appendChild(colorCell);
+    row.appendChild(patternCell);
+    row.appendChild(deleteCell);
+
+    return row;
 }
 
 async function useSampleImage(e) {
@@ -124,6 +396,16 @@ function updateSettingsModal() {
         const path = `behavior.alerting.${key}`;
         document.querySelector(`input[name='${path}']`).checked = value;
     }
+    // Text highlighting
+    for (const [key, value] of Object.entries(appSettings.highlighter.textHighlighting)) {
+        if (key == 'patterns') {
+            continue;
+            // TODO: @15.07.2023 — reconstruct patterns table from cookies, otherwise load the default one.
+
+        }
+        const path = `highlighter.textHighlighting.${key}`;
+        document.querySelector(`input[name='${path}']`).checked = value;
+    }
 }
 
 // Listen for changes to the settings and update the appSettings object and the cookie accordingly
@@ -159,8 +441,8 @@ var mapHeight;
 var mapDeletingState = false;
 var mapEditingState = false;
 var currentSliderPosition = -1;
-var showInvisibles = false;
 var dropzone = undefined;
+var invalidPatterns = false;
 
 class Box {
     constructor({
@@ -294,7 +576,7 @@ function setFromData(d) {
     $("#y2").val(d.y2);
     $('#formtxt').focus();
     $('#formtxt').select();
-    updateBackground();
+    updateInputBackground();
     lineIsDirty = false;
     updateProgressBar({ type: 'tagging' });
     $('#updateTxt').popup('hide');
@@ -457,7 +739,7 @@ function processFile(e) {
         // select next BB
         var nextBB = getNextBB();
         fillAndFocusRect(nextBB);
-        updateBackground();
+        updateInputBackground();
     }
 }
 
@@ -561,6 +843,10 @@ var doneMovingInterval = 100,
 
 
 function getNextAndFill() {
+    // if settings open ignore
+    if ($('.ui.settings.modal').modal('is active')) {
+        return false;
+    }
     var modified = submitText();
     var box = getNextBB(selectedBox);
     setFromData(box);
@@ -595,6 +881,10 @@ $('#updateTxt').on('submit', getNextAndFill);
 function submitText(e) {
     if (e) {
         e.preventDefault();
+    }
+    // if settings open ignore
+    if ($('.ui.settings.modal').modal('is active')) {
+        return false;
     }
     var polyid = parseInt($('#formtxt').attr('boxid'));
     var newdata = new Box({
@@ -1267,8 +1557,224 @@ function sortAllBoxes() {
 var cyrillic_pattern = /[\u0400-\u04FF\u0500-\u052F\u2DE0-\u2DFF\uA640-\uA69F\u1C80-\u1CBF]/;
 var latin_pattern = /[\u0000-\u007F\u0080-\u00FF]/;
 
-// Function to colorize text
+function updateSaturationAndLuminosity(color, saturation, luminosity) {
+    colorRegex = ''
+    // if starts with rgba
+    if (color.startsWith('rgba')) {
+        colorRegex = /^rgba\((\d+),\s*(\d+),\s*(\d+),\s*(\d+)\)$/; // Regex to extract RGB values
+    } else if (color.startsWith('rgb')) {
+        colorRegex = /^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/; // Regex to extract RGB values
+    }
+    const colorValues = colorRegex.exec(color);
+    const r = parseInt(colorValues[1]);
+    const g = parseInt(colorValues[2]);
+    const b = parseInt(colorValues[3]);
+
+    const hslColor = rgbToHsl(r, g, b);
+    hslColor[1] = Math.max(0, Math.min(100, saturation)); // Update saturation
+    hslColor[2] = Math.max(0, Math.min(100, luminosity)); // Update luminosity
+
+    modifiedColor = null;
+    if (color.startsWith('rgba')) {
+        modifiedColor = hslToRgb(hslColor[0], hslColor[1], hslColor[2], colorValues[4]);
+    } else {
+        modifiedColor = hslToRgb(hslColor[0], hslColor[1], hslColor[2]);
+    }
+    return modifiedColor;
+}
+
+function rgbToHsl(r, g, b) {
+    r /= 255;
+    g /= 255;
+    b /= 255;
+
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    let h, s, l = (max + min) / 2;
+
+    if (max === min) {
+        h = s = 0; // achromatic
+    } else {
+        const d = max - min;
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        switch (max) {
+            case r:
+                h = (g - b) / d + (g < b ? 6 : 0);
+                break;
+            case g:
+                h = (b - r) / d + 2;
+                break;
+            case b:
+                h = (r - g) / d + 4;
+                break;
+        }
+        h /= 6;
+    }
+
+    return [h * 360, s * 100, l * 100];
+}
+
+function hslToRgb(h, s, l, a) {
+    h /= 360;
+    s /= 100;
+    l /= 100;
+
+    let r, g, b;
+
+    if (s === 0) {
+        r = g = b = l; // achromatic
+    } else {
+        const hueToRgb = (p, q, t) => {
+            if (t < 0) t += 1;
+            if (t > 1) t -= 1;
+            if (t < 1 / 6) return p + (q - p) * 6 * t;
+            if (t < 1 / 2) return q;
+            if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+            return p;
+        };
+
+        const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+        const p = 2 * l - q;
+        r = hueToRgb(p, q, h + 1 / 3);
+        g = hueToRgb(p, q, h);
+        b = hueToRgb(p, q, h - 1 / 3);
+    }
+
+    if (a) {
+        return `rgba(${Math.round(r * 255)}, ${Math.round(g * 255)}, ${Math.round(b * 255)}, ${255})`;
+    }
+    return `rgb(${Math.round(r * 255)}, ${Math.round(g * 255)}, ${Math.round(b * 255)})`;
+}
+
+// Function to retrieve the background color of an element
+function getBackgroundColor(element) {
+    const computedStyle = window.getComputedStyle(element);
+    return computedStyle.backgroundColor;
+}
+
+// function createRule(highlighter) {
+//         color = getBackgroundColor(element);
+//         saturatedColor = updateSaturationAndLuminosity(color, 71.3, 65.9);
+//         var prefix = '.'
+//         var classes = element.classList;
+//         var classesString = '';
+//         for (var i = 0; i < classes.length; i++) {
+//             classesString += prefix + classes[i];
+//         }
+
+//         // create new css rule and add it to the stylesheet
+//     var lowerCaseColor = 'color: ' + highlighter.color + ';';
+//     var upperCaseColor = 'color: ' + highlighter.color + ';';
+//     var lowerCaseSelector = 'span.' + highlighter.name.toLowerCase();
+//     var upperCaseSelector = 'span.' + highlighter.name.toLowerCase() + '.capital';
+//     var sheet = document.styleSheets[5];
+//     sheet.insertRule(lowerCaseSelector + '{' + newRule + '}', sheet.cssRules.length); // insert CSS rule
+//         console.log(newRuleSelector + '{' + newRule + '}');
+// }
+
+function getHighlighters() {
+    var patterns = {};
+    if (appSettings.highlighter.textHighlighting.textHighlightingEnabled) {
+        if (appSettings.highlighter.textHighlighting.patterns.length == 0) {
+            savePatternsToSettings();
+        }
+        for (entry of appSettings.highlighter.textHighlighting.patterns) {
+            if (entry.enabled) {
+                patterns[entry.name] = entry;
+            }
+        }
+    }
+    return patterns;
+}
+
 async function colorize(text) {
+    var colored_text = '';
+    if (text == '') {
+        return '&nbsp;';
+    }
+    text = text.normalize('NFD');
+    var current_script = null;
+    var current_span = '';
+    var span_class = '';
+    charSpace = appSettings.interface.showInvisibles ? '·' : '&nbsp;';
+
+    // const highlights = getHighlighters();
+    const highlights = Object.assign({
+        space: {
+            name: 'space',
+            color: 'space',
+            enabled: true,
+            pattern: /\s/
+        }
+    }, getHighlighters());
+
+    for (var i = 0; i < text.length; i++) {
+        var isCapital = false;
+        var char = text.charAt(i);
+        // if character name contains COMBINING
+        var charName = getUnicodeInfo(char)[0].name;
+        if (charName.includes('COMBINING')) {
+            // add to previous span
+            current_span += char;
+            continue;
+        }
+        if (char != char.toLowerCase()) {
+            isCapital = true;
+        }
+        var foundHighlight = null;
+        const keys = Object.keys(highlights).reverse();
+        for (const key of keys) {
+            const highlight = highlights[key];
+            if (highlight.pattern.test(char)) {
+                foundHighlight = highlight;
+                break;
+            }
+        }
+        if (foundHighlight) {
+            span_class = foundHighlight.color.toLowerCase() + (isCapital ? ' capital' : '') + ' text-highlighter'; // Use the assigned key
+
+            if (current_script != span_class) {
+                if (current_span !== '') {
+                    colored_text += '</span>' + current_span; // Move the closing tag here
+                }
+                if (span_class == 'space') {
+                    current_span = '<span class="' + span_class + '">' + charSpace + '</span>'; // Wrap space with span
+                } else {
+                    current_span = '<span class="' + span_class + '">' + char;
+                }
+                current_script = span_class;
+            } else {
+                if (current_script == 'space') {
+                    // replace 'space' with 'space multiple' in current_span
+                    current_span = current_span.replace('space', 'space multiple');
+                }
+                current_span += char;
+            }
+        } else {
+            span_class = 'other';
+            if (current_script != span_class) {
+                if (current_span !== '') {
+                    if (current_script == 'space') {
+                        // replace 'space' with 'space multiple' in current_span
+                        current_span = current_span.replace('space', 'space multiple');
+                    }
+                    colored_text += '</span>' + current_span; // Close previous span
+                }
+                current_span = '<span class="' + span_class + '">' + char;
+                current_script = span_class;
+            } else {
+                current_span += char;
+            }
+        }
+    }
+    colored_text += '</span>' + current_span; // Move the closing tag here
+    return colored_text;
+}
+
+
+
+// Function to colorize text
+async function colorize2(text) {
     var colored_text = '';
     if (text == '') {
         return '&nbsp;'
@@ -1277,7 +1783,7 @@ async function colorize(text) {
     var current_script = null;
     var current_span = '';
     var span_class = '';
-    charSpace = showInvisibles ? '·' : '&nbsp;';
+    charSpace = appSettings.interface.showInvisibles ? '·' : '&nbsp;';
     for (var i = 0; i < text.length; i++) {
         var isCapital = false;
         var char = text.charAt(i);
@@ -1362,12 +1868,21 @@ async function setLineIsDirty() {
 }
 
 // Function to update the background with the colorized text
-async function updateBackground(e) {
+async function updateInputBackground(e) {
     var input = document.getElementById("formtxt");
     var text = input.value;
     var colored_text = await colorize(text);
     var background = document.getElementById("myInputBackground");
     background.innerHTML = colored_text;
+}
+
+// Function to update the background with the colorized text
+async function updatePreviewBackground(e) {
+    var inputPreview = document.getElementById("previewText");
+    var previewText = inputPreview.value;
+    var colored_text_preview = await colorize(previewText);
+    var backgroundPreview = document.getElementById("myPreviewBackground");
+    backgroundPreview.innerHTML = colored_text_preview;
 }
 
 function displayMessage(object) {
@@ -1392,7 +1907,8 @@ function displayMessage(object) {
         position: 'top right',
         classProgress: object.color,
         message: object.message,
-        minDisplayTime: 3000
+        minDisplayTime: 3000,
+        actions: object.actions ? object.actions : false,
     });
 }
 
@@ -1487,8 +2003,10 @@ async function setMapSize(options, animate = true) {
     await resizeMapTo(newHeight, animate);
     // fit selected poly
     var bounds = new L.LatLngBounds();
-    for (var i = 0; i < selectedPoly.length; i++) {
-        bounds.extend(selectedPoly[i].getBounds());
+    if (selectedPoly != undefined) {
+        for (var i = 0; i < selectedPoly.length; i++) {
+            bounds.extend(selectedPoly[i].getBounds());
+        }
     }
     setTimeout(function () { map.invalidateSize({ pan: true }) }, 500);
 }
@@ -1539,13 +2057,15 @@ async function toggleInvisibles(e) {
     if (e) {
         e.preventDefault();
     }
+    showInvisibles = appSettings.interface.showInvisibles;
     showInvisibles = !showInvisibles;
     // toggle active class for button
     $("#invisiblesToggle").toggleClass('active')
     path = "interface.showInvisibles";
     value = showInvisibles;
     updateAppSettings({ path, value });
-    updateBackground();
+    updateInputBackground();
+    updatePreviewBackground();
     $('#formtxt').focus();
     // save cookie for invisibles
     // Cookies.set('show-invisibles', showInvisibles);
@@ -1810,6 +2330,7 @@ function showCharInfoPopup(e) { // prevent modifier keys from triggering popup
 
 function closeSettingsPopup() {
     $('.ui.settings.modal').modal('hide');
+
     return;
 }
 
@@ -1915,8 +2436,11 @@ $(document).ready(async function () {
     colorizedFields.push($('#formtxt')[0]);
     setKerning(colorizedFields, false);
 
+    $('#previewText').on('input', function () {
+        updatePreviewBackground();
+    });
     $('#formtxt').on('input', function () {
-        updateBackground();
+        updateInputBackground();
         setLineIsDirty();
     });
     $('#x1').on('input', function (e) {
@@ -1948,32 +2472,12 @@ $(document).ready(async function () {
         $('#myInputBackground').removeClass('focused');
     });
 
-    $('.ui.checkbox').checkbox(
-        // {
-        //     onChecked: function () {
-        //         displayMessage({ message: 'onChecked called<br>' });
-        //     }
-        // }
-    );
-
     // set checkbox from cookie
     if (Cookies.get('include-suggestions') == 'true') {
         $('.ui.include-suggestions.toggle.checkbox').checkbox('check');
     } else {
         $('.ui.include-suggestions.toggle.checkbox').checkbox('uncheck');
     }
-
-    // save cookie for checkbox
-    $('.ui.include-suggestions.toggle.checkbox').checkbox({
-        onChecked: function () {
-            Cookies.set('include-suggestions', 'true');
-            // insertSuggestions(true);
-        },
-        onUnchecked: function () {
-            Cookies.set('include-suggestions', 'false');
-            // insertSuggestions(false);
-        }
-    });
 
     map = new L.map('mapid', {
         crs: L.CRS.Simple,
@@ -2130,6 +2634,7 @@ $(document).ready(async function () {
     $('.helpSettingsPopup').on("click", helpSettingsPopup);
     $('#resetAppSettingsAndCookies').on("click", resetAppSettingsAndCookies);
     $('#useSampleImage').on("click", useSampleImage);
+    $('#addNewHighlighterPattern').on("click", addNewHighlighterPattern);
 
     await $.ajax({
         url: '../../assets/unicodeData.csv',
@@ -2137,7 +2642,7 @@ $(document).ready(async function () {
         success: function (data) {
             parsedData = $.csv.toObjects(data, {
                 separator: ';',
-            delimiter: '"'
+                delimiter: '"'
             });
             unicodeData = parsedData;
         }
@@ -2159,16 +2664,16 @@ $(document).ready(async function () {
         event.stopPropagation();
         if (html.hasClass('dz-drag-hover')) {
             highlightzone
-            .dimmer('show')
-            // .transition('pulsating')
-            .addClass('raised')
+                .dimmer('show')
+                // .transition('pulsating')
+                .addClass('raised')
         }
         window.setTimeout(function () {
             if (!html.hasClass('dz-drag-hover')) {
                 highlightzone
-                .dimmer('hide')
-                // .transition('stop all')
-                .removeClass('raised')
+                    .dimmer('hide')
+                    // .transition('stop all')
+                    .removeClass('raised')
             }
         }, 1500);
     });
@@ -2219,6 +2724,21 @@ $(document).ready(async function () {
             blurring: true,
             onHidden: function () {
                 $("#settingsModalStatus").text("");
+                if (invalidPatterns) {
+                    displayMessage({
+                        title: 'Invalid Patterns',
+                        message: 'Some regex patterns for text highlighting are invalid. Please fix or disable them.',
+                        type: 'error',
+                        actions: [{
+                            text: 'Fix now',
+                            // icon: 'check',
+                            // class: 'green',
+                            click: function () {
+                                openSettingsPane('#highlighterTab');
+                            }
+                        }]
+                    });
+                }
             },
         })
     const cookieValue = Cookies.get("appSettings");
@@ -2228,4 +2748,30 @@ $(document).ready(async function () {
     } else {
         updateSettingsModal();
     }
+
+    const tableContainer = document.getElementById('highlighterTableContainer');
+    const defaultTable = constructDefaultTable();
+    // make first child
+    tableContainer.insertBefore(defaultTable, tableContainer.firstChild);
+    savePatternsToSettings();
+
+    // $('.ui.dropdown')
+    //     .dropdown({
+    //         onChange: function (value, text, $selected) {
+    //             savePatternsToSettings();
+    //         },
+    //     })
+    //     ;
+    $(`input[name='highlighter.textHighlighting.textHighlightingEnabled']`).checkbox({
+        onChange: function (value, text, $selected) {
+            savePatternsToSettings();
+        }
+    });
+    $('.ui.checkbox').checkbox(
+    );
+    $('.ui.checkbox.text-highlighter-checkbox').checkbox({
+        onChange: function (value, text, $selected) {
+            savePatternsToSettings();
+        }
+    });
 });

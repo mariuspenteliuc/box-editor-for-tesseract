@@ -19,6 +19,7 @@
   backface-visibility: hidden;
 
 }
+
 a.more.external {
   white-space: nowrap;
   /* overflow: hidden; */
@@ -26,6 +27,7 @@ a.more.external {
   display: inline-block;
   width: max-content;
 }
+
 .more.external::after {
   content: "\f061";
   transform: rotate(-45deg);
@@ -103,12 +105,15 @@ a.more.external {
 .leaflet-draw-toolbar a.leaflet-draw-edit-remove {
   background: white;
 }
+
 .leaflet-draw-draw-polyline::before {
   content: "\f0c4";
 }
+
 .leaflet-draw-draw-rectangle::before {
   content: "\f0c8";
 }
+
 .leaflet-draw-edit-remove::before {
   /* content: "\f1f8"; */
   content: "\f2ed";
@@ -117,31 +122,13 @@ a.more.external {
 
 
 .leaflet-draw-toolbar a,
-.leaflet-control-zoom a{
+.leaflet-control-zoom a {
   font-family: icons;
 }
 
 /* Custom Controls */
 #custom-controls.ui.form .inline.fields {
   margin-bottom: 0;
-}
-
-/* Define styles for colorized text */
-span.cyrillic {
-  color: #db2828;
-}
-
-span.latin {
-  color: #2185d0;
-}
-
-/* Captial letters lighter */
-span.cyrillic.capital {
-  color: #e66a6a;
-}
-
-span.latin.capital {
-  color: #59a9e5;
 }
 
 span.space {
@@ -160,6 +147,7 @@ span.space.multiple {
 
 /* keep selected text in #formtxt transparent */
 /* webkit browsers */
+#previewText::selection,
 #formtxt::selection {
   color: transparent;
   background: #65656533;
@@ -167,6 +155,7 @@ span.space.multiple {
 }
 
 /* getko brosers */
+#previewText::-moz-selection,
 #formtxt::-moz-selection {
   color: transparent;
   background: #65656533;
@@ -176,16 +165,187 @@ span.space.multiple {
   font-kerning: none;
 }
 
-div.ui.mini.red.empty.circular.label.text-highlighter {
+
+span.red.text-highlighter {
+  color: rgb(219, 40, 40);
+}
+
+span.red.capital.text-highlighter {
+  color: rgb(230, 106, 106);
+}
+
+span.orange.text-highlighter {
+  color: rgb(242, 113, 28);
+}
+
+span.orange.capital.text-highlighter {
+  color: rgb(230, 155, 106);
+}
+
+span.yellow.text-highlighter {
+  color: rgb(251, 189, 8);
+}
+
+span.yellow.capital.text-highlighter {
+  color: rgb(240, 222, 168);
+}
+
+span.olive.text-highlighter {
+  color: rgb(181, 204, 24);
+}
+
+span.olive.capital.text-highlighter {
+  color: rgb(214, 230, 106);
+}
+
+span.green.text-highlighter {
+  color: rgb(33, 186, 69);
+}
+
+span.green.capital.text-highlighter {
+  color: rgb(106, 230, 135);
+}
+
+span.teal.text-highlighter {
+  color: rgb(0, 181, 173);
+}
+
+span.teal.capital.text-highlighter {
+  color: rgb(106, 230, 225);
+}
+
+span.blue.text-highlighter {
+  color: rgb(33, 133, 208);
+}
+
+span.blue.capital.text-highlighter {
+  color: rgb(106, 177, 230);
+}
+
+span.violet.text-highlighter {
+  color: rgb(100, 53, 201);
+}
+
+span.violet.capital.text-highlighter {
+  color: rgb(145, 106, 230);
+}
+
+span.purple.text-highlighter {
+  color: rgb(163, 51, 200);
+}
+
+span.purple.capital.text-highlighter {
+  color: rgb(199, 106, 230);
+}
+
+span.pink.text-highlighter {
+  color: rgb(224, 57, 151);
+}
+
+span.pink.capital.text-highlighter {
+  color: rgb(230, 106, 176);
+}
+
+span.brown.text-highlighter {
+  color: rgb(165, 103, 63);
+}
+
+span.brown.capital.text-highlighter {
+  color: rgb(230, 155, 106);
+}
+
+span.grey.text-highlighter {
+  color: rgb(118, 118, 118);
+}
+
+span.grey.capital.text-highlighter {
+  color: rgb(168, 168, 168);
+}
+
+span.other.text-highlighter {
+  color: rgb(118, 118, 118);
+}
+
+span.other.capital.text-highlighter {
+  color: rgb(168, 168, 168);
+}
+
+div.ui.red.empty.circular.label.text-highlighter,
+i.red.icon.text-highlighter {
+  background: linear-gradient(to bottom, rgb(230, 106, 106) 50%, rgb(219, 40, 40) 50%);
+}
+
+div.ui.orange.empty.circular.label.text-highlighter,
+i.orange.icon.text-highlighter {
+  background: linear-gradient(to bottom, rgb(230, 155, 106) 50%, rgb(242, 113, 28) 50%);
+}
+
+div.ui.yellow.empty.circular.label.text-highlighter,
+i.yellow.icon.text-highlighter {
+  background: linear-gradient(to bottom, rgb(240, 222, 168) 50%, rgb(251, 189, 8) 50%);
+}
+
+div.ui.olive.empty.circular.label.text-highlighter,
+i.olive.icon.text-highlighter {
+  background: linear-gradient(to bottom, rgb(214, 230, 106) 50%, rgb(181, 204, 24) 50%);
+}
+
+div.ui.green.empty.circular.label.text-highlighter,
+i.green.icon.text-highlighter {
+  background: linear-gradient(to bottom, rgb(106, 230, 135) 50%, rgb(33, 186, 69) 50%);
+}
+
+div.ui.teal.empty.circular.label.text-highlighter,
+i.teal.icon.text-highlighter {
+  background: linear-gradient(to bottom, rgb(106, 230, 225) 50%, rgb(0, 181, 173) 50%);
+}
+
+div.ui.blue.empty.circular.label.text-highlighter,
+i.blue.icon.text-highlighter {
+  background: linear-gradient(to bottom, rgb(106, 177, 230) 50%, rgb(33, 133, 208) 50%);
+}
+
+div.ui.violet.empty.circular.label.text-highlighter,
+i.violet.icon.text-highlighter {
+  background: linear-gradient(to bottom, rgb(145, 106, 230) 50%, rgb(100, 53, 201) 50%);
+}
+
+div.ui.purple.empty.circular.label.text-highlighter,
+i.purple.icon.text-highlighter {
+  background: linear-gradient(to bottom, rgb(199, 106, 230) 50%, rgb(163, 51, 200) 50%);
+}
+
+div.ui.pink.empty.circular.label.text-highlighter,
+i.pink.icon.text-highlighter {
+  background: linear-gradient(to bottom, rgb(230, 106, 176) 50%, rgb(224, 57, 151) 50%);
+}
+
+div.ui.brown.empty.circular.label.text-highlighter,
+i.brown.icon.text-highlighter {
+  background: linear-gradient(to bottom, rgb(230, 155, 106) 50%, rgb(165, 103, 63) 50%);
+}
+
+div.ui.grey.empty.circular.label.text-highlighter,
+i.grey.icon.text-highlighter {
+  background: linear-gradient(to bottom, rgb(168, 168, 168) 50%, rgb(118, 118, 118) 50%);
+}
+
+i.icon.text-highlighter {
+  opacity: 1 !important;
+  border-radius: 500rem;
+}
+
+/* div.ui.red.empty.circular.label.text-highlighter {
   background: linear-gradient(to bottom, #e66a6a 50%, #db2828 50%);
   border-radius: 7000;
 }
 
-div.ui.mini.blue.empty.circular.label.text-highlighter {
+div.ui.blue.empty.circular.label.text-highlighter {
   background: linear-gradient(to bottom, #59a9e5 50%, #2185d0 50%);
   border-radius: 7000;
-}
+} */
 
+#myPreviewContainer,
 #myInputContainer {
   position: absolute;
   width: 100%;
@@ -193,6 +353,7 @@ div.ui.mini.blue.empty.circular.label.text-highlighter {
 }
 
 /* TODO: fix issue with special characters not being displayed with proper font */
+#updatePreview #myPreviewContainer #myPreviewBackground,
 #updateTxt #myInputContainer #myInputBackground {
   /* position: absolute; */
   top: 0;
@@ -217,6 +378,7 @@ div.ui.mini.blue.empty.circular.label.text-highlighter {
   transition: color .1s ease, border-color .1s ease;
 }
 
+#previewText,
 #formtxt {
   position: relative;
   /* opacity: 0; */
@@ -7241,11 +7403,13 @@ div.ui.mini.blue.empty.circular.label.text-highlighter {
 
 .dark-theme .ui.secondary.menu .active.item,
 .dark-theme .ui.form .field input,
-#updateTxt #myInputContainer #myInputBackground {
+.dark-theme #updatePreview #myPreviewContainer #myPreviewBackground,
+.dark-theme #updateTxt #myInputContainer #myInputBackground {
   background: rgba(255, 255, 255, .15);
   color: #fff;
 }
 
+#updatePreview #myPreviewContainer #myPreviewBackground.focused,
 #updateTxt #myInputContainer #myInputBackground.focused {
   color: rgba(0, 0, 0, .95);
   border-color: #85b7d9;
@@ -14334,11 +14498,13 @@ div.ui.mini.blue.empty.circular.label.text-highlighter {
 
   .match-device .ui.secondary.menu .active.item,
   .match-device .ui.form .field input,
+  #updatePreview #myPreviewContainer #myPreviewBackground,
   #updateTxt #myInputContainer #myInputBackground {
     background: rgba(255, 255, 255, .15);
     color: #fff;
   }
 
+  #updatePreview #myPreviewContainer #myPreviewBackground.focused,
   #updateTxt #myInputContainer #myInputBackground.focused {
     color: rgba(0, 0, 0, .95);
     border-color: #85b7d9;

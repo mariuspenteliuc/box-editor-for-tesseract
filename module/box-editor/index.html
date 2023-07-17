@@ -190,9 +190,8 @@
             <input disabled type="text" id="formtxt" boxid="" name="txt" value="">
           </div>
         </form>
-        <div class="ui mini blue empty circular label text-highlighter"></div>
-        Latin
-        <div class="ui mini red empty circular label text-highlighter"></div> Cyrillic
+        <div id="highlighters-labels" class="ui horizontal list">
+        </div>
         <div class="ui basic fitted segment">
           <form id="formbox" class="ui form" spellcheck="false">
             <div class="four fields">
@@ -424,19 +423,34 @@
       <div id="highlighterTab" class="ui tab" data-tab="highlighter-settings">
         <div class="ui relaxed list">
           <div class="item" name="">
-            <div class="header">Text Highlighter</div>
+            <div class="header">Text Highlighting</div>
             <div class="description">
               Highlight text according to regex patterns.
             </div>
             <div class="list">
               <div class="item">
-                <div class="ui child checkbox">
-                  <input type="checkbox" name="highlighter.textHighlighter.textHighlighterOn">
-                  <label>Use highlighter</label>
+                <div class="ui disabled child checkbox">
+                  <input disabled type="checkbox" name="highlighter.textHighlighting.textHighlightingEnabled">
+                  <label>Use text highlighting</label>
                 </div>
               </div>
             </div>
           </div>
+          <div id="highlighterTableContainer" class="item">
+            <div id="addNewHighlighterPattern" class="ui right floated small labeled icon button">
+              <i class="plus icon"></i> Add Pattern
+            </div>
+          </div>
+          <form class="ui form" id="updatePreview" spellcheck="false">
+            <div id="myPreviewContainer" class="field">
+              <label class="col-sm-2 control-label" for="previewText" id="previewLabel">Text</label>
+              <div id="myPreviewBackground">&nbsp;</div>
+            </div>
+            <div class="field">
+              <label class="col-sm-2 control-label" for="previewText" id="previewLabel">Text</label>
+              <input type="text" id="previewText" value="1 colored sample here...">
+            </div>
+          </form>
         </div>
       </div>
       <div id="helpTab" class="ui tab" data-tab="help-section">
