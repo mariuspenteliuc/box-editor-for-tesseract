@@ -137,7 +137,7 @@ function savePatternsToSettings() {
             const patternString = row.querySelector('td:nth-child(4)').innerText;
             try {
                 const pattern = patternString;
-                // const pattern = new RegExp(patternString, 'i');
+                const validation = new RegExp(patternString, 'i');
                 // const pattern = new RegExp(patternString.slice(1, patternString.length - 1), 'i');
                 patterns.push({
                     enabled: enabled,
@@ -147,17 +147,29 @@ function savePatternsToSettings() {
                 });
             } catch (error) {
                 highlightCell(row.querySelector('td:nth-child(4)'));
-                errorMessages.push(`Invalid regex pattern: ${error}`);
+                errorMessages.push({ name, enabled, error });
             }
         });
         // Log the error messages
         invalidPatterns = false;
         if (errorMessages.length > 0) {
-            invalidPatterns = true;
+            // invalidPatterns = true;
             console.error('Regex pattern errors:');
-            errorMessages.forEach(function (errorMessage) {
-                console.error(errorMessage);
+            errorMessages.forEach(function (object) {
+                console.error(object.errorMessage);
+                console.log(object.name, object.enabled);
+                if (object.enabled) {
+                    invalidPatterns = true;
+                }
             });
+        }
+        identicalPatternNames = false;
+        patternNames = patterns.map(function (pattern) {
+            return pattern.name;
+        });
+        patternNamesSet = [...new Set(patternNames)];
+        if (patternNames.length != patternNamesSet.length) {
+            identicalPatternNames = true;
         }
         appSettings.highlighter.textHighlighting.highlightsPatterns = patterns;
     }
@@ -273,6 +285,7 @@ function constructDefaultTable() {
         th.className = header ? '' : 'collapsing';
         th.className = header === 'Color' ? 'four wide' : '';
         th.textContent = header;
+
         theadRow.appendChild(th);
     });
 
@@ -2764,7 +2777,22 @@ $(document).ready(async function () {
                 if (invalidPatterns) {
                     displayMessage({
                         title: 'Invalid Patterns',
-                        message: 'Some regex patterns for text highlighting are invalid. Please fix or disable them.',
+                        message: 'Some enabled highlighters have invalid patterns. Please fix them or disable the highlighters.',
+                        type: 'error',
+                        actions: [{
+                            text: 'Fix now',
+                            // icon: 'check',
+                            // class: 'green',
+                            click: function () {
+                                openSettingsPane('#highlighterTab');
+                            }
+                        }]
+                    });
+                }
+                if (identicalPatternNames) {
+                    displayMessage({
+                        title: 'Duplicate Pattern Names',
+                        message: 'Some highlighter names are the same. Please give them different names.',
                         type: 'error',
                         actions: [{
                             text: 'Fix now',
