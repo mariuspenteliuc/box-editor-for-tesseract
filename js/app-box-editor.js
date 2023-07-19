@@ -27,7 +27,7 @@ var appSettings = {
     highlighter: {
         textHighlighting: {
             textHighlightingEnabled: true,
-            patterns: [],
+            highlightsPatterns: [],
         },
     }
 };
@@ -39,9 +39,9 @@ function updateCookie() {
 
 async function addNewHighlighterPattern(e) {
     // Get the table body
-    const tableBody = document.querySelector('.ui.definition.celled.table tbody');
+    const tableBody = document.querySelector('.ui.celled.table tbody');
 
-    newRow = createTableRow(true, 'New Highlighter', false, '/./');
+    newRow = createTableRow(true, 'New Highlighter', false, '.');
 
     // Append the new row to the table body
     tableBody.appendChild(newRow);
@@ -123,7 +123,7 @@ function updatePatternLabels() {
 function savePatternsToSettings() {
     if (appSettings.highlighter.textHighlighting.textHighlightingEnabled) {
         // Get the table body
-        const tableBody = document.querySelector('.ui.definition.celled.table tbody');
+        const tableBody = document.querySelector('.ui.celled.table tbody');
         // Get all rows
         const allRows = tableBody.querySelectorAll('tr');
         let patterns = [];
@@ -136,7 +136,9 @@ function savePatternsToSettings() {
             const color = row.querySelector('td:nth-child(3) input[name=color]').value;
             const patternString = row.querySelector('td:nth-child(4)').innerText;
             try {
-                const pattern = new RegExp(patternString.slice(1, patternString.length - 1), 'i');
+                const pattern = patternString;
+                // const pattern = new RegExp(patternString, 'i');
+                // const pattern = new RegExp(patternString.slice(1, patternString.length - 1), 'i');
                 patterns.push({
                     enabled: enabled,
                     name: name,
@@ -157,12 +159,14 @@ function savePatternsToSettings() {
                 console.error(errorMessage);
             });
         }
-        appSettings.highlighter.textHighlighting.patterns = patterns;
+        appSettings.highlighter.textHighlighting.highlightsPatterns = patterns;
     }
-    updateInputBackground();
-    updatePreviewBackground();
+    if (appSettings.highlighter.textHighlighting.highlightsPatterns.length > 0) {
+        updateInputBackground();
+        updatePreviewBackground();
+    }
     updatePatternLabels();
-    // updateCookie();
+    updateCookie();
 }
 
 function highlightCell(cell, color) {
@@ -257,7 +261,7 @@ function createDeleteCell() {
 
 function constructDefaultTable() {
     const table = document.createElement('table');
-    table.className = 'ui unstackable definition celled table';
+    table.className = 'ui unstackable celled table';
 
     const thead = document.createElement('thead');
     const theadRow = document.createElement('tr');
@@ -273,10 +277,44 @@ function constructDefaultTable() {
     });
 
     const tbody = document.createElement('tbody');
-    const row1 = createTableRow(true, 'Latin', 'blue', '/[\\u0000-\\u007F\\u0080-\\u00FF]/');
-    const row2 = createTableRow(true, 'Cyrillic', 'red', '/[\\u0400-\\u04FF\\u0500-\\u052F\\u2DE0-\\u2DFF\\uA640-\\uA69F\\u1C80-\\u1CBF]/');
-    tbody.appendChild(row1);
-    tbody.appendChild(row2);
+    const cookie = Cookies.get("appSettings");
+    var highlights = [];
+    if (cookie) {
+        const cookieSettings = JSON.parse(cookie);
+        highlights = cookieSettings.highlighter.textHighlighting.highlightsPatterns;
+        if (highlights.length > 0) {
+            highlights.forEach(function (highlight) {
+                console.log(highlight);
+                const row = createTableRow(highlight.enabled, highlight.name, highlight.color, highlight.pattern);
+                tbody.appendChild(row);
+            });
+        }
+    }
+
+    if (!cookie || highlights.length === 0) {
+        const rows = [
+            { enabled: true, name: 'Latin', color: 'blue', pattern: '[\\u0000-\\u007F\\u0080-\\u00FF]' },
+            { enabled: true, name: 'Cyrillic', color: 'red', pattern: '[\\u0400-\\u04FF\\u0500-\\u052F\\u2DE0-\\u2DFF\\uA640-\\uA69F\\u1C80-\\u1CBF]' }
+        ];
+        rows.forEach(function (row) {
+            const tableRow = createTableRow(row.enabled, row.name, row.color, row.pattern);
+            tbody.appendChild(tableRow);
+        });
+    }
+    // if (cookie) {
+    //     const cookieSettings = JSON.parse(cookie);
+    // }
+    // if (cookieSettings.highlighter.textHighlighting.highlightsPatterns.length > 0) {
+    //     cookieSettings.highlighter.textHighlighting.highlightsPatterns.forEach(function (pattern) {
+    //         const row = createTableRow(pattern.enabled, pattern.name, pattern.color, pattern.pattern.toString());
+    //         tbody.appendChild(row);
+    //     });
+    // } else {
+    //     const row1 = createTableRow(true, 'Latin', 'blue', '/[\\u0000-\\u007F\\u0080-\\u00FF]/');
+    //     const row2 = createTableRow(true, 'Cyrillic', 'red', '/[\\u0400-\\u04FF\\u0500-\\u052F\\u2DE0-\\u2DFF\\uA640-\\uA69F\\u1C80-\\u1CBF]/');
+    //     tbody.appendChild(row1);
+    //     tbody.appendChild(row2);
+    // }
 
     table.appendChild(thead);
     table.appendChild(tbody);
@@ -398,13 +436,12 @@ function updateSettingsModal() {
     }
     // Text highlighting
     for (const [key, value] of Object.entries(appSettings.highlighter.textHighlighting)) {
-        if (key == 'patterns') {
-            continue;
-            // TODO: @15.07.2023 — reconstruct patterns table from cookies, otherwise load the default one.
-
+        if (key == 'highlightsPatterns') {
+            constructDefaultTable();
+        } else {
+            const path = `highlighter.textHighlighting.${key}`;
+            document.querySelector(`input[name='${path}']`).checked = value;
         }
-        const path = `highlighter.textHighlighting.${key}`;
-        document.querySelector(`input[name='${path}']`).checked = value;
     }
 }
 
@@ -1675,10 +1712,10 @@ function getBackgroundColor(element) {
 function getHighlighters() {
     var patterns = {};
     if (appSettings.highlighter.textHighlighting.textHighlightingEnabled) {
-        if (appSettings.highlighter.textHighlighting.patterns.length == 0) {
+        if (appSettings.highlighter.textHighlighting.highlightsPatterns.length == 0) {
             savePatternsToSettings();
         }
-        for (entry of appSettings.highlighter.textHighlighting.patterns) {
+        for (entry of appSettings.highlighter.textHighlighting.highlightsPatterns) {
             if (entry.enabled) {
                 patterns[entry.name] = entry;
             }
@@ -1704,7 +1741,7 @@ async function colorize(text) {
             name: 'space',
             color: 'space',
             enabled: true,
-            pattern: /\s/
+            pattern: '\\s'
         }
     }, getHighlighters());
 
@@ -1725,7 +1762,7 @@ async function colorize(text) {
         const keys = Object.keys(highlights).reverse();
         for (const key of keys) {
             const highlight = highlights[key];
-            if (highlight.pattern.test(char)) {
+            if (new RegExp(highlight.pattern).test(char)) {
                 foundHighlight = highlight;
                 break;
             }
