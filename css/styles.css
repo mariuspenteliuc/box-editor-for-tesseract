@@ -51,6 +51,11 @@ a.more.external {
   overscroll-behavior: auto;
 }
 
+#settingsMenu {
+  margin-right: 0;
+  margin-left: 0;
+}
+
 #text-output.ui.text-output.segment {
   height: 100%;
   width: 100%;
