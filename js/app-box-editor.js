@@ -297,7 +297,7 @@ function constructDefaultTable() {
         highlights = cookieSettings.highlighter.textHighlighting.highlightsPatterns;
         if (highlights.length > 0) {
             highlights.forEach(function (highlight) {
-                console.log(highlight);
+                // console.log(highlight);
                 const row = createTableRow(highlight.enabled, highlight.name, highlight.color, highlight.pattern);
                 tbody.appendChild(row);
             });
@@ -455,6 +455,10 @@ function updateSettingsModal() {
             const path = `highlighter.textHighlighting.${key}`;
             document.querySelector(`input[name='${path}']`).checked = value;
         }
+    }
+    // Invisibles toggle
+    if (appSettings.interface.showInvisibles) {
+        $('#invisiblesToggle.ui.button').addClass('active');
     }
 }
 
@@ -1749,14 +1753,14 @@ async function colorize(text) {
     charSpace = appSettings.interface.showInvisibles ? '·' : '&nbsp;';
 
     // const highlights = getHighlighters();
-    const highlights = Object.assign({
+    const highlights = Object.assign(getHighlighters(), {
         space: {
             name: 'space',
             color: 'space',
             enabled: true,
             pattern: '\\s'
         }
-    }, getHighlighters());
+    });
 
     for (var i = 0; i < text.length; i++) {
         var isCapital = false;
@@ -1787,24 +1791,28 @@ async function colorize(text) {
                 if (current_span !== '') {
                     colored_text += '</span>' + current_span; // Move the closing tag here
                 }
-                if (span_class == 'space') {
-                    current_span = '<span class="' + span_class + '">' + charSpace + '</span>'; // Wrap space with span
+                if (span_class.includes('space')) {
+                    current_span = '<span class="' + span_class + '">' + charSpace; // Wrap space with span
                 } else {
                     current_span = '<span class="' + span_class + '">' + char;
                 }
                 current_script = span_class;
             } else {
-                if (current_script == 'space') {
-                    // replace 'space' with 'space multiple' in current_span
-                    current_span = current_span.replace('space', 'space multiple');
+                if (current_script.includes('space')) {
+                    if (!current_span.includes('multiple')) {
+                        // replace 'space' with 'space multiple' in current_span
+                        current_span = current_span.replace('space', 'space multiple');
+                    }
+                    current_span += charSpace;
+                } else {
+                    current_span += char;
                 }
-                current_span += char;
             }
         } else {
             span_class = 'other';
             if (current_script != span_class) {
                 if (current_span !== '') {
-                    if (current_script == 'space') {
+                    if (current_script.includes('space') && !current_script.includes('multiple')) {
                         // replace 'space' with 'space multiple' in current_span
                         current_span = current_span.replace('space', 'space multiple');
                     }
