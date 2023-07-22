@@ -307,7 +307,8 @@ function constructDefaultTable() {
     if (!cookie || highlights.length === 0) {
         const rows = [
             { enabled: true, name: 'Latin', color: 'blue', pattern: '[\\u0000-\\u007F\\u0080-\\u00FF]' },
-            { enabled: true, name: 'Cyrillic', color: 'red', pattern: '[\\u0400-\\u04FF\\u0500-\\u052F\\u2DE0-\\u2DFF\\uA640-\\uA69F\\u1C80-\\u1CBF]' }
+            { enabled: true, name: 'Cyrillic', color: 'yellow', pattern: '[\\u0400-\\u04FF\\u0500-\\u052F\\u2DE0-\\u2DFF\\uA640-\\uA69F\\u1C80-\\u1CBF]' },
+            { enabled: true, name: 'Digits', color: 'red', pattern: '[0-9]' },
         ];
         rows.forEach(function (row) {
             const tableRow = createTableRow(row.enabled, row.name, row.color, row.pattern);
