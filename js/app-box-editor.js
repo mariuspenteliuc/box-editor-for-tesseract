@@ -315,20 +315,6 @@ function constructDefaultTable() {
             tbody.appendChild(tableRow);
         });
     }
-    // if (cookie) {
-    //     const cookieSettings = JSON.parse(cookie);
-    // }
-    // if (cookieSettings.highlighter.textHighlighting.highlightsPatterns.length > 0) {
-    //     cookieSettings.highlighter.textHighlighting.highlightsPatterns.forEach(function (pattern) {
-    //         const row = createTableRow(pattern.enabled, pattern.name, pattern.color, pattern.pattern.toString());
-    //         tbody.appendChild(row);
-    //     });
-    // } else {
-    //     const row1 = createTableRow(true, 'Latin', 'blue', '/[\\u0000-\\u007F\\u0080-\\u00FF]/');
-    //     const row2 = createTableRow(true, 'Cyrillic', 'red', '/[\\u0400-\\u04FF\\u0500-\\u052F\\u2DE0-\\u2DFF\\uA640-\\uA69F\\u1C80-\\u1CBF]/');
-    //     tbody.appendChild(row1);
-    //     tbody.appendChild(row2);
-    // }
 
     table.appendChild(thead);
     table.appendChild(tbody);
@@ -365,8 +351,6 @@ async function resetAppSettingsAndCookies() {
     response = await askUser({
         title: 'Reset App',
         message: 'The app will reset it\'s settings and reload. Are you sure you want to continue?',
-        // confirmText: 'Reset',
-        // denyText: 'No',
         type: 'replacingTextWarning',
         actions: [{
             text: 'Cancel',
@@ -402,19 +386,14 @@ function updateAppSettings({ path, value, cookie }) {
         for (let i = 0; i < pathArray.length - 1; i++) {
             obj = obj[pathArray[i]];
         }
-        // displayMessage({ title: "Settings updated!", type: "info", message: `Path: ${path}, value: ${value}, previous value: ${obj[pathArray[pathArray.length - 1]]}.` });
         obj[pathArray[pathArray.length - 1]] = value;
         updateCookie();
 
         // wait 1 second before continuing to the next line
         setTimeout(() => {
             $("#settingsModalStatus")[0].innerHTML = "Settings saved!"
-            // $("#settingsModalStatus .loader").addClass("active")
         }, 100)
         $("#settingsModalStatus")[0].innerHTML = "<div class='ui mini active fast inline loader'></div>"
-        // $("#settingsModalStatus .loader").addClass("active")
-        // $("#settingsModalStatus")[0].innerText = "Settings saved!"
-        // $("#settingsModalStatus .loader").removeClass("active")
     }
     updateSettingsModal();
 }
@@ -465,9 +444,6 @@ function updateSettingsModal() {
 
 // Listen for changes to the settings and update the appSettings object and the cookie accordingly
 document.addEventListener("change", function (event) {
-    // const inputs = document.querySelectorAll("input[type='checkbox'], input[type='radio'], input[type='text']");
-    // inputs.forEach((input) => {
-    //     input.addEventListener("change", (event) => {
     const path = event.target.name;
     const value = event.target.type === "checkbox" ? event.target.checked : event.target.value;
     updateAppSettings({ path: path, value: value });
@@ -815,13 +791,9 @@ async function editRect(e) {
 
     // new dimensions
     var newDimenstions = [newd.x1, newd.y1, newd.x2, newd.y2];
-    // console.log("moved box ", [
-    //     box.polyid, box.text
-    // ], " from ", oldDimenstions, " to ", newDimenstions);
     if (lineWasDirty) {
         newd.text = $('#formtxt').val();
     }
-    // fillAndFocusRect(newd);
 }
 
 function deleteBox(box) {
@@ -960,8 +932,6 @@ function updateBoxdata(id, d) {
     var thebox = boxdata.findIndex(function (x) {
         return x.polyid == id;
     });
-    // var ndata = Object.assign(new Box(), boxdata[thebox], d);
-    // boxdata[thebox] = ndata
     d.polyid = id
     // check if data is different
     if (boxdata[thebox].modified || !boxdata[thebox].equals(d)) {
@@ -1085,14 +1055,7 @@ async function redetectText(rectList = []) {
     }
     for (i = 0; i < rectList.length; i++) {
         var box = rectList[i];
-        // rectangle = { left: box.x1, top: box.y1, width: box.x2 - box.x1, height: box.y2 - box.y1 }
         rectangle = { left: box.x1, top: imageHeight - box.y2, width: box.x2 - box.x1, height: box.y2 - box.y1 }
-        // await worker.loadLanguage('RTS_from_Cyrillic');
-        // await worker.initialize('RTS_from_Cyrillic');
-        // await worker.setParameters({
-        //     tessedit_ocr_engine_mode: 1,
-        //     tessedit_pageseg_mode: 1,// 12
-        // });
         result = await worker.recognize(image._image, { rectangle })
         box.text = result.data.text;
         // remove newlines
@@ -1113,13 +1076,7 @@ async function generateInitialBoxes(includeSuggestions = true) {
 
     boxlayer.clearLayers();
     boxdata = [];
-    // const results = await worker.recognize(image, { left: image.width, top: image.height, width: 10, height: 10 });
-    // run worker on half of the image
-    // const rectangle = { left: 0, top: 0, width: image.width / 2, height: image.height/2 }
-    // const results = await worker.recognize(image);
     results = await redetectText();
-    // const results = await worker.recognize(image, { rectangle });
-    // await worker.terminate();
     recognizedLinesOfText = results.data.lines;
     if (recognizedLinesOfText.length == 0) {
         setMainLoadingStatus(false);
@@ -1130,8 +1087,6 @@ async function generateInitialBoxes(includeSuggestions = true) {
         line.text = line.text.replace(/(\r\n|\n|\r)/gm, "");
     });
     await insertSuggestions(includeSuggestions);
-    // $('#formrow').removeClass('hidden');
-    // select next BB
     var nextBB = getNextBB();
     fillAndFocusRect(nextBB);
 
@@ -1209,7 +1164,6 @@ async function insertSuggestions(includeSuggestions) {
         map.addLayer(boxlayer);
     }
     numberOFBoxes = boxdata.length;
-    // selectClosestBox();
 }
 
 
@@ -1379,13 +1333,6 @@ function updateProgressBar(options = {}) {
         } else {
             updateSlider({ value: currentPosition + 1 });
         }
-        // $('.ui.slider').slider('set value', currentPosition + 1);
-        // set max value
-        // $('.ui.slider').slider('setting', 'max', boxdata.length);
-        // $('#positionProgress').progress({
-        //     value: currentPosition + 1,
-        //     total: boxdata.length
-        // });
         if (boxdata.every(function (el) {
             return el.filled;
         })) {
@@ -1528,9 +1475,6 @@ async function loadImageFile(e, sample = false) {
     await worker.loadLanguage('RTS_from_Cyrillic');
     await worker.initialize('RTS_from_Cyrillic');
     await worker.setParameters({
-        // tessedit_ocr_engine_mode: OcrEngineMode.OEM_LSTM_ONLY,
-        // tessedit_ocr_engine_mode: "OcrEngineMode.OEM_LSTM_ONLY",
-        // tessedit_pageseg_mode: "PSM_AUTO_OSD"
         tessedit_ocr_engine_mode: 1,
         tessedit_pageseg_mode: 1,// 12
     });
@@ -1557,7 +1501,6 @@ function initializeSlider() {
             smooth: true,
             labelDistance: 50,
             onChange: function (value) {
-                // displayMessage({ message: 'Slider value changed to ' + value + '.' });
                 if (currentSliderPosition == value) {
                     return;
                 }
@@ -1567,7 +1510,6 @@ function initializeSlider() {
                 }
             },
             onMove: function (value) {
-                // displayMessage({ type: 'warning', message: 'Slider value moving to ' + value + '.' });
                 if (currentSliderPosition == value) {
                     return;
                 }
@@ -1600,12 +1542,7 @@ function updateDownloadButtonsLabels(options = {}) {
 
 // Sort all bosees from top to bottom
 function sortAllBoxes() {
-    // boxdata.sort(sortBoxes);
-    // repead three times to make sure that the boxes are sorted correctly
-    // I don't know why this is necessary, but it is 🤷‍♂️
     boxdata.sort(Box.compare);
-    // boxdata.sort(Box.compare);
-    // boxdata.sort(Box.compare);
 }
 
 // Define regular expressions
@@ -1706,26 +1643,6 @@ function getBackgroundColor(element) {
     const computedStyle = window.getComputedStyle(element);
     return computedStyle.backgroundColor;
 }
-
-// function createRule(highlighter) {
-//         color = getBackgroundColor(element);
-//         saturatedColor = updateSaturationAndLuminosity(color, 71.3, 65.9);
-//         var prefix = '.'
-//         var classes = element.classList;
-//         var classesString = '';
-//         for (var i = 0; i < classes.length; i++) {
-//             classesString += prefix + classes[i];
-//         }
-
-//         // create new css rule and add it to the stylesheet
-//     var lowerCaseColor = 'color: ' + highlighter.color + ';';
-//     var upperCaseColor = 'color: ' + highlighter.color + ';';
-//     var lowerCaseSelector = 'span.' + highlighter.name.toLowerCase();
-//     var upperCaseSelector = 'span.' + highlighter.name.toLowerCase() + '.capital';
-//     var sheet = document.styleSheets[5];
-//     sheet.insertRule(lowerCaseSelector + '{' + newRule + '}', sheet.cssRules.length); // insert CSS rule
-//         console.log(newRuleSelector + '{' + newRule + '}');
-// }
 
 function getHighlighters() {
     var patterns = {};
@@ -1990,65 +1907,7 @@ var drawControl = new L.Control.Draw({
     }
 });
 
-// L.Control.Region = L.Control.extend({
-//     options: {
-//         position: 'topright'
-//     },
-//     onAdd: function (map) {
-//         var container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
-//         var section = L.DomUtil.create('div', 'leaflet-draw-section', container);
-//         // var toolbar = L.DomUtil.create('div', 'leaflet-draw-toolbar leaflet-bar leaflet-draw-toolbar-top', section);
-//         var inclusiveRegion = L.DomUtil.create('a', 'leaflet-control-button', section);
-//         inclusiveRegion.innerHTML = '<i class="large grey fitted plus circle icon"></i>';
-//         var exclusiveRegion = L.DomUtil.create('a', 'leaflet-control-button', section);
-//         exclusiveRegion.innerHTML = '<i class="large grey fitted minus circle icon"></i>';
-//         L.DomEvent.disableClickPropagation(inclusiveRegion);
-//         L.DomEvent.on(inclusiveRegion, 'click', function () {
-//             console.log('click');
-//             // Get bounds of image from map
-//             var imageBounds = map.getBounds();
-//             // get image height and width
-//             var imageHeight = imageBounds.getNorth() - imageBounds.getSouth();
-//             var imageWidth = imageBounds.getEast() - imageBounds.getWest();
-//             // get aspect ratio of image
-//             var imageAspectRatio = imageBounds.getEast() - imageBounds.getWest();
-//             imageAspectRatio = imageAspectRatio / (imageBounds.getNorth() - imageBounds.getSouth());
-//             // increase height of #mapid to fit aspect ratio. use smooth animation
-//             var mapHeight = $('#mapid').height();
-//             var mapWidth = $('#mapid').width();
-//             var mapAspectRatio = mapWidth / mapHeight;
-//             console.log(imageAspectRatio, mapAspectRatio);
-//             if (imageAspectRatio > .5) {
-//                 var newHeight = mapWidth * imageAspectRatio;
-//                 var newHeight = imageHeight;
-//                 $('#mapid').animate({ height: newHeight }, 500);
-//             }
-
-//             // set map bounds
-//             map.fitBounds(imageBounds);
-
-//         });
-
-//         container.title = "Title";
-
-//         return container;
-//     },
-//     onRemove: function (map) { },
-// });
-
 async function setMapSize(options, animate = true) {
-    // var imageBounds = map.getBounds();
-    // var imageAspectRatio = imageBounds.getEast() - imageBounds.getWest();
-    // imageAspectRatio = imageAspectRatio / (imageBounds.getNorth() - imageBounds.getSouth());
-    // var mapHeight = $('#mapid').height();
-    // var mapWidth = $('#mapid').width();
-    // var mapAspectRatio = mapWidth / mapHeight;
-    // console.log(imageAspectRatio, mapAspectRatio);
-    // if (imageAspectRatio > .5) {
-    //     var newHeight = mapWidth * imageAspectRatio;
-    //     var newHeight = imageHeight / 2;
-    //     await resizeMapTo(newHeight);
-    // }
     if (options.height == 'short') {
         var newHeight = 300;
     }
@@ -2126,8 +1985,6 @@ async function toggleInvisibles(e) {
     updateInputBackground();
     updatePreviewBackground();
     $('#formtxt').focus();
-    // save cookie for invisibles
-    // Cookies.set('show-invisibles', showInvisibles);
 }
 
 async function downloadBoxFile(e) {
@@ -2230,16 +2087,7 @@ const setKerning = (elements, kerning) => {
 
 // split the box by the intersection of the box and the polyline using turf.js bboxclip
 function cutBoxByPoly(box, poly) {
-    // split poly into segments
-    // var polyFeature = turf.polygon(poly);
-    // var multiLine = turf.multiLineString([[[0,0],[10,10]]]);
-    // make multilinestring from polyline
     var polyFeature = turf.lineString(poly);
-    // var polyFeature = turf.lineToPolygon(poly);
-    // convert poly latlngs y component to image height - y
-    // polyFeature.geometry.coordinates._latlngs.forEach(function (element) {
-    //     element.lat = imageHeight - element.lat;
-    // });
     var boxFeature = turf.bboxPolygon([box.x1, box.y1, box.x2, box.y2]);
     // for each segment of the polyline, find the intersection with the box. check if point is inside box. if so, add to list of points
     var splitLines = [];
@@ -2268,25 +2116,8 @@ function cutBoxByPoly(box, poly) {
     // for each intersecting segment, split the box
     var boxGaps = [];
     intersectingLines.forEach(function (element) {
-        // var intersection = turf.lineIntersect(boxFeature, element);
-        // if (element.geometry.coordinates.length == 3) {
-        //     intersection.features.push(turf.point(element.geometry.coordinates[1]));
-        // }
-        // var intersectionBox = turf.bbox(intersection);
-        // boxGaps.push(intersectionBox);
         boxGaps.push(turf.envelope(element));
     });
-
-    // for each gap, split the box
-    // union all box gaps
-    // if (boxGaps.length > 1) {
-    //     var gapUnion = turf.union(boxGaps[0], boxGaps[1]);
-    //     for (var i = 2; i < boxGaps.length; i++) {
-    //         gapUnion = turf.union(gapUnion, boxGaps[i]);
-    //     }
-    // }
-
-    // var difference = turf.difference(boxFeature, gapUnion);
 
     var newBoxes = [];
     var newEdges = [];
@@ -2368,7 +2199,6 @@ function showCharInfoPopup(e) { // prevent modifier keys from triggering popup
     } else {
         formatted = formatForPopup(results);
         // apply style to popup
-        // max-height: 40em;overflow: scroll;
         $('#updateTxt').popup('get popup').css('max-height', '20em');
         $('#updateTxt').popup('get popup').css('overflow', 'visible');
         $('#updateTxt').popup('get popup').css('scrollbar-width', 'none');
@@ -2406,7 +2236,6 @@ function helpSettingsPopup() {
     // set data-tab="help-section" active and show help-section
     $('#settingsMenu .item').filter('#helpTab').addClass('active')
     $('.ui.tab').filter('#helpTab').addClass('active')
-    // $('#help-section').addClass('active');
 }
 
 
@@ -2556,8 +2385,6 @@ $(document).ready(async function () {
     });
 
     map.addControl(zoomControl);
-    // var control = new L.Control.Region()
-    // control.addTo(map);
     map.addControl(drawControl);
 
     $('#boxFile').change(loadBoxFile);
@@ -2576,20 +2403,15 @@ $(document).ready(async function () {
     });
     map.on('draw:deletestart', async function (event) {
         mapDeletingState = true;
-        // await setMapSize({ largeView: true });
     });
     map.on('draw:deletestop', async function (event) {
-        // await setMapSize({ largeView: false });
         mapDeletingState = false;
         updateSlider({ max: boxdata.length });
     });
     map.on('draw:drawstart', async function (event) {
         mapEditingState = true;
-        // await setMapSize({ largeView: true });
     });
     map.on('draw:drawstop', async function (event) {
-        // await setMapSize({ largeView: false });
-        // focusRectangle(selectedPoly);
         mapEditingState = false;
     });
 
@@ -2627,8 +2449,6 @@ $(document).ready(async function () {
         if (event.layerType === 'polyline') {
             setMainLoadingStatus(true);
             setButtons({ state: 'disabled' });
-            // if (event.layerType === 'polygon') {
-            // cut all boxes by the polygon line
             var poly = event.layer;
             var polybounds = poly.getBounds();
             var newboxes = [];
@@ -2651,7 +2471,6 @@ $(document).ready(async function () {
                 boxlayer.removeLayer(layer);
                 deleteBox(box);
             });
-            // for (var i = 0; i < newboxes.length; i++) {
             // update all newboxes to Box objects in place
             newboxes = newboxes.map(function (box) {
                 var newbox = new Box(box);
@@ -2707,7 +2526,6 @@ $(document).ready(async function () {
         }
     });
     html = $('html')
-    // dropzone = $("div.my-dropzone *")
     highlightzone = $("div.my-dropzone")
     html.dropzone({
         url: receiveDroppedFiles,
@@ -2716,7 +2534,6 @@ $(document).ready(async function () {
         disablePreviews: true,
         clickable: false,
         acceptedFiles: "image/*,.box",
-        // maxFiles: 3,
     })
     $(html).on('drag dragenter dragover', function (event) {
         event.preventDefault();
@@ -2724,14 +2541,12 @@ $(document).ready(async function () {
         if (html.hasClass('dz-drag-hover')) {
             highlightzone
                 .dimmer('show')
-                // .transition('pulsating')
                 .addClass('raised')
         }
         window.setTimeout(function () {
             if (!html.hasClass('dz-drag-hover')) {
                 highlightzone
                     .dimmer('hide')
-                    // .transition('stop all')
                     .removeClass('raised')
             }
         }, 1500);
@@ -2744,23 +2559,6 @@ $(document).ready(async function () {
                 .transition('pulse')
         }
     });
-
-    // $(html).on('dragleave dragend', function (event) {
-    //     event.preventDefault()
-    //     event.stopPropagation();
-    //     // highlightzone.addClass('secondary')
-    //     // highlightzone.removeClass('raised placeholder')
-    //     if (!html.hasClass('dz-drag-hover')) {
-    //         highlightzone.dimmer('hide');
-    //     }
-    // });
-
-
-
-
-
-
-
 
     $('#formtxt').bind('mouseup', showCharInfoPopup);
     $('#formtxt').bind('keyup', showCharInfoPopup);
@@ -2829,13 +2627,6 @@ $(document).ready(async function () {
     tableContainer.insertBefore(defaultTable, tableContainer.firstChild);
     savePatternsToSettings();
 
-    // $('.ui.dropdown')
-    //     .dropdown({
-    //         onChange: function (value, text, $selected) {
-    //             savePatternsToSettings();
-    //         },
-    //     })
-    //     ;
     $(`input[name='highlighter.textHighlighting.textHighlightingEnabled']`).checkbox({
         onChange: function (value, text, $selected) {
             savePatternsToSettings();
