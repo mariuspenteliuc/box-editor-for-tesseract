@@ -12,7 +12,7 @@ class Box {
     this.polyid = polyid;
     this.filled = text != '' ? true : false;
     this.visited = visited;
-    this.modified = false;
+    this.committed = false;
   }
 
   static compare(a, b) {
@@ -90,7 +90,7 @@ app.ready = function () {
     $previewColorizedOutput = $('#myPreviewBackground'),
     $taggingSegment = $('#taggingSegment'),
     $positionSlider = $('.ui.slider'),
-    $progressSlider = $('#editingProgress'),
+    $progressSlider = $('#progressIndicator'),
     $progressLabel = $progressSlider.find('.label'),
     $popups = $('.popup'),
     $settingsButton = $('#settingsButton'),
@@ -113,8 +113,6 @@ app.ready = function () {
 
     // variables
     _URL = window.URL || window.webkitURL,
-    h,
-    w,
     bounds,
     BoxFileType = Object.freeze({
       'WORDSTR': 1,
@@ -125,8 +123,6 @@ app.ready = function () {
     selectedPoly,
     selectedBox,
     languageModelName = 'RTS_from_Cyrillic',
-    imageLoaded = false,
-    boxDataLoaded = false,
     maxZoom = 1,
     map,
     mapPaddingBottomRight = [40, 0],
@@ -168,25 +164,18 @@ app.ready = function () {
         this.processed = false;
       },
     },
-    // imageIsProcessed = false,
     recognizedLinesOfText = [],
     image,
     imageHeight,
     imageWidth,
-    mapHeight,
     mapState = undefined,
-    // mapDeletingState = false,
-    // mapEditingState = false,
     currentSliderPosition = -1,
-    dropzone = undefined,
     invalidPatterns = false,
     identicalPatternNames = false,
     suppressLogMessages = {
       'recognizing text': false,
     },
 
-
-    // app settings
     appSettings = {
       interface: {
         appearance: 'match-device',
@@ -197,6 +186,11 @@ app.ready = function () {
           invisiblesToggle: true,
         },
         imageView: 'medium',
+        workflow: {
+          progressIndicator: true,
+          positionSlider: true,
+          formCoordinateFields: true,
+        },
         showInvisibles: false,
       },
       behavior: {
@@ -208,6 +202,10 @@ app.ready = function () {
           enableWarrningMessagesForDifferentFileNames: true,
           enableWarrningMessagesForUncommittedChanges: true,
         },
+        convenience: {
+          autoDownloadBoxFileOnAllLinesComitted: false,
+          autoDownloadGroundTruthFileOnAllLinesComitted: false,
+        },
       },
       highlighter: {
         textHighlighting: {
@@ -217,7 +215,6 @@ app.ready = function () {
       }
     },
 
-    // box states
     boxState = {
       boxProcessing: {
         color: 'white',
@@ -445,7 +442,6 @@ app.ready = function () {
     },
     notifyUser: function (object) {
       if (object.title == undefined) {
-        // capitalize type
         object.title = object.type.charAt(0).toUpperCase() + object.type.slice(1);
       }
       if (object.time == undefined) {
@@ -841,7 +837,6 @@ app.ready = function () {
           } else if (event.layerType === 'polyline') {
             await handler.create.polyline(event.layer);
           }
-          // handler.focusShape(selectedPoly);
           handler.focusBoxID(selectedPoly._leaflet_id);
         });
       },
@@ -902,7 +897,6 @@ app.ready = function () {
             handler.delete.box(box);
           });
 
-        // update all newBoxes to Box objects in place
         newBoxes = newBoxes.map(box => new Box(box));
 
         newBoxes
@@ -1044,9 +1038,6 @@ app.ready = function () {
         $('#mapid').animate({ height: height }, animate ? 500 : 0);
       },
       mapSize: async function (options, animate = true) {
-        // refresh jquery selector
-        $map = $('#mapid');
-
         var
           heightMap = {
             'short': 300,
@@ -1063,11 +1054,8 @@ app.ready = function () {
           selectedPoly
             .getBounds()
             .extend(selectedPoly.getBounds());
-          // .forEach(function (object) {
-          //   bounds.extend(object);
-          // });
         }
-        setTimeout(function () { map.invalidateSize({ pan: true }) }, 500);
+        // setTimeout(function () { map.invalidateSize({ pan: true }) }, 500);
       },
       appAppearance: function (value) {
         var docClassesRef = $document[0].documentElement.classList;
@@ -1136,6 +1124,15 @@ app.ready = function () {
         const imageViewPath = 'interface.imageView';
         document.querySelector(`input[name='${imageViewPath}'][value='${appSettings.interface.imageView}']`).checked = true;
         handler.set.mapSize({ height: appSettings.interface.imageView });
+        // Workflow
+        for (const [key, value] of Object.entries(appSettings.interface.workflow)) {
+          const path = 'interface.workflow.' + key;
+          const checkbox = $checkboxes.find(`input[name="${path}"]`);
+          checkbox.prop('checked', value);
+          $('#' + key).toggle(appSettings.interface.workflow[key]);
+        }
+        const workflowPath = 'interface.workflow';
+        document.querySelector
         // On Image Load
         for (const [key, value] of Object.entries(appSettings.behavior.onImageLoad)) {
           const path = 'behavior.onImageLoad.' + key;
@@ -1146,11 +1143,13 @@ app.ready = function () {
           const path = 'behavior.alerting.' + key;
           document.querySelector(`input[name='${path}']`).checked = value;
         }
+        // Convenience Features
+        for (const [key, value] of Object.entries(appSettings.behavior.convenience)) {
+          const path = 'behavior.convenience.' + key;
+          document.querySelector(`input[name='${path}']`).checked = value;
+        }
         // Highlighter
         for (const [key, value] of Object.entries(appSettings.highlighter.textHighlighting)) {
-          // if (key == 'highlightsPatterns' && value.length == 0) {
-          //   await handler.create.defaultHighlighterTable();
-          // } else {
           if (key != 'highlightsPatterns') {
             const path = 'highlighter.textHighlighting.' + key;
             document.querySelector(`input[name='${path}']`).checked = value;
@@ -1159,6 +1158,8 @@ app.ready = function () {
         // Invisibles Toggle
         if (appSettings.interface.showInvisibles) {
           $invisiblesToggleButton.addClass('active');
+        } else {
+          $invisiblesToggleButton.removeClass('active');
         }
       },
       progressBar: function (options = {}) {
@@ -1179,7 +1180,7 @@ app.ready = function () {
           }
           if (boxData.every(box => box.filled)) {
             var
-              modifiedLines = boxData.filter(box => box.modified);
+              modifiedLines = boxData.filter(box => box.committed);
             $progressSlider.progress({
               value: modifiedLines.length,
               total: boxData.length,
@@ -1247,10 +1248,10 @@ app.ready = function () {
           oldData = oldBoxIndex > -1 ? boxData[oldBoxIndex] : boxData[0];
         newData.polyid = polyid
         // check if data is different
-        if (oldData.modified || !oldData.equals(newData)) {
+        if (oldData.committed || !oldData.equals(newData)) {
           isUpdated = true;
           if (oldData.text != '') {
-            newData.modified = true;
+            newData.committed = true;
           }
         }
         boxData[oldBoxIndex] = newData
@@ -1309,7 +1310,6 @@ app.ready = function () {
             inputField = $(this).find('.colorized-input-field'),
             outputField = $(this).find('.colorized-output-field')[0],
             colorizedText = await handler.colorizeText(inputField.val());
-          // get closest .colorized-output-field using jquery and replace innerHTML
           outputField.innerHTML = colorizedText;
 
         });
@@ -1326,13 +1326,13 @@ app.ready = function () {
             inlineLoader = document.createElement('div'),
             lastElementIndex = pathElements.length - 1,
             updatedSettings = pathElements.reduce((obj, key, index) => {
-            if (index === lastElementIndex) {
-              obj[key] = value;
-            } else {
-              obj[key] = { ...obj[key] };
-            }
-            return obj[key];
-          }, appSettings);
+              if (index === lastElementIndex) {
+                obj[key] = value;
+              } else {
+                obj[key] = { ...obj[key] };
+              }
+              return obj[key];
+            }, appSettings);
           handler.update.cookie();
 
           setTimeout(() => {
@@ -1577,7 +1577,6 @@ app.ready = function () {
         })
       },
       unicodeData: async function () {
-        // const response =
         await $.ajax({
           url: '../../assets/unicodeData.csv',
           dataType: 'text',
@@ -1590,7 +1589,6 @@ app.ready = function () {
             unicodeData = parsedData;
           }
         });
-        // unicodeData = await response.json();
       },
       dropzone: function () {
         $html.dropzone({
@@ -1742,10 +1740,11 @@ app.ready = function () {
             map.removeLayer(layer);
           });
 
-          h = this.height;
-          w = this.width;
-          bounds = [[0, 0], [parseInt(h), parseInt(w)]];
-          var bounds2 = [[h - 300, 0], [h, w]];
+          imageHeight = this.height;
+          imageWidth = this.width;
+
+          bounds = [[0, 0], [parseInt(imageHeight), parseInt(imageWidth)]];
+          var bounds2 = [[imageHeight - 300, 0], [imageHeight, imageWidth]];
           if (image) {
             $(image._image).fadeOut(750, function () {
               map.removeLayer(image);
@@ -1757,8 +1756,6 @@ app.ready = function () {
             image = new L.imageOverlay(img.src, bounds, imageOverlayOptions).addTo(map);
             $(image._image).fadeIn(750);
           }
-          imageHeight = this.height;
-          imageWidth = this.width;
         };
         img.onerror = function (error) {
           var fileExtension = file.name.split('.').pop();
@@ -1830,6 +1827,17 @@ app.ready = function () {
         }),
         modified = handler.update.boxData(polyid, newData);
       handler.update.rectangle(polyid, newData);
+
+      // if all boxes are committed then call download function
+      if (boxData.every(box => box.committed)) {
+        boxData.forEach(box => box.committed = false);
+        if (appSettings.behavior.convenience.autoDownloadBoxFileOnAllLinesComitted) {
+          $downloadBoxFileButton.click();
+        }
+        if (appSettings.behavior.convenience.autoDownloadGroundTruthFileOnAllLinesComitted) {
+          $downloadGroundTruthFileButton.click();
+        }
+      }
       return modified
     },
     style: {
@@ -1913,7 +1921,6 @@ app.ready = function () {
           return false;
         }
         handler.sortAllBoxes();
-        // remove newlines from text
         for (var box of boxData) {
           box.text = box.text.replace(/(\r\n|\n|\r)/gm, '');
         }
@@ -1968,7 +1975,6 @@ app.ready = function () {
       textSuggestion: async function () {
         $regenerateTextSuggestionForSelectedBoxButton.addClass('disabled double loading');
         suppressLogMessages['recognizing text'] = true;
-        // handler.set.loadingState({ buttons: true });
 
         if (boxLayer.getLayers().length > 0) {
           var
@@ -1978,7 +1984,6 @@ app.ready = function () {
           handler.focusBoxID(boxData[element].polyid)
         }
 
-        // handler.set.loadingState({ buttons: false });
         suppressLogMessages['recognizing text'] = false;
         $regenerateTextSuggestionForSelectedBoxButton.removeClass('disabled double loading');
       },
@@ -2141,7 +2146,7 @@ app.ready = function () {
         value = showInvisibles;
       handler.update.appSettings({ path, value });
       handler.update.colorizedBackground();
-      $invisiblesToggleButton.toggleClass('active');
+      // $invisiblesToggleButton.toggleClass('active');
       handler.focusGroundTruthField();
     },
     showCharInfoPopup: function (event) {
@@ -2222,9 +2227,7 @@ app.ready = function () {
       handler.addBehaviors();
       $imageFileInput.prop('disabled', false);
       handler.setKeyboardControl('form');
-
-      // handler.create.map('mapid');
-      handler.set.loadingState({ buttons: false });
+      // handler.set.loadingState({ buttons: false });
       await handler.load.unicodeData();
       handler.load.dropzone();
       handler.load.popups();

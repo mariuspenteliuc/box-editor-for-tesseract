@@ -174,11 +174,11 @@
           <div class="bar"></div>
         </div> -->
         <div class="ui maprow fitted segment" id="mapid"></div>
-        <div class="ui tiny indicating progress" id="editingProgress">
+        <div class="ui tiny indicating progress" id="progressIndicator">
           <div class="bar"></div>
           <div class="label"></div>
         </div>
-        <div class="ui small grey labeled slider"></div>
+        <div id="positionSlider" class="ui small grey labeled slider"></div>
         <form class="ui big form colorized-output-form" id="updateTxt" spellcheck="false">
           <div id="myInputContainer" class="disabled field">
             <label class="col-sm-2 control-label" for="formtxt" id="txtlabel">Text</label>
@@ -193,7 +193,7 @@
         <div id="highlighters-labels" class="ui horizontal list">
         </div>
         <div class="ui basic fitted segment">
-          <form id="formbox" class="ui form" spellcheck="false">
+          <form id="formCoordinateFields" class="ui form" spellcheck="false">
             <div class="four fields">
               <div class="field">
                 <label for="x1">Left</label>
@@ -237,9 +237,9 @@
               <div class="item">
                 By: <a href="https://penteliuc.com">Marius E. Penteliuc</a>
               </div>
-              <div class="item">
+              <!-- <div class="item">
                 Originally: <a href="https://johanjunkka.com">Johan Junkka</a>
-              </div>
+              </div> -->
             </div>
           </div>
           <div class="ui right aligned basic fitted segment">
@@ -249,10 +249,10 @@
           </div>
         </div>
         <div class="ui basic horizontally fitted segment">
-          <p>This work was supported by a grant of the Romanian Ministry of Research, Innovation and Digitization, CCCDI
+          <!-- <p>This work was supported by a grant of the Romanian Ministry of Research, Innovation and Digitization, CCCDI
             -
             UEFISCDI,
-            project number PN-III-P2-2.1-PED-2021-0693, within PNCDI III.</p>
+            project number PN-III-P2-2.1-PED-2021-0693, within PNCDI III.</p> -->
         </div>
       </div>
     </div>
@@ -289,7 +289,7 @@
     </div>
     <div id="mainSettingsPane" class="twelve wide column scrolling content">
       <div class="ui tab active" data-tab="interface-settings">
-        <div class="ui relaxed list">
+        <div class="ui very relaxed list">
           <div class="item">
             <div class="header">Appearance</div>
             <div class="description">
@@ -374,10 +374,36 @@
               </div>
             </div>
           </div>
+          <div class="item">
+            <div class="header">Workflow</div>
+            <div class="description">
+              Choose what convenience features you would like to use.
+            </div>
+            <div class="list">
+              <div class="item">
+                <div class="ui child checkbox">
+                  <input type="checkbox" name="interface.workflow.progressIndicator">
+                  <label>Indicate task progress</label>
+                </div>
+              </div>
+              <div class="item">
+                <div class="ui child checkbox">
+                  <input type="checkbox" name="interface.workflow.positionSlider">
+                  <label>Show interactive position slider</label>
+                </div>
+              </div>
+              <div class="item">
+                <div class="ui child checkbox">
+                  <input type="checkbox" name="interface.workflow.formCoordinateFields">
+                  <label>Display coordinate fields in form</label>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
       <div class="ui tab" data-tab="behavior-settings">
-        <div class="ui relaxed list">
+        <div class="ui very relaxed list">
           <div class="item" name="onImageLoad">
             <div class="header">On Image Load</div>
             <div class="description">
@@ -418,10 +444,30 @@
               </div>
             </div>
           </div>
+          <div class="item" name="Convenience">
+            <div class="header">Convenience Features</div>
+            <div class="description">
+              Speed up your workflow using these convenience features.
+            </div>
+            <div class="list">
+              <div class="item">
+                <div class="ui child checkbox">
+                  <input type="checkbox" name="behavior.convenience.autoDownloadBoxFileOnAllLinesComitted">
+                  <label>Auto-download box file when all lines committed</label>
+                </div>
+              </div>
+              <div class="item">
+                <div class="ui child checkbox">
+                  <input type="checkbox" name="behavior.convenience.autoDownloadGroundTruthFileOnAllLinesComitted">
+                  <label>Auto-download ground truth file when all lines committed</label>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
       <div id="highlighterTab" class="ui tab" data-tab="highlighter-settings">
-        <div class="ui relaxed list">
+        <div class="ui very relaxed list">
           <div class="item" name="">
             <div class="header">Text Highlighting</div>
             <div class="description">
@@ -454,7 +500,7 @@
         </div>
       </div>
       <div id="helpTab" class="ui tab" data-tab="help-section">
-        <div class="ui relaxed list">
+        <div class="ui very relaxed list">
           <div class="item">
             <h3 class="ui header">How to use the Box Editor</h3>
             <p>
