@@ -187,7 +187,7 @@
           </div>
           <div class="field">
             <label class="col-sm-2 control-label" for="formtxt" id="txtlabel">Text</label>
-            <input disabled type="text" id="formtxt" class="no-kerning" boxid="" name="txt" value="">
+            <input disabled type="text" id="formtxt" class="no-kerning colorized-input-field" boxid="" name="txt" value="">
           </div>
         </form>
         <div id="highlighters-labels" class="ui horizontal list">
@@ -197,19 +197,19 @@
             <div class="four fields">
               <div class="field">
                 <label for="x1">Left</label>
-                <input disabled type="number" id="x1" name="x1" value="">
+                <input disabled type="number" id="x1" class="box-coordinates" name="x1" value="">
               </div>
               <div class="field">
                 <label for="y1">Bottom</label>
-                <input disabled type="number" id="y1" name="y1" value="">
+                <input disabled type="number" id="y1" class="box-coordinates" name="y1" value="">
               </div>
               <div class="field">
                 <label for="x2">Right</label>
-                <input disabled type="number" id="x2" name="x2" value="">
+                <input disabled type="number" id="x2" class="box-coordinates" name="x2" value="">
               </div>
               <div class="field">
                 <label for="y2">Top</label>
-                <input disabled type="number" id="y2" name="y2" value="">
+                <input disabled type="number" id="y2" class="box-coordinates" name="y2" value="">
               </div>
             </div>
           </form>
@@ -448,7 +448,7 @@
             </div>
             <div class="field">
               <label class="col-sm-2 control-label" for="previewText" id="previewLabel">Text</label>
-              <input type="text" id="previewText" class="no-kerning" value="1 colored sample here...">
+              <input type="text" id="previewText" class="no-kerning colorized-input-field" value="1 colored sample here...">
             </div>
           </form>
         </div>
@@ -554,7 +554,7 @@
         </div>
       </div>
       <div class="ui tab" data-tab="about-section">
-        <div class="ui relaxed list">
+        <div class="ui very relaxed list">
           <div class="item">
             <h3 class="ui header">About</h3>
             <p>This tool provides a powerful Box Editor for Tesseract. It allows you to efficiently generate, edit,
@@ -594,7 +594,7 @@
               Updated: <div class="detail">July 22nd, 2023</div>
             </div>
           </div>
-          <div class="ui hidden divider"></div>
+          <!-- <div class="ui hidden divider"></div> -->
           <div class="item">
             <h3 class="ui header">Reset</h3>
             <p>In case of unexpected behavior, you can reset all settings to their default values.</p>

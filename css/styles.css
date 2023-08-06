@@ -35,7 +35,7 @@ a.more.external {
 }
 
 .maprow {
-  height: 400px;
+  height: 200px;
   border: 2px solid gray;
   margin-top: 20px;
   margin-bottom: 20px;
@@ -155,7 +155,8 @@ span.space.multiple {
 #previewText::selection,
 #formtxt::selection {
   color: transparent;
-  background: #65656533;
+  background: rgba(0, 0, 0, .10);
+  /* background: #65656533; */
   /* mix-blend-mode: exclusion; */
 }
 
@@ -163,7 +164,8 @@ span.space.multiple {
 #previewText::-moz-selection,
 #formtxt::-moz-selection {
   color: transparent;
-  background: #65656533;
+  background: rgba(0, 0, 0, .10);
+  /* background: #65656533; */
 }
 
 .no-kerning {
@@ -396,6 +398,23 @@ div.ui.blue.empty.circular.label.text-highlighter {
   /* font-size: 20px; */
   /* line-height: 1.21428571em; */
   font-family: Lato, system-ui, -apple-system, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+}
+
+
+.dark-theme #previewText::selection,
+.dark-theme #formtxt::selection {
+  color: transparent;
+  background: rgba(255, 255, 255, .5);
+  /* background: #65656533; */
+  /* mix-blend-mode: exclusion; */
+}
+
+/* getko brosers */
+.dark-theme #previewText::-moz-selection,
+.dark-theme #formtxt::-moz-selection {
+  color: transparent;
+  background: rgba(255, 255, 255, .5);
+  /* background: #65656533; */
 }
 
 .dark-theme body .ui:not(.dimmer)::-webkit-scrollbar-track {
@@ -6383,7 +6402,7 @@ div.ui.blue.empty.circular.label.text-highlighter {
 
 .dark-theme .ui.dropdown textarea::selection,
 .dark-theme .ui.dropdown input::selection {
-  background-color: rgba(255, 255, 255, 0.25);
+  background-color: rgba(255, 255, 255, 0.45);
   color: rgba(255, 255, 255, 0.8);
 }
 
@@ -7419,7 +7438,7 @@ div.ui.blue.empty.circular.label.text-highlighter {
   color: rgba(0, 0, 0, .95);
   border-color: #85b7d9;
   border-radius: .28571429rem;
-  background: #fff;
+  /* background: #fff; */
   box-shadow: 0 0 0 0 rgba(34, 36, 38, .35) inset;
 }
 
@@ -7492,6 +7511,22 @@ div.ui.blue.empty.circular.label.text-highlighter {
 }
 
 @media(prefers-color-scheme: dark) {
+
+  .match-device #previewText::selection,
+  .match-device #formtxt::selection {
+    color: transparent;
+    background: rgba(255, 255, 255, .5);
+    /* background: #65656533; */
+    /* mix-blend-mode: exclusion; */
+  }
+
+  /* getko brosers */
+  .match-device #previewText::-moz-selection,
+  .match-device #formtxt::-moz-selection {
+    color: transparent;
+    background: rgba(255, 255, 255, .5);
+    /* background: #65656533; */
+  }
 
   .match-device body .ui:not(.dimmer)::-webkit-scrollbar-track {
     background: rgba(255, 255, 255, 0.1);
@@ -14514,7 +14549,7 @@ div.ui.blue.empty.circular.label.text-highlighter {
     color: rgba(0, 0, 0, .95);
     border-color: #85b7d9;
     border-radius: .28571429rem;
-    background: #fff;
+    /* background: #fff; */
     box-shadow: 0 0 0 0 rgba(34, 36, 38, .35) inset;
   }
 
