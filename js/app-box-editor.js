@@ -771,7 +771,7 @@ app.ready = function () {
       map: function (name) {
         map = new L.map(name, {
           crs: L.CRS.Simple,
-          minZoom: -1,
+          minZoom: -2,
           center: [0, 0],
           zoom: 0,
           zoomSnap: .5,
@@ -1065,12 +1065,16 @@ app.ready = function () {
       loadingState: function (object) {
         if (object.main != undefined) {
           if (object.main) {
-            $map.addClass('loading');
+            $map.addClass('loading disabled');
+            $progressSlider.addClass('disabled');
+            $positionSlider.addClass('disabled');
             if (image != undefined) {
               $(image._image).animate({ opacity: 0.3 }, 200);
             }
           } else {
-            $map.removeClass('loading');
+            $map.removeClass('loading disabled');
+            $progressSlider.removeClass('disabled');
+            $positionSlider.removeClass('disabled');
             if (image != undefined) {
               $(image._image).animate({ opacity: 1 }, 500);
             }
@@ -1648,6 +1652,7 @@ app.ready = function () {
             });
           if (!response) return false;
         }
+        handler.set.loadingState({ buttons: true });
         var
           reader = new FileReader(),
           defaultBoxUrl = '../../assets/sampleImage.box',
@@ -1692,6 +1697,7 @@ app.ready = function () {
         file.name.split('.).slice(0, -1').join('.');
         boxFileNameForButton = file;
         $(reader).on('load', handler.process.boxFile);
+        handler.set.loadingState({ main: false, buttons: false });
       },
       imageFile: async function (e, sample = false) {
         if (boxDataInfo.isDirty() || lineDataInfo.isDirty()) {
@@ -1792,7 +1798,7 @@ app.ready = function () {
             includeSuggestions = appSettings.behavior.onImageLoad.includeTextForDetectedLines
           );
         }
-        handler.set.loadingState({ buttons: false });
+        handler.set.loadingState({ main: false, buttons: false });
         if (appSettings.behavior.onImageLoad.detectAllLines) {
           handler.focusGroundTruthField();
         }
@@ -1804,12 +1810,14 @@ app.ready = function () {
       $groundTruthInputField.focus();
       $groundTruthInputField.select();
     },
-    focusBoxID: function (id, isUpdated = false) {
-      handler.style.remove(selectedPoly, isUpdated);
+    focusBoxID: function (id, options = { isUpdated: false, zoom: true }) {
+      if (options.isUpdated == undefined) options.isUpdated = false;
+      if (options.zoom == undefined) options.zoom = true;
+      handler.style.remove(selectedPoly, options.isUpdated);
       handler.map.disableEditBox(selectedBox);
       var box = boxLayer.getLayer(id);
       handler.update.form(boxData.find(x => x.polyid == id));
-      handler.map.focusShape(box, isUpdated);
+      if (options.zoom) handler.map.focusShape(box, options.isUpdated);
       handler.style.setActive(box);
     },
     submitText: function (event) {
@@ -1867,6 +1875,26 @@ app.ready = function () {
         selectedPoly = shape;
         shape.editing.enable();
       },
+      getMapPosition: function () {
+        return map.getBounds();
+      },
+      fitImage: function () {
+        map.flyToBounds(image.getBounds(), {
+          // paddingBottomRight: mapPaddingBottomRight,
+          duration: .25,
+          easeLinearity: .25,
+          animate: true,
+        });
+      },
+      fitBounds: function (bounds) {
+        map.flyToBounds(bounds, {
+          maxZoom: maxZoom,
+          animate: true,
+          paddingBottomRight: mapPaddingBottomRight,
+          duration: .25,
+          easeLinearity: .25,
+        });
+      },
       focusShape: function (box, isUpdated = false) {
         handler.style.remove(selectedPoly, isUpdated);
         handler.map.disableEditBox(selectedPoly);
@@ -1894,13 +1922,13 @@ app.ready = function () {
       var
         isUpdated = handler.submitText(),
         box = handler.getBoxContent();
-      handler.focusBoxID(box.polyid, isUpdated);
+      handler.focusBoxID(box.polyid, { isUpdated });
     },
     getPreviBoxContentAndFill: function () {
       var
         isUpdated = handler.submitText(),
         box = handler.getBoxContent(previous = true);
-      handler.focusBoxID(box.polyid, isUpdated);
+      handler.focusBoxID(box.polyid, { isUpdated });
 
     },
     download: {
@@ -1981,7 +2009,7 @@ app.ready = function () {
             results = await handler.ocr.detect([selectedBox]),
             element = boxData.findIndex(el => el.polyid == selectedBox.polyid);
           boxData[element].text = results.length > 0 ? results[0].text : '';
-          handler.focusBoxID(boxData[element].polyid)
+          handler.focusBoxID(boxData[element].polyid, { zoom: false })
         }
 
         suppressLogMessages['recognizing text'] = false;
@@ -1992,20 +2020,23 @@ app.ready = function () {
         suppressLogMessages['recognizing text'] = true;
         handler.update.progressBar({ reset: true });
         handler.set.loadingState({ buttons: true, main: true });
+        var mapPosition = handler.map.getMapPosition();
+        handler.map.fitImage();
 
         if (boxLayer.getLayers().length > 0) {
           var results = await handler.ocr.detect(boxData);
-          for (var box of boxData) {
+          await Promise.all(boxData.map(async (box) => {
             if (results.length > 0) {
               var result = results.find(function (x) {
                 return box.equals(x);
               });
               box.text = result != undefined ? result.text : '';
             }
-          }
-          handler.focusBoxID(selectedBox.polyid)
+          }));
+          handler.focusBoxID(selectedBox.polyid, { zoom: false })
         }
         suppressLogMessages['recognizing text'] = false;
+        handler.map.fitBounds(mapPosition);
         handler.set.loadingState({ buttons: false, main: false });
         $regenerateTextSuggestionsButton.removeClass('disabled double loading');
       },
@@ -2014,7 +2045,7 @@ app.ready = function () {
 
         handler.update.progressBar({ reset: true });
         handler.set.loadingState({ buttons: true, main: true });
-
+        handler.map.fitImage();
         boxLayer.clearLayers();
         boxData = [];
         try {
@@ -2030,7 +2061,7 @@ app.ready = function () {
             line.text = line.text.replace(/(\r\n|\n|\r)/gm, "");
           });
 
-          await handler.ocr.insertSuggestions(includeSuggestions, textLines);
+          handler.ocr.insertSuggestions(includeSuggestions, textLines);
           handler.focusBoxID(handler.getBoxContent().polyid);
           handler.set.loadingState({ buttons: false, main: false });
           handler.init.slider()
