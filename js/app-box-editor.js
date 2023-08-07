@@ -107,9 +107,15 @@ app.ready = function () {
     $dropzone = $('div.my-dropzone'),
     $textHighlightingEnabledCheckbox = $(`input[name='highlighter.textHighlighting.textHighlightingEnabled']`),
     $checkboxes = $('.ui.checkbox'),
-    $highlighterTableBody = $('.ui.celled.table tbody'),
-    $highlighterTableRows = $highlighterTableBody.find('tr'),
     $highlighterTableContainer = $('#highlighterTableContainer'),
+    $highlighterTableBody = $highlighterTableContainer.find('.ui.celled.table tbody'),
+    $highlighterTableRows = $highlighterTableBody.find('tr'),
+    $keyboardShortcutsTableContainer = $('#keyboardShortcutsTableContainer'),
+    $keyboardShortcutsTableBody = $keyboardShortcutsTableContainer.find('.ui.celled.table tbody'),
+    $keyboardShortcutsTableRows = $keyboardShortcutsTableBody.find('tr'),
+
+
+    pressedModifiers = {},
 
     // variables
     _URL = window.URL || window.webkitURL,
@@ -172,6 +178,8 @@ app.ready = function () {
     currentSliderPosition = -1,
     invalidPatterns = false,
     identicalPatternNames = false,
+    invalidKeyboardShortcuts = false,
+    duplicatedKeyboardShortcuts = false,
     suppressLogMessages = {
       'recognizing text': false,
     },
@@ -186,11 +194,6 @@ app.ready = function () {
           invisiblesToggle: true,
         },
         imageView: 'medium',
-        workflow: {
-          progressIndicator: true,
-          positionSlider: true,
-          formCoordinateFields: true,
-        },
         showInvisibles: false,
       },
       behavior: {
@@ -202,9 +205,16 @@ app.ready = function () {
           enableWarrningMessagesForDifferentFileNames: true,
           enableWarrningMessagesForUncommittedChanges: true,
         },
-        convenience: {
+        workflow: {
+          progressIndicator: true,
+          positionSlider: true,
+          formCoordinateFields: true,
           autoDownloadBoxFileOnAllLinesComitted: false,
           autoDownloadGroundTruthFileOnAllLinesComitted: false,
+        },
+        keyboardShortcuts: {
+          keyboardShortcutsEnabled: true,
+          shortcuts: []
         },
       },
       highlighter: {
@@ -212,7 +222,9 @@ app.ready = function () {
           textHighlightingEnabled: true,
           highlightsPatterns: [],
         },
-      }
+      },
+      keyboardShortcuts: {
+      },
     },
 
     boxState = {
@@ -434,6 +446,49 @@ app.ready = function () {
       handler.update.patternLabels();
       handler.update.cookie();
     },
+    saveKeyboardShortcutsToSettings: function () {
+      if (appSettings.behavior.keyboardShortcuts.keyboardShortcutsEnabled) {
+        var
+          shortcuts = [],
+          errorMessages = [];
+        $keyboardShortcutsTableRows.each(function (index, elem) {
+          handler.unhighlightCell(elem.querySelector('td:nth-child(2)'));
+          var
+            enabled = elem.querySelector('td:nth-child(1) .checkbox input').checked,
+            name = elem.querySelector('td:nth-child(2) input[name=action]').value,
+            keyCombo = elem.querySelector('td:nth-child(3)').innerText,
+            action = availableShortcutActions.find(action => action.name === name).action;
+          // target = availableShortcutActions.find(action => action.name === name).target;
+          try {
+            shortcuts.push({
+              enabled: enabled,
+              keyCombo: keyCombo,
+              name: name,
+              action: action,
+              // target: target,
+            });
+          } catch (error) {
+            handler.highlightCell(elem.querySelector('td:nth-child(2)'));
+            errorMessages.push({ keyCombo, enabled, error });
+          }
+        });
+
+        duplicatedKeyboardShortcuts = false;
+        shortcutKeys = shortcuts.map(function (shortcut) {
+          return shortcut.keyCombo.toUpperCase();
+        });
+        shortcutKeysSet = [...new Set(shortcutKeys)];
+        if (shortcutKeys.length != shortcutKeysSet.length) {
+          duplicatedKeyboardShortcuts = true;
+        }
+        appSettings.behavior.keyboardShortcuts.shortcuts = shortcuts;
+      }
+      if (appSettings.behavior.keyboardShortcuts.shortcuts.length > 0) {
+        // add listener for keyboard shortcuts
+        handler.load.keyboardShortcuts();
+      }
+      handler.update.cookie();
+    },
     highlightCell: function (elem) {
       $(elem).addClass('red colored');
     },
@@ -523,21 +578,76 @@ app.ready = function () {
         handler.clearCookies();
       }
     },
+    keyboardShortcuts: {
+      getKeys: function () {
+        return appSettings.keyboardShortcuts;
+      },
+      register: function () {
+        handler.keyboardShortcuts.setUpPreview();
+
+        // $document[0].addEventListener('keydown', handler.keyboardShortcuts.handleKeyDown);
+        // $document[0].addEventListener('keyup', handler.keyboardShortcuts.handleKeyUp);
+
+        handler.keyboardShortcuts.updatePreview();
+      },
+      has: function (key) {
+        return appSettings.keyboardShortcuts.hasOwnProperty(key);
+      },
+      handleKeyDown: function (event) {
+        if (handler.keyboardShortcuts.isModifierKey(event.key)) {
+          pressedModifiers[event.key] = true;
+          return;
+        }
+        const
+          // modifierKeys are all keys of pressedModifiers that have value true
+
+          modifierKeys = Object.keys(pressedModifiers).filter(
+            key => pressedModifiers[key]
+          ).join(' + '),
+          key = (modifierKeys ? modifierKeys + ' + ' : '') + event.key.toUpperCase();
+
+        if (handler.keyboardShortcuts.has(key)) {
+          handler.notifyUser({
+            title: 'Shorcut Exists',
+            message: `Shortcut <strong>${key}</strong> has already been registered.`,
+            type: 'warning',
+          })
+          return;
+        }
+
+        handler.keyboardShortcuts.add(key);
+        handler.keyboardShortcuts.updatePreview();
+
+      },
+      add: function (key) {
+        appSettings.keyboardShortcuts[key] = key;
+      },
+      handleKeyUp: function (event) {
+        if (handler.keyboardShortcuts.isModifierKey(event.key)) {
+          pressedModifiers[event.key] = false;
+        }
+        // console.log(pressedModifiers);
+      },
+      isNavigationKey: function (key) {
+        navigationKeys = ['Tab', 'ArrowLeft', 'ArrowUp', 'ArrowRight', 'ArrowDown'];
+        return navigationKeys.includes(key) ? true : false;
+      },
+      isModifierKey: function (key) {
+        modifiers = ['Alt', 'Shift', 'Control', 'Meta'];
+        return modifiers.includes(key) ? true : false;
+      },
+      setUpPreview: function () {
+
+      },
+      updatePreview: function () {
+        console.log(handler.keyboardShortcuts.getKeys());
+      },
+    },
     setKeyboardControl: function (context) {
       if (context == 'prompt') {
         $window.off('keydown');
       } else if (context == 'form') {
-        $window.keydown(function (e) {
-          if (e.keyCode == 13) {
-            e.preventDefault();
-            if (e.shiftKey) {
-              handler.getPreviBoxContentAndFill();
-            } else {
-              handler.getNextBoxContentAndFill();
-            }
-            return false;
-          }
-        });
+        handler.load.keyboardShortcuts();
       }
     },
     delete: {
@@ -568,6 +678,63 @@ app.ready = function () {
       },
     },
     create: {
+      defaultKeyboardShortcutsTable: async function () {
+        const
+          table = document.createElement('table'),
+          thead = document.createElement('thead'),
+          theadRow = document.createElement('tr'),
+          headers = ['', 'Action', 'Key Combo', ''],
+          tbody = document.createElement('tbody'),
+          cookie = Cookies.get('appSettings');
+        table.className = 'ui unstackable celled table';
+        thead.appendChild(theadRow);
+        for (const header of headers) {
+          const th = document.createElement('th');
+          th.className = header ? '' : 'collapsing';
+          th.className = header === 'Key Combo' ? 'eight wide' : '';
+          th.className = header === 'Action' ? 'eight wide' : '';
+          th.textContent = header;
+          theadRow.appendChild(th);
+        }
+
+        var shortcuts = [];
+        try {
+          if (cookie) {
+            const cookieSettings = JSON.parse(cookie);
+            shortcuts = cookieSettings.behavior.keyboardShortcuts.shortcuts;
+            if (shortcuts.length > 0) {
+              shortcuts.forEach(function (shortcut) {
+                const row = handler.create.keyboardShortcutRow(shortcut.enabled, shortcut.keyCombo, shortcut.name);
+                tbody.appendChild(row);
+              });
+            }
+          }
+        } catch (error) {
+          console.error(error);
+        }
+
+        if (!cookie || shortcuts.length == 0) {
+          const rows = [
+            { enabled: true, keyCombo: 'ENTER', name: 'Move to next box' },
+            { enabled: true, keyCombo: 'Shift + ENTER', name: 'Move to previous box' },
+            // { enabled:availa
+          ];
+          rows.forEach(function (row) {
+            const rowElement = handler.create.keyboardShortcutRow(row.enabled, row.keyCombo, row.name);
+            tbody.appendChild(rowElement);
+          });
+        }
+
+        table.appendChild(thead);
+        table.appendChild(tbody);
+
+        $keyboardShortcutsTableContainer[0].insertBefore(table, $keyboardShortcutsTableContainer[0].firstChild);
+
+        $keyboardShortcutsTableBody = $keyboardShortcutsTableContainer.find('.ui.celled.table tbody');
+        $keyboardShortcutsTableRows = $keyboardShortcutsTableBody.find('tr');
+
+        return table;
+      },
       defaultHighlighterTable: async function () {
         const
           table = document.createElement('table'),
@@ -614,8 +781,8 @@ app.ready = function () {
 
         $highlighterTableContainer[0].insertBefore(table, $highlighterTableContainer[0].firstChild);
 
-        $highlighterTableBody = $('.ui.celled.table tbody');
-        $highlighterTableRows = $highlighterTableBody.find('tr');
+        $highlighterTableBody = $highlighterTableContainer.find('.ui.celled.table tbody'),
+          $highlighterTableRows = $highlighterTableBody.find('tr');
 
         return table;
       },
@@ -662,20 +829,52 @@ app.ready = function () {
       highlighterRow: function (enabled, name, color, pattern) {
         const
           row = document.createElement('tr'),
-          checkboxCell = handler.create.checkboxCell(name),
-          nameCell = handler.create.editableTextCell(name),
-          colorCell = handler.create.colorCell(color),
-          patternCell = handler.create.editableTextCell(pattern),
-          actionCell = handler.create.actionsCell();
+          checkboxCell = handler.create.checkboxCell(name, {
+            onChange: handler.saveHighlightsToSettings
+          }),
+          nameCell = handler.create.editableTextCell(name, {
+            onChange: handler.saveHighlightsToSettings
+          }),
+          colorCell = handler.create.colorCell(color, {
+            onChange: handler.saveHighlightsToSettings
+          }),
+          patternCell = handler.create.editableTextCell(pattern, {
+            onChange: handler.saveHighlightsToSettings
+          }),
+          actionsCell = handler.create.actionsCell({
+            onChange: handler.saveHighlightsToSettings
+          });
         row.appendChild(checkboxCell);
         row.appendChild(nameCell);
         row.appendChild(colorCell);
         row.appendChild(patternCell);
-        row.appendChild(actionCell);
+        row.appendChild(actionsCell);
 
         return row;
       },
-      checkboxCell: function (name) {
+      keyboardShortcutRow: function (enabled, keyCombo, name) {
+        const
+          row = document.createElement('tr'),
+          checkboxCell = handler.create.checkboxCell(keyCombo, {
+            onChange: handler.saveKeyboardShortcutsToSettings
+          }),
+          shortcutsActionCell = handler.create.shortcutActionCell(name, {
+            onChange: handler.saveKeyboardShortcutsToSettings
+          }),
+          keyComboCell = handler.create.editableTextCell(keyCombo, {
+            onChange: handler.saveKeyboardShortcutsToSettings
+          }),
+          actionsCell = handler.create.actionsCell({
+            onChange: handler.saveKeyboardShortcutsToSettings
+          });
+        row.appendChild(checkboxCell);
+        row.appendChild(shortcutsActionCell);
+        row.appendChild(keyComboCell);
+        row.appendChild(actionsCell);
+
+        return row;
+      },
+      checkboxCell: function (name, params = {}) {
         const
           cell = document.createElement('td'),
           div = document.createElement('div'),
@@ -689,21 +888,21 @@ app.ready = function () {
         div.appendChild(input);
         $(div).checkbox({
           onChange: () => {
-            handler.saveHighlightsToSettings();
+            params.onChange();
           },
         });
         cell.appendChild(div);
         return cell;
       },
-      editableTextCell: function (name) {
+      editableTextCell: function (name, params = {}) {
         const
           cell = document.createElement('td');
         cell.contentEditable = true;
         cell.innerText = name;
-        $(cell).on('input', handler.saveHighlightsToSettings);
+        $(cell).on('input', params.onChange);
         return cell;
       },
-      colorCell: function (color) {
+      colorCell: function (color, params = {}) {
         const
           cell = document.createElement('td'),
           dropdownDiv = document.createElement('div'),
@@ -740,7 +939,7 @@ app.ready = function () {
         dropdownDiv.appendChild(menuDiv);
 
         $(dropdownDiv).dropdown({
-          onChange: handler.saveHighlightsToSettings,
+          onChange: params.onChange,
         });
 
         if (color) {
@@ -752,7 +951,52 @@ app.ready = function () {
 
         return cell;
       },
-      actionsCell: function () {
+      shortcutActionCell: function (action, params = {}) {
+        const
+          cell = document.createElement('td');
+        dropdownDiv = document.createElement('div'),
+          hiddenInput = document.createElement('input'),
+          dropdownIcon = document.createElement('i'),
+          defaultText = document.createElement('div'),
+          menuDiv = document.createElement('div');
+        cell.className = 'collapsing';
+        cell.setAttribute('data-label', 'Action');
+        dropdownDiv.className = 'ui fluid search selection dropdown';
+        hiddenInput.type = 'hidden';
+        hiddenInput.name = 'action';
+        dropdownIcon.className = 'dropdown icon';
+        defaultText.className = 'default text';
+        defaultText.textContent = 'Action...';
+        menuDiv.className = 'menu';
+        availableShortcutActions.forEach(function (action) {
+          const
+            itemDiv = document.createElement('div'),
+            actionIcon = document.createElement('i'),
+            actionText = document.createElement('span');
+          itemDiv.className = 'item';
+          itemDiv.setAttribute('data-value', action.name);
+          actionIcon.className = `ui small ${action.icon} icon`;
+          actionText.textContent = action.name;
+          itemDiv.appendChild(actionIcon);
+          itemDiv.appendChild(actionText);
+          menuDiv.appendChild(itemDiv);
+        });
+        dropdownDiv.appendChild(hiddenInput);
+        dropdownDiv.appendChild(dropdownIcon);
+        dropdownDiv.appendChild(defaultText);
+        dropdownDiv.appendChild(menuDiv);
+
+        $(dropdownDiv).dropdown({
+          onChange: params.onChange,
+        });
+
+        if (action) {
+          $(dropdownDiv).dropdown('set selected', action, true);
+        }
+        cell.appendChild(dropdownDiv);
+        return cell;
+      },
+      actionsCell: function (params = {}) {
         const
           actionCell = document.createElement('td'),
           deleteButton = document.createElement('i');
@@ -761,9 +1005,9 @@ app.ready = function () {
         deleteButton.className = 'large red minus circle link icon';
         $(deleteButton).on('click', function () {
           $(this).parent().parent().remove();
-          $highlighterTableBody = $('.ui.celled.table tbody');
-          $highlighterTableRows = $highlighterTableBody.find('tr');
-          handler.saveHighlightsToSettings();
+          $highlighterTableBody = $highlighterTableContainer.find('.ui.celled.table tbody'),
+            $highlighterTableRows = $highlighterTableBody.find('tr');
+          params.onChange;
         });
         actionCell.appendChild(deleteButton);
         return actionCell;
@@ -786,6 +1030,15 @@ app.ready = function () {
 
         var
           zoomControl = new L.Control.Zoom({ position: 'topright' }),
+          // modifiedDraw = new L.drawLocal.extend({
+          //   draw: {
+          //     toolbar: {
+          //       buttons: {
+          //         polygon: 'Draw an awesome polygon'
+          //       }
+          //     }
+          //   }
+          // }),
           drawControl = new L.Control.Draw({
             draw: {
               polygon: false,
@@ -931,8 +1184,8 @@ app.ready = function () {
       const row = handler.create.highlighterRow(true, 'New Highlighter', false, '.');
       tableBody.append(row);
       // update selectors
-      $highlighterTableBody = $('.ui.celled.table tbody');
-      $highlighterTableRows = $highlighterTableBody.find('tr');
+      $highlighterTableBody = $highlighterTableContainer.find('.ui.celled.table tbody'),
+        $highlighterTableRows = $highlighterTableBody.find('tr');
       handler.saveHighlightsToSettings();
     },
     sortAllBoxes: function () {
@@ -1128,15 +1381,6 @@ app.ready = function () {
         const imageViewPath = 'interface.imageView';
         document.querySelector(`input[name='${imageViewPath}'][value='${appSettings.interface.imageView}']`).checked = true;
         handler.set.mapSize({ height: appSettings.interface.imageView });
-        // Workflow
-        for (const [key, value] of Object.entries(appSettings.interface.workflow)) {
-          const path = 'interface.workflow.' + key;
-          const checkbox = $checkboxes.find(`input[name="${path}"]`);
-          checkbox.prop('checked', value);
-          $('#' + key).toggle(appSettings.interface.workflow[key]);
-        }
-        const workflowPath = 'interface.workflow';
-        document.querySelector
         // On Image Load
         for (const [key, value] of Object.entries(appSettings.behavior.onImageLoad)) {
           const path = 'behavior.onImageLoad.' + key;
@@ -1147,10 +1391,25 @@ app.ready = function () {
           const path = 'behavior.alerting.' + key;
           document.querySelector(`input[name='${path}']`).checked = value;
         }
-        // Convenience Features
-        for (const [key, value] of Object.entries(appSettings.behavior.convenience)) {
-          const path = 'behavior.convenience.' + key;
-          document.querySelector(`input[name='${path}']`).checked = value;
+        // Workflow
+        for (const [key, value] of Object.entries(appSettings.behavior.workflow)) {
+          const path = 'behavior.workflow.' + key;
+          const checkbox = $checkboxes.find(`input[name="${path}"]`);
+          checkbox.prop('checked', value);
+          $('#' + key).toggle(appSettings.behavior.workflow[key]);
+          // }
+          // // Convenience Features
+          // for (const [key, value] of Object.entries(appSettings.behavior.workflow)) {
+            // const path = 'behavior.convenience.' + key;
+            document.querySelector(`input[name='${path}']`).checked = value;
+          // }
+        }
+        // Keyboard Shortcuts
+        for (const [key, value] of Object.entries(appSettings.behavior.keyboardShortcuts)) {
+          if (key != 'shortcuts') {
+            const path = 'behavior.keyboardShortcuts.' + key;
+            document.querySelector(`input[name='${path}']`).checked = value;
+          }
         }
         // Highlighter
         for (const [key, value] of Object.entries(appSettings.highlighter.textHighlighting)) {
@@ -1319,6 +1578,16 @@ app.ready = function () {
         });
       },
       cookie: function () {
+        // copy appSettings and delete forbidden cookie data
+        // const
+        //   settingsCopy = { ...appSettings },
+        //   forbidden = [
+        //     'action',
+        //     'target',
+        //   ]
+        // settingsCopy.behavior.keyboardShortcuts.shortcuts.forEach(function (shortcut) {
+        //   forbidden.forEach(item => delete shortcut[item]);
+        // });
         Cookies.set('appSettings', JSON.stringify(appSettings));
       },
       appSettings: function ({ path, value, cookie }) {
@@ -1327,6 +1596,8 @@ app.ready = function () {
         } else {
           const
             pathElements = path.split('.'),
+            button = document.createElement('div'),
+            status = document.createElement('div'),
             inlineLoader = document.createElement('div'),
             lastElementIndex = pathElements.length - 1,
             updatedSettings = pathElements.reduce((obj, key, index) => {
@@ -1338,13 +1609,23 @@ app.ready = function () {
               return obj[key];
             }, appSettings);
           handler.update.cookie();
+          button.className = 'ui button ok';
+          button.tabIndex = '0';
+          button.innerText = 'OK';
+          status.className = 'ui disabled tertiary button';
+          status.innerText = 'Settings saved!';
+          inlineLoader.className = 'ui tiny active grey fast inline double loader';
 
           setTimeout(() => {
-            $settingsModalStatus[0].innerHTML = 'Settings saved!';
-          }, 100)
-          inlineLoader.className = 'ui mini active fast inline loader';
+            $settingsModalStatus[0].innerHTML = '';
+            $settingsModalStatus[0].appendChild(status);
+            $settingsModalStatus[0].appendChild(button);
+          }, 300)
           $settingsModalStatus[0].innerHTML = '';
           $settingsModalStatus[0].appendChild(inlineLoader);
+          $settingsModalStatus[0].appendChild(status);
+          $settingsModalStatus[0].appendChild(button);
+
         }
         handler.update.settingsModal();
       },
@@ -1522,6 +1803,51 @@ app.ready = function () {
       }
     },
     load: {
+      keyboardShortcuts: function () {
+        $window.keyup(function (event) {
+          if (handler.keyboardShortcuts.isModifierKey(event.key)) {
+            pressedModifiers[event.key] = false;
+            // console.log('removed', event.key, 'from pressedModifiers', pressedModifiers);
+          }
+        });
+        $window.off('keydown');
+        $window.keydown(function (event) {
+          // Check if the pressed key is a modifier key
+          if (handler.keyboardShortcuts.isModifierKey(event.key)) {
+            pressedModifiers[event.key] = true;
+            return;
+          }
+          if (handler.keyboardShortcuts.isNavigationKey(event.key)) {
+            handler.showCharInfoPopup(event);
+            return;
+          }
+
+          // Combine modifiers with the pressed key to form the complete shortcut
+          const modifierKeys = Object.keys(pressedModifiers).filter(
+            key => pressedModifiers[key]).join("+");
+          const key = (modifierKeys ? modifierKeys + "+" : "") + event.key.toUpperCase();
+          const matchingAction = appSettings.behavior.keyboardShortcuts.shortcuts.find(action => action.keyCombo.replace(/\s/g, '') === key);
+
+          if (matchingAction && matchingAction.enabled) {
+            // console.log('matchingAction:', matchingAction);
+            // console.log(event);
+            event.preventDefault();
+            matchingAction.action();
+            return;
+          }
+          // console.log(key);
+
+          // if (event.keyCode == 13) {
+          //   event.preventDefault();
+          //   if (event.shiftKey) {
+          //     handler.getPreviousBoxContentAndFill();
+          //   } else {
+          //     handler.getNextBoxContentAndFill();
+          //   }
+          //   return false;
+          // }
+        });
+      },
       eventListeners: function () {
         $settingsModal[0].addEventListener('change', function (event) {
           const
@@ -1839,10 +2165,10 @@ app.ready = function () {
       // if all boxes are committed then call download function
       if (boxData.every(box => box.committed)) {
         boxData.forEach(box => box.committed = false);
-        if (appSettings.behavior.convenience.autoDownloadBoxFileOnAllLinesComitted) {
+        if (appSettings.behavior.workflow.autoDownloadBoxFileOnAllLinesComitted) {
           $downloadBoxFileButton.click();
         }
-        if (appSettings.behavior.convenience.autoDownloadGroundTruthFileOnAllLinesComitted) {
+        if (appSettings.behavior.workflow.autoDownloadGroundTruthFileOnAllLinesComitted) {
           $downloadGroundTruthFileButton.click();
         }
       }
@@ -1924,7 +2250,7 @@ app.ready = function () {
         box = handler.getBoxContent();
       handler.focusBoxID(box.polyid, { isUpdated });
     },
-    getPreviBoxContentAndFill: function () {
+    getPreviousBoxContentAndFill: function () {
       var
         isUpdated = handler.submitText(),
         box = handler.getBoxContent(previous = true);
@@ -2017,6 +2343,25 @@ app.ready = function () {
       },
       textSuggestions: async function () {
         $regenerateTextSuggestionsButton.addClass('disabled double loading');
+        if (boxDataInfo.isDirty()) {
+          var response = await handler.askUser({
+            title: 'Warning',
+            message: 'Suggestions will be generated from the current lines. Do you want to continue?',
+            type: 'replacingTextWarning',
+            actions: [{
+              text: 'Cancel',
+              class: 'cancel',
+            }, {
+              text: 'yes',
+              class: 'positive',
+            }]
+          });
+
+          if (!response) {
+            $regenerateTextSuggestionsButton.removeClass('disabled double loading');
+            return false;
+          }
+        }
         suppressLogMessages['recognizing text'] = true;
         handler.update.progressBar({ reset: true });
         handler.set.loadingState({ buttons: true, main: true });
@@ -2043,6 +2388,25 @@ app.ready = function () {
       initialBoxes: async function (includeSuggestions = true) {
         $redetectAllBoxesButton.addClass('disabled double loading');
 
+        if (boxDataInfo.isDirty()) {
+          var response = await handler.askUser({
+            title: 'Warning',
+            message: 'Suggestions will be generated from the current lines. Do you want to continue?',
+            type: 'replacingTextWarning',
+            actions: [{
+              text: 'Cancel',
+              class: 'cancel',
+            }, {
+              text: 'yes',
+              class: 'positive',
+            }]
+          });
+
+          if (!response) {
+            $redetectAllBoxesButton.removeClass('disabled double loading');
+            return false;
+          }
+        }
         handler.update.progressBar({ reset: true });
         handler.set.loadingState({ buttons: true, main: true });
         handler.map.fitImage();
@@ -2060,8 +2424,7 @@ app.ready = function () {
           textLines.forEach(line => {
             line.text = line.text.replace(/(\r\n|\n|\r)/gm, "");
           });
-
-          handler.ocr.insertSuggestions(includeSuggestions, textLines);
+          await handler.ocr.insertSuggestions(includeSuggestions, textLines);
           handler.focusBoxID(handler.getBoxContent().polyid);
           handler.set.loadingState({ buttons: false, main: false });
           handler.init.slider()
@@ -2077,21 +2440,6 @@ app.ready = function () {
     },
     ocr: {
       insertSuggestions: async function (includeSuggestions, textLines) {
-        if (boxDataInfo.isDirty()) {
-          return !handler.askUser({
-            title: 'Warning',
-            message: 'Suggestions will be generated from the current lines. Do you want to continue?',
-            type: 'replacingTextWarning',
-            actions: [{
-              text: 'Cancel',
-              class: 'cancel',
-            }, {
-              text: 'yes',
-              class: 'positive',
-            }]
-          });
-        }
-
         boxLayer.clearLayers();
         boxData = [];
         for (var line of textLines) {
@@ -2224,14 +2572,15 @@ app.ready = function () {
       $groundTruthInputField.on('input', function () {
         lineDataInfo.setDirty(true);
       })
-      $groundTruthInputField.bind('mouseup keyup', handler.showCharInfoPopup)
+      $groundTruthInputField.bind('mouseup', handler.showCharInfoPopup)
       $coordinateFields.on('input', handler.update.boxCoordinates);
       $boxFileInput.on('change', handler.load.boxFile);
       $imageFileInput.on('change', handler.load.imageFile);
+      $checkboxes.checkbox();
     },
     bindButtons: function () {
       $nextBoxButton.on('click', handler.getNextBoxContentAndFill);
-      $previousBoxButton.on('click', handler.getPreviBoxContentAndFill);
+      $previousBoxButton.on('click', handler.getPreviousBoxContentAndFill);
       $downloadBoxFileButton.on('click', handler.download.file.bind(handler.download, 'box'));
       $downloadGroundTruthFileButton.on('click', handler.download.file.bind(handler.download, 'ground-truth'));
       $invisiblesToggleButton.on('click', handler.toggleInvisibles);
@@ -2263,19 +2612,45 @@ app.ready = function () {
       handler.load.dropzone();
       handler.load.popups();
       handler.create.defaultHighlighterTable();
+      handler.create.defaultKeyboardShortcutsTable();
       handler.load.settings();
       handler.load.eventListeners();
 
       handler.saveHighlightsToSettings();
+      handler.saveKeyboardShortcutsToSettings();
 
     },
   };
 
-  app.handler = handler;
+  availableShortcutActions = [
+    {
+      // target: $window,
+      icon: 'arrow right',
+      name: 'Move to next box',
+      action: handler.getNextBoxContentAndFill,
+    },
+    {
+      // target: $window,
+      icon: 'arrow left',
+      name: 'Move to previous box',
+      action: handler.getPreviousBoxContentAndFill,
+    },
+    // {
+    //   target: $groundTruthInputField,
+    //   icon: 'info circle',
+    //   name: 'Show Unicode info',
+    //   action: handler.showCharInfoPopup,
+    // },
+  ],
+
+    app.handler = handler;
 
   // Start the Magic
   app.handler.initialize();
 
+  // handler.keyboardShortcuts.register()
+
+  var testRun = null;
 };
 
 // attach ready event

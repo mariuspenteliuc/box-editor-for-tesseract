@@ -150,17 +150,20 @@
             </button>
           </div>
           <div class="field">
-            <button id="redetectAllBoxes" name="interface.toolbarActions.detectAllLines" class="ui compact icon disabled button" title="Find all text in image" tabindex="0">
+            <button id="redetectAllBoxes" name="interface.toolbarActions.detectAllLines"
+              class="ui compact icon disabled button" title="Find all text in image" tabindex="0">
               <i class="magic icon"></i>
             </button>
           </div>
           <div class="field">
-            <button id="regenerateTextSuggestions" name="interface.toolbarActions.detectAllBoxes" class="ui compact icon disabled button" title="Regenerate Text Suggestions" tabindex="0">
+            <button id="regenerateTextSuggestions" name="interface.toolbarActions.detectAllBoxes"
+              class="ui compact icon disabled button" title="Regenerate Text Suggestions" tabindex="0">
               <i class="sync icon"></i>
             </button>
           </div>
           <div class="field">
-            <button id="regenerateTextSuggestionForSelectedBox" name="interface.toolbarActions.detectSelectedBox" class="ui compact icon disabled button" title="Regenerate Text Suggestion for Selected Box" tabindex="0">
+            <button id="regenerateTextSuggestionForSelectedBox" name="interface.toolbarActions.detectSelectedBox"
+              class="ui compact icon disabled button" title="Regenerate Text Suggestion for Selected Box" tabindex="0">
               <i class="redo icon"></i>
             </button>
           </div>
@@ -286,7 +289,7 @@
       <div class="ui tab active" data-tab="interface-settings">
         <div class="ui very relaxed list">
           <div class="item">
-            <div class="header">Appearance</div>
+            <div class="header">App Appearance</div>
             <div class="description">
               Adjust the appearance of the interface.
             </div>
@@ -314,31 +317,31 @@
           <div class="item">
             <div class="header">Toolbar Actions</div>
             <div class="description">
-              Choose which toolbar actions are available.
+              Choose actions to display in the toolbar.
             </div>
             <div class="list">
               <div class="item">
-                <div class="ui child checkbox">
+                <div class="ui checkbox">
                   <input type="checkbox" name="interface.toolbarActions.detectAllLines">
-                  <label>Detect lines</label>
+                  <label>Detect all lines of text visible in the image</label>
                 </div>
               </div>
               <div class="item">
-                <div class="ui child checkbox">
+                <div class="ui checkbox">
                   <input type="checkbox" name="interface.toolbarActions.detectAllBoxes">
-                  <label>Suggest text for all lines</label>
+                  <label>Identify all characters for all text boxes</label>
                 </div>
               </div>
               <div class="item">
-                <div class="ui child checkbox">
+                <div class="ui checkbox">
                   <input type="checkbox" name="interface.toolbarActions.detectSelectedBox">
-                  <label>Suggest text for current line</label>
+                  <label>Identify all characters for the selected text box</label>
                 </div>
               </div>
               <div class="item">
-                <div class="ui child checkbox">
+                <div class="ui checkbox">
                   <input type="checkbox" name="interface.toolbarActions.invisiblesToggle">
-                  <label>Invisibles toggle</label>
+                  <label>Toggle between showing or hiding invisibles</label>
                 </div>
               </div>
             </div>
@@ -365,32 +368,6 @@
                 <div class="ui child radio checkbox">
                   <input type="radio" name="interface.imageView" value="tall">
                   <label>Tall</label>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="item">
-            <div class="header">Workflow</div>
-            <div class="description">
-              Choose what convenience features you would like to use.
-            </div>
-            <div class="list">
-              <div class="item">
-                <div class="ui child checkbox">
-                  <input type="checkbox" name="interface.workflow.progressIndicator">
-                  <label>Indicate task progress</label>
-                </div>
-              </div>
-              <div class="item">
-                <div class="ui child checkbox">
-                  <input type="checkbox" name="interface.workflow.positionSlider">
-                  <label>Show interactive position slider</label>
-                </div>
-              </div>
-              <div class="item">
-                <div class="ui child checkbox">
-                  <input type="checkbox" name="interface.workflow.formCoordinateFields">
-                  <label>Display coordinate fields in form</label>
                 </div>
               </div>
             </div>
@@ -439,21 +416,39 @@
               </div>
             </div>
           </div>
-          <div class="item" name="Convenience">
-            <div class="header">Convenience Features</div>
+          <div class="item">
+            <div class="header">Workflow</div>
             <div class="description">
-              Speed up your workflow using these convenience features.
+              Choose what convenience features you would like to use.
             </div>
             <div class="list">
               <div class="item">
                 <div class="ui child checkbox">
-                  <input type="checkbox" name="behavior.convenience.autoDownloadBoxFileOnAllLinesComitted">
+                  <input type="checkbox" name="behavior.workflow.progressIndicator">
+                  <label>Indicate task progress</label>
+                </div>
+              </div>
+              <div class="item">
+                <div class="ui child checkbox">
+                  <input type="checkbox" name="behavior.workflow.positionSlider">
+                  <label>Show interactive position slider</label>
+                </div>
+              </div>
+              <div class="item">
+                <div class="ui child checkbox">
+                  <input type="checkbox" name="behavior.workflow.formCoordinateFields">
+                  <label>Display coordinate fields in form</label>
+                </div>
+              </div>
+              <div class="item">
+                <div class="ui child checkbox">
+                  <input type="checkbox" name="behavior.workflow.autoDownloadBoxFileOnAllLinesComitted">
                   <label>Auto-download box file when all lines committed</label>
                 </div>
               </div>
               <div class="item">
                 <div class="ui child checkbox">
-                  <input type="checkbox" name="behavior.convenience.autoDownloadGroundTruthFileOnAllLinesComitted">
+                  <input type="checkbox" name="behavior.workflow.autoDownloadGroundTruthFileOnAllLinesComitted">
                   <label>Auto-download ground truth file when all lines committed</label>
                 </div>
               </div>
@@ -474,8 +469,17 @@
             </div>
           </div>
           <div id="keyboardShortcutsTableContainer" class="item">
-            <div id="addNewKeyboardShortcuts" class="ui right floated small labeled icon button">
+            <!-- <div id="addNewKeyboardShortcuts" class="ui right floated small labeled icon button">
               <i class="plus icon"></i> Add Shortcut
+            </div> -->
+            <div class="ui icon message">
+              <i class="bell icon"></i>
+              <div class="content">
+                <div class="header">
+                  Upcoming Feature
+                </div>
+                <p>In a future update you will be able to customize the keyboard shortcuts. For now, you can use these defaults and swap them out.</p>
+              </div>
             </div>
           </div>
         </div>
@@ -664,8 +668,7 @@
         </div>
       </div>
     </div>
-    <div class="actions">
-      <div id="settingsModalStatus" class="ui disabled tertiary button"></div>
+    <div id="settingsModalStatus" class="actions">
       <div class="ui button ok" tabindex="0">OK</div>
     </div>
   </div>
