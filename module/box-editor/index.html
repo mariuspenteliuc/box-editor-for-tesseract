@@ -459,11 +459,30 @@
               </div>
             </div>
           </div>
+          <div class="item" name="Keyboard Shortcuts">
+            <div class="header">Keyboard Shortcuts</div>
+            <div class="description">
+              Customize the keyboard shortcuts for frequently used actions.
+            </div>
+            <div class="list">
+              <div class="item">
+                <div class="ui disabled child checkbox">
+                  <input disabled type="checkbox" name="behavior.keyboardShortcuts.keyboardShortcutsEnabled">
+                  <label>Use keyboard shortcuts</label>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div id="keyboardShortcutsTableContainer" class="item">
+            <div id="addNewKeyboardShortcuts" class="ui right floated small labeled icon button">
+              <i class="plus icon"></i> Add Shortcut
+            </div>
+          </div>
         </div>
       </div>
       <div id="highlighterTab" class="ui tab" data-tab="highlighter-settings">
         <div class="ui very relaxed list">
-          <div class="item" name="">
+          <div class="item" name="text-highlighting">
             <div class="header">Text Highlighting</div>
             <div class="description">
               Highlight text according to regex patterns.
