@@ -2701,20 +2701,12 @@ app.ready = async function () {
       name: 'Move to previous box',
       action: handler.getPreviousBoxContentAndFill,
     },
-    // {
-    //   target: $groundTruthInputField,
-    //   icon: 'info circle',
-    //   name: 'Show Unicode info',
-    //   action: handler.showCharInfoPopup,
-    // },
   ],
 
     app.handler = handler;
 
   // Start the Magic
   await app.handler.initialize();
-
-  app.handler.open.settingsModal('about-section');
 
 };
 
