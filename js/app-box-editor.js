@@ -1,1964 +1,519 @@
-const BoxFileType = Object.freeze({ "WORDSTR": 1, "CHAR_OR_LINE": 2 })
-const IgnoreEOFBox = true
-var worker = null;
-
-var appSettings = {
-    interface: {
-        appearance: "match-device",
-        toolbarActions: {
-            detectAllLines: true,
-            detectSelectedBox: true,
-            detectAllBoxes: true,
-            invisiblesToggle: true,
-        },
-        imageView: "medium",
-        showInvisibles: false,
-    },
-    behavior: {
-        onImageLoad: {
-            detectAllLines: false,
-            includeTextForDetectedLines: false,
-        },
-        alerting: {
-            enableWarrningMessagesForDifferentFileNames: true,
-            enableWarrningMessagesForUncommittedChanges: true,
-        },
-    },
-    highlighter: {
-        textHighlighting: {
-            textHighlightingEnabled: true,
-            highlightsPatterns: [],
-        },
-    }
+window.app = {
+  handler: {}
 };
 
-// Function to update the cookie with the current settings
-function updateCookie() {
-    Cookies.set("appSettings", JSON.stringify(appSettings));
-}
+class Box {
+  constructor({ text, x1, x2, y1, y2, polyid, visited = false }) {
+    this.text = text;
+    this.x1 = x1;
+    this.x2 = x2;
+    this.y1 = y1;
+    this.y2 = y2;
+    this.polyid = polyid;
+    this.filled = text != '' ? true : false;
+    this.visited = visited;
+    this.committed = false;
+  }
 
-async function addNewHighlighterPattern(e) {
-    // Get the table body
-    const tableBody = document.querySelector('.ui.celled.table tbody');
+  static compare(a, b) {
+    const
+      tolerance = 0.5,
+      xOverlap = a.x1 <= b.x2 && b.x1 <= a.x2,
+      below = a.y1 > b.y2 - tolerance * (b.y2 - b.y1),
+      left = a.x2 <= b.x1,
+      cOverlap = (c) => c.x1 <= a.x2 && a.x1 <= c.x2 && c.x1 <= b.x2 && b.x1 <= c.x2,
+      aOverflows = a.y1 === b.y2 && xOverlap;
 
-    newRow = createTableRow(true, 'New Highlighter', false, '.');
-
-    // Append the new row to the table body
-    tableBody.appendChild(newRow);
-    savePatternsToSettings();
-}
-
-// Function to create an "Enabled" cell with a checkbox
-function createCheckboxCell(name) {
-    const checkboxCell = document.createElement('td');
-    checkboxCell.setAttribute('data-label', 'Enabled');
-
-    const checkboxDiv = document.createElement('div');
-    checkboxDiv.className = 'ui fitted checkbox text-highlighter-checkbox';
-
-    const checkboxInput = document.createElement('input');
-    checkboxInput.type = 'checkbox';
-    checkboxInput.name = name;
-    checkboxInput.checked = true;
-
-    checkboxDiv.appendChild(checkboxInput);
-    $(checkboxDiv).checkbox({
-        onChange: function (value, text, $selected) {
-            savePatternsToSettings();
-        }
-    });
-    checkboxCell.appendChild(checkboxDiv);
-
-    return checkboxCell;
-}
-
-// Function to create an editable cell with specified content
-function createEditableCell(content) {
-    const cell = document.createElement('td');
-    cell.contentEditable = true;
-    cell.innerText = content;
-    $(cell).on('input', function (e) {
-        savePatternsToSettings();
-    });
-    return cell;
-}
-
-function updatePatternLabels() {
-    labelsList = $('#highlighters-labels');
-    labelsList.empty();
-    highlights = getHighlighters();
-
-    // for (const key in highlights) {
-    //     if (highlights.hasOwnProperty(key)) {
-    //         const highlight = highlights[key];
-    //         console.log(highlight.name, highlight.pattern, char);
-    //         if (highlight.pattern.test(char)) {
-    //             foundHighlight = highlight;
-    //             break;
-    //         }
-    //     }
-    // }
-    for (const key in highlights) {
-        if (highlights.hasOwnProperty(key)) {
-            const highlight = highlights[key];
-            const color = highlight.color;
-            // <div class="item">
-            //     <div class="ui mini blue empty circular label text-highlighter"></div>
-            //     <span class="ui text">Latin</span>
-            // </div>
-            const itemDiv = document.createElement('div');
-            itemDiv.className = 'item';
-            const colorDiv = document.createElement('div');
-            colorDiv.className = `ui mini ${color} empty circular label text-highlighter`;
-            const nameSpan = document.createElement('span');
-            nameSpan.className = 'ui text';
-            nameSpan.innerText = highlight.name;
-            itemDiv.appendChild(colorDiv);
-            itemDiv.appendChild(nameSpan);
-            labelsList.append(itemDiv);
-        }
+    // Rule 1: Line segment a comes before line segment b
+    // if their ranges of x-coordinates overlap and if a is below b
+    if (xOverlap && below) {
+      return -1;
     }
+
+    // Rule 2: Line segment a comes before line segment b
+    // if a is entirely to the left of b and no line segment c overlaps
+    // both a and b
+    if (left && !cOverlap(a) && !cOverlap(b)) {
+      return -1;
+    }
+
+    // Rule 3: Line segment a comes before line segment b
+    // if line segment a overflows to the next line (line segment b)
+    if (aOverflows) {
+      return -1;
+    }
+
+    return 1;
+  }
+
+  equals(other) {
+    return this.text == other.text && this.x1 == other.x1 && this.y1 == other.y1 && this.x2 == other.x2 && this.y2 == other.y2
+  }
 }
 
-function savePatternsToSettings() {
-    if (appSettings.highlighter.textHighlighting.textHighlightingEnabled) {
-        // Get the table body
-        const tableBody = document.querySelector('.ui.celled.table tbody');
-        // Get all rows
-        const allRows = tableBody.querySelectorAll('tr');
-        let patterns = [];
-        let errorMessages = []; // Array to store error messages
+// ready event
+app.ready = async function () {
 
-        allRows.forEach(function (row) {
-            unhighlightCell(row.querySelector('td:nth-child(4)'));
-            const enabled = row.querySelector('td:nth-child(1) .checkbox input').checked;
-            const name = row.querySelector('td:nth-child(2)').innerText;
-            const color = row.querySelector('td:nth-child(3) input[name=color]').value;
-            const patternString = row.querySelector('td:nth-child(4)').innerText;
-            try {
-                const pattern = patternString;
-                const validation = new RegExp(patternString, 'i');
-                // const pattern = new RegExp(patternString.slice(1, patternString.length - 1), 'i');
-                patterns.push({
-                    enabled: enabled,
-                    name: name,
-                    color: color,
-                    pattern: pattern,
-                });
-            } catch (error) {
-                highlightCell(row.querySelector('td:nth-child(4)'));
-                errorMessages.push({ name, enabled, error });
+  // selector cache
+  var
+    $document = $(document),
+    $window = $(window),
+    $html = $('html'),
+    $highlighterLabels = $('#highlighters-labels'),
+    $invisiblesToggleButton = $('#invisiblesToggle.ui.button'),
+    $redetectAllBoxesButton = $('#redetectAllBoxes'),
+    $regenerateTextSuggestionsButton = $('#regenerateTextSuggestions'),
+    $regenerateTextSuggestionForSelectedBoxButton = $('#regenerateTextSuggestionForSelectedBox'),
+    $colorizedOutputForms = $('.colorized-output-form'),
+    $colorizedInputFields = $('.colorized-input-field'),
+    $colorizedOutputFields = $('.colorized-output-field'),
+    $groundTruthInputField = $('#formtxt'),
+    $x1Field = $('#x1'),
+    $x2Field = $('#x2'),
+    $y1Field = $('#y1'),
+    $y2Field = $('#y2'),
+    $groundTruthInputFieldContainer = $('#myInputContainer'),
+    $fields = $($('input, .field'), $groundTruthInputFieldContainer),
+    $buttons = $('button, .ui.button'),
+    $coordinateFields = $('.box-coordinates'),
+    $groundTruthForm = $('#updateTxt'),
+    $settingsModal = $('.ui.settings.modal'),
+    $settingsModalStatus = $('#settingsModalStatus'),
+    $settingsModalStatusMessage = $settingsModalStatus.find('.ui.disabled.tertiary.button'),
+    $map = $('#mapid'),
+    $boxFileInput = $('#boxFile'),
+    $imageFileInput = $('#imageFile'),
+    $downloadBoxFileButton = $('#downloadBoxFileButton'),
+    $downloadGroundTruthFileButton = $('#downloadGroundTruthButton'),
+    $previousBoxButton = $('#previousBB'),
+    $nextBoxButton = $('#nextBB'),
+    $groundTruthColorizedOutput = $('#myInputBackground'),
+    $previewColorizedOutput = $('#myPreviewBackground'),
+    $taggingSegment = $('#taggingSegment'),
+    $positionSlider = $('.ui.slider'),
+    $progressSlider = $('#progressIndicator'),
+    $progressLabel = $progressSlider.find('.label'),
+    $popups = $('.popup'),
+    $settingsButton = $('#settingsButton'),
+    $settingsButtonForHelpPane = $('.helpSettingsPopup'),
+    $settingsMenuNav = $('#settingsMenu'),
+    $settingsMenuItems = $settingsMenuNav.find('.item'),
+    $settingsMenuPane = $('#mainSettingsPane'),
+    $settingsMenuPaneTabs = $settingsMenuPane.find('.ui.tab'),
+    $highlighterTextPreview = $('#previewText'),
+    $useSampleImageButton = $('#useSampleImage'),
+    $useSamplePopup = $('.ui.useSampleImage.popup'),
+    $resetButton = $('#resetAppSettingsAndCookies'),
+    $addNewHighligherButton = $('#addNewHighlighterPattern'),
+    $dropzone = $('div.my-dropzone'),
+    $textHighlightingEnabledCheckbox = $(`input[name='highlighter.textHighlighting.textHighlightingEnabled']`),
+    $checkboxes = $('.ui.checkbox'),
+    $highlighterTableContainer = $('#highlighterTableContainer'),
+    $highlighterTableBody = $highlighterTableContainer.find('.ui.celled.table tbody'),
+    $highlighterTableRows = $highlighterTableBody.find('tr'),
+    $keyboardShortcutsTableContainer = $('#keyboardShortcutsTableContainer'),
+    $keyboardShortcutsTableBody = $keyboardShortcutsTableContainer.find('.ui.celled.table tbody'),
+    $keyboardShortcutsTableRows = $keyboardShortcutsTableBody.find('tr'),
+    $appInfoVersion = $('#appInfoVersion'),
+    $appInfoUpdated = $('#appInfoUpdated'),
+
+
+    pressedModifiers = {},
+
+    // variables
+    _URL = window.URL || window.webkitURL,
+    bounds,
+    BoxFileType = Object.freeze({
+      'WORDSTR': 1,
+      'CHAR_OR_LINE': 2,
+    }),
+    boxFileType = BoxFileType.WORDSTR,
+    boxLayer = new L.FeatureGroup(),
+    selectedPoly,
+    selectedBox,
+    languageModelName = 'RTS_from_Cyrillic',
+    maxZoom = 1,
+    map,
+    mapPaddingBottomRight = [40, 0],
+    imageFileName,
+    imageFileNameForButton,
+    boxFileName,
+    boxFileNameForButton,
+    boxData = [],
+    boxDataInfo = {
+      dirty: false,
+      isDirty: function () {
+        return this.dirty;
+      },
+      setDirty: function (value = true) {
+        this.dirty = value;
+      }
+    },
+    lineDataInfo = {
+      dirty: false,
+      isDirty: function () {
+        return this.dirty;
+      },
+      setDirty: function (value = true) {
+        this.dirty = value;
+      }
+    },
+    unicodeData,
+    imageFile,
+    boxFile,
+    imageFileInfo = {
+      processed: false,
+      isProcessed: function () {
+        return this.processed;
+      },
+      setProcessed: function () {
+        this.processed = true;
+      },
+      setUnprocessed: function () {
+        this.processed = false;
+      },
+    },
+    recognizedLinesOfText = [],
+    image,
+    imageHeight,
+    imageWidth,
+    mapState = undefined,
+    currentSliderPosition = -1,
+    invalidPatterns = false,
+    identicalPatternNames = false,
+    invalidKeyboardShortcuts = false,
+    duplicatedKeyboardShortcuts = false,
+    suppressLogMessages = {
+      'recognizing text': false,
+    },
+
+    appSettings = {
+      interface: {
+        appearance: 'match-device',
+        toolbarActions: {
+          detectAllLines: true,
+          detectSelectedBox: true,
+          detectAllBoxes: true,
+          invisiblesToggle: true,
+        },
+        imageView: 'medium',
+        showInvisibles: false,
+      },
+      behavior: {
+        onImageLoad: {
+          detectAllLines: false,
+          includeTextForDetectedLines: false,
+        },
+        alerting: {
+          enableWarrningMessagesForDifferentFileNames: true,
+          enableWarrningMessagesForUncommittedChanges: true,
+        },
+        workflow: {
+          progressIndicator: true,
+          positionSlider: true,
+          formCoordinateFields: true,
+          unicodeInfoPopup: true,
+          autoDownloadBoxFileOnAllLinesComitted: false,
+          autoDownloadGroundTruthFileOnAllLinesComitted: false,
+        },
+        keyboardShortcuts: {
+          keyboardShortcutsEnabled: true,
+          shortcuts: []
+        },
+      },
+      highlighter: {
+        textHighlighting: {
+          textHighlightingEnabled: true,
+          highlightsPatterns: [],
+        },
+      },
+      keyboardShortcuts: {
+      },
+    },
+
+    boxState = {
+      boxProcessing: {
+        color: 'white',
+        weight: 1,
+        stroke: true,
+        opacity: 0.5,
+        fillOpacity: 0.3,
+      },
+      boxActive: {
+        color: 'red',
+        weight: 3,
+        stroke: true,
+        opacity: 0.5,
+        fillOpacity: 0,
+      },
+      boxInactive: {
+        color: 'gray',
+        stroke: true,
+        weight: 1,
+        opacity: 0.5,
+        fillOpacity: 0.3,
+      },
+      boxComitted: {
+        color: 'green',
+        stroke: false,
+        fillOpacity: 0.3,
+      }
+    },
+
+    // alias
+    handler
+    ;
+
+  // event handler
+  handler = {
+    getAppInfo: function () {
+      // get details from ../../app-version.json
+      appInfo = JSON.parse($.ajax({
+        url: "../../app-version.json",
+        async: false,
+        dataType: "json"
+      }).responseText);
+      appInfo.appName = appInfo.name.replace(/[^\w\s]/gi, '');
+      return appInfo;
+    },
+    bindColorizerOnInput: function () {
+      $colorizedOutputForms.each(function () {
+        $(this).find('input').bind('input', handler.update.colorizedBackground);
+      });
+    },
+    colorizeText: async function (text) {
+      if (text == '') return '&nbsp;';
+      text = text.normalize('NFD');
+      var
+        colorizedText = '',
+        currentScript = null,
+        currentSpan = '',
+        spanClass = '',
+        charSpace = appSettings.interface.showInvisibles ? '·' : '&nbsp;';
+      const highlights = Object.assign(
+        handler.getHighlighters(),
+        {
+          space: {
+            name: 'Space',
+            color: 'space',
+            enabled: true,
+            pattern: '\\s',
+          }
+        }
+      );
+      for (var i = 0; i < text.length; i++) {
+        var
+          isCapital = false,
+          char = text.charAt(i),
+          charName = handler.getUnicodeInfo(char)[0].name,
+          foundHighlight = null;
+        if (charName.includes('COMBINING')) {
+          currentSpan += char;
+          continue;
+        }
+        if (char != char.toLowerCase()) {
+          isCapital = true;
+        }
+
+        const keys = Object.keys(highlights).reverse();
+        for (const key of keys) {
+          const highlight = highlights[key];
+          if (new RegExp(highlight.pattern).test(char)) {
+            foundHighlight = highlight;
+            break;
+          }
+        }
+
+        if (foundHighlight) {
+          spanClass = foundHighlight.color.toLowerCase() +
+            (isCapital ? ' capital' : '') +
+            ' text-highlighter';
+
+          if (currentScript != spanClass) {
+            if (currentSpan != '') {
+              colorizedText += '</span>' + currentSpan;
             }
+            if (spanClass.includes('space')) {
+              currentSpan = '<span class="' + spanClass + '">' + charSpace;
+            } else {
+              currentSpan = '<span class="' + spanClass + '">' + char;
+            }
+          } else {
+            if (currentScript.includes('space')) {
+              if (!currentSpan.includes('multiple')) {
+                currentSpan = currentSpan.replace('space', 'space multiple');
+              }
+              currentSpan += charSpace;
+            } else {
+              currentSpan += char;
+            }
+          }
+          currentScript = spanClass;
+        } else {
+          spanClass = 'other';
+            if (currentSpan !== '') {
+              // if (currentScript.includes('space') &&
+              //   !currentScript.includes('multiple')) {
+              //   currentSpan = currentSpan.replace('space', 'space multiple');
+              // }
+              colorizedText += '</span>' + currentSpan;
+            }
+            currentSpan = '<span class="' + spanClass + '">' + char;
+            currentScript = spanClass;
+        }
+      }
+      colorizedText += '</span>' + currentSpan;
+      return colorizedText;
+    },
+    getHighlighters: function () {
+      var patterns = {};
+      if ($textHighlightingEnabledCheckbox[0].checked) {
+        if (appSettings.highlighter.textHighlighting.highlightsPatterns.length == 0) {
+          handler.saveHighlightsToSettings();
+        }
+        for (entry of appSettings.highlighter.textHighlighting.highlightsPatterns) {
+          if (entry.enabled) {
+            patterns[entry.name] = entry;
+          }
+        }
+      }
+      return patterns;
+    },
+    getUnicodeInfo: function (string) {
+      var unicodeInfo = [];
+      string = string.normalize('NFD');
+
+      for (var i = 0; i < string.length; i++) {
+        var
+          char = string.charAt(i),
+          code = char.charCodeAt(0),
+          hex = code.toString(16).toUpperCase(),
+          unicode = '0000'.substring(hex.length) + hex,
+          result = handler.getUnicodeData(unicode);
+        if (unicodeInfo.find(function (x) {
+          return x['code'] == result.code;
+        }) == undefined) {
+          unicodeInfo.push(result);
+        }
+      }
+      return unicodeInfo;
+    },
+    getUnicodeData: function (unicode) {
+      // TODO: declare unicodeData and other variables elsewhere
+      var result = unicodeData.find(function (x) {
+        return x['code'] == unicode;
+      });
+      result.char = String.fromCharCode(parseInt(unicode, 16));
+      return result;
+    },
+    saveHighlightsToSettings: function () {
+      if (appSettings.highlighter.textHighlighting.textHighlightingEnabled) {
+        var
+          patterns = [],
+          errorMessages = [];
+        $highlighterTableRows.each(function (index, elem) {
+          handler.unhighlightCell(elem.querySelector('td:nth-child(4)'));
+          var
+            enabled = elem.querySelector('td:nth-child(1) .checkbox input').checked,
+            name = elem.querySelector('td:nth-child(2)').innerText,
+            color = elem.querySelector('td:nth-child(3) input[name=color]').value,
+            pattern = elem.querySelector('td:nth-child(4)').innerText;
+          try {
+            var validation = new RegExp(pattern, 'i');
+            patterns.push({
+              enabled: enabled,
+              name: name,
+              color: color,
+              pattern: pattern,
+            });
+          } catch (error) {
+            handler.highlightCell(elem.querySelector('td:nth-child(4)'));
+            errorMessages.push({ name, enabled, error });
+          }
         });
-        // Log the error messages
         invalidPatterns = false;
         if (errorMessages.length > 0) {
-            // invalidPatterns = true;
-            console.error('Regex pattern errors:');
-            errorMessages.forEach(function (object) {
-                console.error(object.errorMessage);
-                console.log(object.name, object.enabled);
-                if (object.enabled) {
-                    invalidPatterns = true;
-                }
-            });
+          console.error('Regex pattern errors:');
+          errorMessages.forEach(function (object) {
+            console.error(object.errorMessage);
+            if (object.enabled) {
+              invalidPatterns = true;
+            }
+          });
         }
         identicalPatternNames = false;
         patternNames = patterns.map(function (pattern) {
-            return pattern.name;
+          return pattern.name;
         });
         patternNamesSet = [...new Set(patternNames)];
         if (patternNames.length != patternNamesSet.length) {
-            identicalPatternNames = true;
+          identicalPatternNames = true;
         }
         appSettings.highlighter.textHighlighting.highlightsPatterns = patterns;
-    }
-    if (appSettings.highlighter.textHighlighting.highlightsPatterns.length > 0) {
-        updateInputBackground();
-        updatePreviewBackground();
-    }
-    updatePatternLabels();
-    updateCookie();
-}
-
-function highlightCell(cell, color) {
-    $(cell).addClass('red colored');
-}
-
-function unhighlightCell(cell) {
-    $(cell).removeClass('red colored');
-}
-
-// Function to create a color cell with a dropdown
-function createColorCell(activeColor) {
-    const cell = document.createElement('td');
-    cell.className = 'collapsing';
-    cell.setAttribute('data-label', 'Color');
-
-    const dropdownDiv = document.createElement('div');
-    dropdownDiv.className = 'ui fluid search selection dropdown';
-
-    const hiddenInput = document.createElement('input');
-    hiddenInput.type = 'hidden';
-    hiddenInput.name = 'color';
-
-    const dropdownIcon = document.createElement('i');
-    dropdownIcon.className = 'dropdown icon';
-
-    const defaultText = document.createElement('div');
-    defaultText.className = 'default text';
-    defaultText.textContent = 'Color...';
-
-    const menuDiv = document.createElement('div');
-    menuDiv.className = 'menu';
-
-    const colors = ['red', 'orange', 'yellow', 'olive', 'green', 'teal', 'blue', 'violet', 'purple', 'pink', 'brown', 'grey'];
-    colors.forEach(function (color) {
-        const itemDiv = document.createElement('div');
-        itemDiv.className = 'item';
-        itemDiv.setAttribute('data-value', color);
-
-        const colorIcon = document.createElement('i');
-        colorIcon.className = `ui ${color} small empty circular label icon link text-highlighter`;
-
-        const colorText = document.createElement('span');
-        colorText.textContent = color.charAt(0).toUpperCase() + color.slice(1);
-
-        itemDiv.appendChild(colorIcon);
-        itemDiv.appendChild(colorText);
-        menuDiv.appendChild(itemDiv);
-    });
-    dropdownDiv.appendChild(hiddenInput);
-    dropdownDiv.appendChild(dropdownIcon);
-    dropdownDiv.appendChild(defaultText);
-    dropdownDiv.appendChild(menuDiv);
-
-    $(dropdownDiv).dropdown({
-        onChange: function (value, text, $selected) {
-            savePatternsToSettings();
-        }
-    })
-
-    if (activeColor) {
-        $(dropdownDiv).dropdown('set selected', activeColor, true)
-    } else {
-        $(dropdownDiv).dropdown('set selected', colors[Math.floor(Math.random() * colors.length)], true)
-    }
-
-    cell.appendChild(dropdownDiv);
-
-    return cell;
-}
-
-// Function to create a delete cell with the delete button
-function createDeleteCell() {
-    const deleteCell = document.createElement('td');
-    deleteCell.className = 'single line';
-    deleteCell.setAttribute('data-label', 'Edit');
-
-    const deleteButton = document.createElement('i');
-    deleteButton.className = 'large red minus circle link icon';
-
-    deleteCell.appendChild(deleteButton);
-
-    // Add event listener to the delete button
-    deleteButton.addEventListener('click', function () {
-        const row = this.closest('tr');
-        row.remove();
-        savePatternsToSettings();
-    });
-
-    return deleteCell;
-}
-
-function constructDefaultTable() {
-    const table = document.createElement('table');
-    table.className = 'ui unstackable celled table';
-
-    const thead = document.createElement('thead');
-    const theadRow = document.createElement('tr');
-    thead.appendChild(theadRow);
-
-    const headers = ['', 'Name', 'Color', 'Pattern', ''];
-    headers.forEach(function (header) {
-        const th = document.createElement('th');
-        th.className = header ? '' : 'collapsing';
-        th.className = header === 'Color' ? 'four wide' : '';
-        th.textContent = header;
-
-        theadRow.appendChild(th);
-    });
-
-    const tbody = document.createElement('tbody');
-    const cookie = Cookies.get("appSettings");
-    var highlights = [];
-    if (cookie) {
-        const cookieSettings = JSON.parse(cookie);
-        highlights = cookieSettings.highlighter.textHighlighting.highlightsPatterns;
-        if (highlights.length > 0) {
-            highlights.forEach(function (highlight) {
-                // console.log(highlight);
-                const row = createTableRow(highlight.enabled, highlight.name, highlight.color, highlight.pattern);
-                tbody.appendChild(row);
+      }
+      if (appSettings.highlighter.textHighlighting.highlightsPatterns.length > 0) {
+        handler.update.colorizedBackground();
+      }
+      handler.update.patternLabels();
+      handler.update.cookie();
+    },
+    saveKeyboardShortcutsToSettings: function () {
+      if (appSettings.behavior.keyboardShortcuts.keyboardShortcutsEnabled) {
+        var
+          shortcuts = [],
+          errorMessages = [];
+        $keyboardShortcutsTableRows.each(function (index, elem) {
+          handler.unhighlightCell(elem.querySelector('td:nth-child(2)'));
+          var
+            enabled = elem.querySelector('td:nth-child(1) .checkbox input').checked,
+            name = elem.querySelector('td:nth-child(2) input[name=action]').value,
+            keyCombo = elem.querySelector('td:nth-child(3)').innerText,
+            action = availableShortcutActions.find(action => action.name === name).action;
+          // target = availableShortcutActions.find(action => action.name === name).target;
+          try {
+            shortcuts.push({
+              enabled: enabled,
+              keyCombo: keyCombo,
+              name: name,
+              action: action,
+              // target: target,
             });
-        }
-    }
-
-    if (!cookie || highlights.length === 0) {
-        const rows = [
-            { enabled: true, name: 'Latin', color: 'blue', pattern: '[\\u0000-\\u007F\\u0080-\\u00FF]' },
-            { enabled: true, name: 'Cyrillic', color: 'yellow', pattern: '[\\u0400-\\u04FF\\u0500-\\u052F\\u2DE0-\\u2DFF\\uA640-\\uA69F\\u1C80-\\u1CBF]' },
-            { enabled: true, name: 'Digits', color: 'red', pattern: '[0-9]' },
-        ];
-        rows.forEach(function (row) {
-            const tableRow = createTableRow(row.enabled, row.name, row.color, row.pattern);
-            tbody.appendChild(tableRow);
-        });
-    }
-    // if (cookie) {
-    //     const cookieSettings = JSON.parse(cookie);
-    // }
-    // if (cookieSettings.highlighter.textHighlighting.highlightsPatterns.length > 0) {
-    //     cookieSettings.highlighter.textHighlighting.highlightsPatterns.forEach(function (pattern) {
-    //         const row = createTableRow(pattern.enabled, pattern.name, pattern.color, pattern.pattern.toString());
-    //         tbody.appendChild(row);
-    //     });
-    // } else {
-    //     const row1 = createTableRow(true, 'Latin', 'blue', '/[\\u0000-\\u007F\\u0080-\\u00FF]/');
-    //     const row2 = createTableRow(true, 'Cyrillic', 'red', '/[\\u0400-\\u04FF\\u0500-\\u052F\\u2DE0-\\u2DFF\\uA640-\\uA69F\\u1C80-\\u1CBF]/');
-    //     tbody.appendChild(row1);
-    //     tbody.appendChild(row2);
-    // }
-
-    table.appendChild(thead);
-    table.appendChild(tbody);
-
-    return table;
-}
-
-// Helper function to create a table row with cells
-function createTableRow(enabled, name, color, pattern) {
-    const row = document.createElement('tr');
-
-    const checkboxCell = createCheckboxCell(name);
-    const nameCell = createEditableCell(name);
-    const colorCell = createColorCell(color);
-    const patternCell = createEditableCell(pattern);
-    const deleteCell = createDeleteCell();
-
-    row.appendChild(checkboxCell);
-    row.appendChild(nameCell);
-    row.appendChild(colorCell);
-    row.appendChild(patternCell);
-    row.appendChild(deleteCell);
-
-    return row;
-}
-
-async function useSampleImage(e) {
-    loadImageFile(e, true);
-    loadBoxFile(e, true);
-    closeSettingsPopup();
-}
-
-async function resetAppSettingsAndCookies() {
-    response = await askUser({
-        title: 'Reset App',
-        message: 'The app will reset it\'s settings and reload. Are you sure you want to continue?',
-        // confirmText: 'Reset',
-        // denyText: 'No',
-        type: 'replacingTextWarning',
-        actions: [{
-            text: 'Cancel',
-            class: 'cancel',
-        }, {
-            text: 'Reset',
-            class: 'red ok',
-        }]
-    });
-    console.log("response:", response);
-    if (response) {
-        clearCookies();
-    }
-}
-
-function clearCookies() {
-    // remove all cookies
-    const cookies = Cookies.get();
-    for (const cookie in cookies) {
-        Cookies.remove(cookie);
-    }
-    location.reload();
-}
-
-// Update appSettings based on user modifications
-function updateAppSettings({ path, value, cookie }) {
-
-    if (cookie) {
-        appSettings = { ...appSettings, ...cookie };
-    } else {
-        const pathArray = path.split(".");
-        let obj = appSettings;
-        for (let i = 0; i < pathArray.length - 1; i++) {
-            obj = obj[pathArray[i]];
-        }
-        // displayMessage({ title: "Settings updated!", type: "info", message: `Path: ${path}, value: ${value}, previous value: ${obj[pathArray[pathArray.length - 1]]}.` });
-        obj[pathArray[pathArray.length - 1]] = value;
-        updateCookie();
-
-        // wait 1 second before continuing to the next line
-        setTimeout(() => {
-            $("#settingsModalStatus")[0].innerHTML = "Settings saved!"
-            // $("#settingsModalStatus .loader").addClass("active")
-        }, 100)
-        $("#settingsModalStatus")[0].innerHTML = "<div class='ui mini active fast inline loader'></div>"
-        // $("#settingsModalStatus .loader").addClass("active")
-        // $("#settingsModalStatus")[0].innerText = "Settings saved!"
-        // $("#settingsModalStatus .loader").removeClass("active")
-    }
-    updateSettingsModal();
-}
-
-
-
-// Update settings modal to reflect the current settings
-function updateSettingsModal() {
-    // Toolbar actions
-    for (const [key, value] of Object.entries(appSettings.interface.toolbarActions)) {
-        const path = `interface.toolbarActions.${key}`;
-        document.querySelector(`input[name='${path}']`).checked = value;
-        // find parent of button with name attribute equal to path and hide toggle visibility
-        $("button[name='" + path + "']").parent().toggle(appSettings.interface.toolbarActions[key]);
-    }
-    // Appearance
-    const appearancePath = "interface.appearance";
-    document.querySelector(`input[name='${appearancePath}'][value='${appSettings.interface.appearance}']`).checked = true;
-    setClassForAppearance(appSettings.interface.appearance);
-    // Image view
-    const imageViewPath = "interface.imageView";
-    document.querySelector(`input[name='${imageViewPath}'][value='${appSettings.interface.imageView}']`).checked = true;
-    setMapSize({ height: appSettings.interface.imageView })
-    // On image load
-    for (const [key, value] of Object.entries(appSettings.behavior.onImageLoad)) {
-        const path = `behavior.onImageLoad.${key}`;
-        document.querySelector(`input[name='${path}']`).checked = value;
-    }
-    // Alerting
-    for (const [key, value] of Object.entries(appSettings.behavior.alerting)) {
-        const path = `behavior.alerting.${key}`;
-        document.querySelector(`input[name='${path}']`).checked = value;
-    }
-    // Text highlighting
-    for (const [key, value] of Object.entries(appSettings.highlighter.textHighlighting)) {
-        if (key == 'highlightsPatterns') {
-            constructDefaultTable();
-        } else {
-            const path = `highlighter.textHighlighting.${key}`;
-            document.querySelector(`input[name='${path}']`).checked = value;
-        }
-    }
-    // Invisibles toggle
-    if (appSettings.interface.showInvisibles) {
-        $('#invisiblesToggle.ui.button').addClass('active');
-    }
-}
-
-// Listen for changes to the settings and update the appSettings object and the cookie accordingly
-document.addEventListener("change", function (event) {
-    // const inputs = document.querySelectorAll("input[type='checkbox'], input[type='radio'], input[type='text']");
-    // inputs.forEach((input) => {
-    //     input.addEventListener("change", (event) => {
-    const path = event.target.name;
-    const value = event.target.type === "checkbox" ? event.target.checked : event.target.value;
-    updateAppSettings({ path: path, value: value });
-});
-
-function setClassForAppearance(value) {
-    const appearance = appSettings.interface.appearance;
-    // eliminate all classes
-    document.documentElement.classList.remove(...document.documentElement.classList);
-    document.documentElement.classList.toggle(value);
-}
-var map
-var imageFileName;
-var imageFileNameForButton;
-var boxFileName;
-var boxFileNameForButton;
-var boxdataIsDirty = false;
-var lineIsDirty = false;
-var unicodeData;
-var imageIsProcessed = false;
-var recognizedLinesOfText = [];
-var image;
-var imageHeight;
-var imageWidth;
-var mapHeight;
-var mapDeletingState = false;
-var mapEditingState = false;
-var currentSliderPosition = -1;
-var dropzone = undefined;
-var invalidPatterns = false;
-
-class Box {
-    constructor({
-        text,
-        x1,
-        y1,
-        x2,
-        y2,
-        polyid,
-        visited = false,
-        committed = false,
-    }) {
-        this.text = text
-        this.x1 = x1
-        this.y1 = y1
-        this.x2 = x2
-        this.y2 = y2
-        this.polyid = polyid
-        // ternary operator to set default value
-        this.filled = text != "" ? true : false
-        this.visited = visited
-        this.modified = false
-    }
-    static compare(a, b) {
-        // set tolerance to account for vertically overlapping boxes as a percentage of height
-        const tolerance = 0.5; // 0.25 = 25%
-
-        // Check if ranges of x-coordinates overlap
-        const xOverlap = a.x1 <= b.x2 && b.x1 <= a.x2;
-
-        // Check if line segment a is below line segment b
-        const below = a.y1 > b.y2 - tolerance * (b.y2 - b.y1);
-
-        // Check if line segment a is entirely to the left of line segment b
-        const left = a.x2 <= b.x1;
-
-        // Check if there exists a line segment c that overlaps both a and b
-        const cOverlap = (c) => c.x1 <= a.x2 && a.x1 <= c.x2 && c.x1 <= b.x2 && b.x1 <= c.x2;
-
-        // Check if line segment a overflows to the next line (line segment b)
-        const aOverflows = a.y1 === b.y2 && xOverlap;
-
-        // Rule 1: Line segment a comes before line segment b
-        // if their ranges of x-coordinates overlap and if a is below b
-        if (xOverlap && below) {
-            return -1;
-        }
-
-        // Rule 2: Line segment a comes before line segment b
-        // if a is entirely to the left of b and no line segment c overlaps both a and b
-        if (left && !cOverlap(a) && !cOverlap(b)) {
-            return -1;
-        }
-
-        // Rule 3: Line segment a comes before line segment b
-        // if line segment a overflows to the next line (line segment b)
-        if (aOverflows) {
-            return -1;
-        }
-
-        // In all other cases, line segment b comes before line segment a
-        return 1;
-    }
-
-
-
-
-
-    // compare function for .equals
-    equals(other) {
-        return this.text == other.text && this.x1 == other.x1 && this.y1 == other.y1 && this.x2 == other.x2 && this.y2 == other.y2
-    }
-}
-
-boxActive = {
-    color: 'red',
-    weight: 3,
-    stroke: true,
-    opacity: 0.5,
-    fillOpacity: 0
-}
-boxInactive = {
-    color: 'gray',
-    stroke: true,
-    weight: 1,
-    opacity: 0.5,
-    fillOpacity: 0.3
-}
-boxComitted = {
-    color: 'green',
-    stroke: false,
-    fillOpacity: 0.3
-}
-
-// TODO: remove some of these globals. They are not all needed.
-var _URL = window.URL || window.webkitURL,
-    h,
-    w,
-    bounds,
-    boxdata = [],
-    boxFileType = BoxFileType.WORDSTR,
-    boxlayer = new L.FeatureGroup(),
-    regionlayer = new L.FeatureGroup(),
-    selectedPoly,
-    imageLoaded = false,
-    boxdataLoaded = false,
-    selectedBox,
-    zoomMax = 1;
-
-function getBoxFileType(boxContent) {
-    var assumeWordStrFormat;
-    if (boxContent == "") {
-        assumeWordStrFormat = true;
-    } else {
-        first = boxContent.startsWith("WordStr ");
-        second = boxContent.split('\n')[1].startsWith("\t ");
-    }
-    if (assumeWordStrFormat || (first && second)) {
-        boxFileType = BoxFileType.WORDSTR;
-    } else {
-        boxFileType = BoxFileType.CHAR_OR_LINE;
-    }
-}
-
-function setFromData(d) {
-    selectedBox = d;
-    $('#formtxt').val(d.text).attr('boxid', d.polyid);
-    $("#x1").val(d.x1);
-    $("#y1").val(d.y1);
-    $("#x2").val(d.x2);
-    $("#y2").val(d.y2);
-    $('#formtxt').focus();
-    $('#formtxt').select();
-    updateInputBackground();
-    lineIsDirty = false;
-    updateProgressBar({ type: 'tagging' });
-    $('#updateTxt').popup('hide');
-}
-
-function getPrevtBB(box) {
-    if (typeof box === "undefined") {
-        return boxdata[0];
-    }
-    var el = boxdata.findIndex(function (x) {
-        return x.polyid == box.polyid;
-    });
-    if (el === 0) {
-        return boxdata[boxdata.length - 1]
-    }
-    return boxdata[el - 1];
-}
-
-function getNextBB(box) {
-    if (typeof box === "undefined") {
-        return boxdata[0];
-    }
-    var el = boxdata.findIndex(function (x) {
-        return x.polyid == box.polyid;
-    });
-    if (el == boxdata.length - 1) {
-        return boxdata[0]
-    }
-    return boxdata[el + 1];
-}
-
-function fillAndFocusRect(box) {
-    setFromData(box);
-    focusBoxID(box.polyid);
-}
-
-function setStyle(rect) {
-    if (rect) {
-        rect.setStyle(boxActive)
-    }
-
-}
-
-function removeStyle(rect, modified = false) {
-    if (rect && modified) {
-        rect.setStyle(boxComitted)
-    } else if (rect) {
-        rect.setStyle(boxInactive)
-    }
-}
-
-function focusRectangle(rect) {
-    disableEdit(rect);
-    map.flyToBounds(rect.getBounds(), {
-        maxZoom: zoomMax,
-        animate: true,
-        paddingBottomRight: [40, 0],
-        duration: .25,
-        easeLinearity: 0.25,
-        // noMoveStart: true
-    });
-    selectedPoly = rect
-    setStyle(rect)
-}
-
-function focusBoxID(id, modified = false) {
-    removeStyle(selectedPoly, modified)
-    var rect = boxlayer.getLayer(id);
-    focusRectangle(rect)
-    $('#formtxt').focus();
-    $('#formtxt').select();
-}
-
-
-function processFile(e) {
-    var file = e.target.result;
-    getBoxFileType(file);
-    if (file && file.length) {
-        boxlayer.clearLayers();
-        boxdata = [];
-        if (boxFileType == BoxFileType.CHAR_OR_LINE) {
-            file.split("\n").forEach(function (line) {
-                if (line.length > 5) {
-
-                    var temp = line.split(" ");
-                    var symbole = new Box({
-                        text: temp[0],
-                        x1: parseInt(temp[1]),
-                        y1: parseInt(temp[2]),
-                        x2: parseInt(temp[3]),
-                        y2: parseInt(temp[4])
-                    })
-                    var rect = new L.rectangle([
-                        [
-                            symbole.y1, symbole.x1
-                        ],
-                        [
-                            symbole.y2, symbole.x2
-                        ]
-                    ]);
-                    rect.setStyle(boxInactive);
-                    rect.on('edit', editRect);
-                    rect.on('click', onRectClick);
-                    // addLayer
-                    boxlayer.addLayer(rect);
-                    var polyid = boxlayer.getLayerId(rect)
-                    symbole.polyid = polyid
-                    boxdata.push(symbole);
-                }
-            });
-        } else if (boxFileType == BoxFileType.WORDSTR) {
-            file.split('\n').forEach(function (line) {
-                var symbole
-                if (line.startsWith("WordStr ")) {
-                    var [dimensions, wordStr] = line.split('#')
-                    dimensions = dimensions.split(" ")
-                    symbole = new Box({
-                        text: wordStr,
-                        x1: parseInt(dimensions[1]),
-                        y1: parseInt(dimensions[2]),
-                        x2: parseInt(dimensions[3]),
-                        y2: parseInt(dimensions[4])
-                    })
-                } else if (!IgnoreEOFBox && line.startsWith("\t ")) {
-                    var [dimensions, wordStr] = line.split('#')
-                    dimensions = dimensions.split(" ")
-                    symbole = new Box({
-                        text: dimensions[0],
-                        x1: parseInt(dimensions[1]),
-                        y1: parseInt(dimensions[2]),
-                        x2: parseInt(dimensions[3]),
-                        y2: parseInt(dimensions[4])
-                    })
-                } else {
-                    return;
-                }
-                var rect = new L.rectangle([
-                    [
-                        symbole.y1, symbole.x1
-                    ],
-                    [
-                        symbole.y2, symbole.x2
-                    ]
-                ]);
-                rect.setStyle(boxInactive)
-                rect.on('edit', editRect);
-                rect.on('click', onRectClick);
-                // addLayer
-                boxlayer.addLayer(rect);
-                var polyid = boxlayer.getLayerId(rect)
-                symbole.polyid = polyid
-                boxdata.push(symbole);
-            });
-        }
-        map.addLayer(boxlayer);
-
-
-        // $('#formrow').removeClass('hidden');
-        sortAllBoxes();
-        // select next BB
-        var nextBB = getNextBB();
-        fillAndFocusRect(nextBB);
-        updateInputBackground();
-    }
-}
-
-async function editRect(e) {
-    var layer = e.target;
-    var box = getBoxdataFromRect(layer);
-    var oldDimenstions = [box.x1, box.y1, box.x2, box.y2];
-    var newd = new Box({
-        text: box.text,
-        x1: Math.round(layer._latlngs[0][0].lng),
-        y1: Math.round(layer._latlngs[0][0].lat),
-        x2: Math.round(layer._latlngs[0][2].lng),
-        y2: Math.round(layer._latlngs[0][2].lat)
-    })
-    var lineWasDirty = lineIsDirty;
-    await updateBoxdata(layer._leaflet_id, newd);
-    setFromData(newd);
-
-    // new dimensions
-    var newDimenstions = [newd.x1, newd.y1, newd.x2, newd.y2];
-    // console.log("moved box ", [
-    //     box.polyid, box.text
-    // ], " from ", oldDimenstions, " to ", newDimenstions);
-    if (lineWasDirty) {
-        newd.text = $('#formtxt').val();
-    }
-    // fillAndFocusRect(newd);
-}
-
-function deleteBox(box) {
-    var boxindex = boxdata.findIndex(function (d) {
-        return d.polyid == box.polyid
-    });
-    if (boxindex > -1) {
-        boxdata.splice(boxindex, 1);
-    }
-    deleteBoxFromResults(box);
-    return boxindex
-}
-
-function deleteBoxFromResults(box) {
-    var boxindex = recognizedLinesOfText.findIndex(function (d) {
-        // find matching box by bounding box
-        d = d.bbox;
-        var d = new Box({
-            text: '',
-            y1: imageHeight - d.y1, // bottom
-            y2: imageHeight - d.y0, // top
-            x1: d.x0, // right
-            x2: d.x1 // left
-        })
-        return d.x1 == box.x1 && d.y1 == box.y1 && d.x2 == box.x2 && d.y2 == box.y2
-    });
-    if (boxindex > -1) {
-        recognizedLinesOfText.splice(boxindex, 1);
-    }
-}
-
-function onRectClick(event) {
-    // console.log(event.target);
-    console.log("onRectClick", event.target._leaflet_id);
-
-    // if editing is enabled, do nothing
-    if (event.target.editing.enabled()) {
-        return;
-    }
-    // if mapDeletingState is enabled, do nothing
-    if (mapDeletingState) {
-        return;
-    }
-    var rect = event.target;
-    // get boxdatata
-    if (selectedPoly != rect) {
-        var bb = getBoxdataFromRect(rect);
-        setFromData(bb);
-    }
-    removeStyle(selectedPoly)
-
-    focusRectangle(rect)
-    setStyle(rect)
-    disableEdit(rect);
-    enableEdit(rect);
-
-}
-
-function updateRect(polyid, d) {
-    var rect = boxlayer.getLayer(polyid);
-    var newbounds = [
-        [
-            d.y1, d.x1
-        ],
-        [
-            d.y2, d.x2
-        ]
-    ]
-    rect.setBounds(newbounds)
-}
-
-var doneMovingInterval = 100,
-    movingTimer;
-
-
-function getNextAndFill() {
-    // if settings open ignore
-    if ($('.ui.settings.modal').modal('is active')) {
-        return false;
-    }
-    var modified = submitText();
-    var box = getNextBB(selectedBox);
-    setFromData(box);
-    clearTimeout(movingTimer);
-    movingTimer = setTimeout(focusBoxID, doneMovingInterval, box.polyid, modified);
-}
-
-function getPrevAndFill() {
-    var modified = submitText();
-    var box = getPrevtBB(selectedBox);
-    setFromData(box);
-    clearTimeout(movingTimer);
-    movingTimer = setTimeout(focusBoxID, doneMovingInterval, box.polyid, modified);
-}
-
-function onBoxInputChange(e) {
-
-    var polyid = parseInt($('#formtxt').attr('boxid'));
-    var newdata = new Box({
-        text: $('#formtxt').val(),
-        x1: parseInt(Math.round($('#x1').val())),
-        y1: parseInt(Math.round($('#y1').val())),
-        x2: parseInt(Math.round($('#x2').val())),
-        y2: parseInt(Math.round($('#y2').val()))
-    })
-
-    var modified = updateBoxdata(polyid, newdata)
-    updateRect(polyid, newdata)
-}
-
-$('#updateTxt').on('submit', getNextAndFill);
-function submitText(e) {
-    if (e) {
-        e.preventDefault();
-    }
-    // if settings open ignore
-    if ($('.ui.settings.modal').modal('is active')) {
-        return false;
-    }
-    var polyid = parseInt($('#formtxt').attr('boxid'));
-    var newdata = new Box({
-        text: $('#formtxt').val(),
-        x1: parseInt($('#x1').val()),
-        y1: parseInt($('#y1').val()),
-        x2: parseInt($('#x2').val()),
-        y2: parseInt($('#y2').val()),
-        committed: true,
-    })
-    var modified = updateBoxdata(polyid, newdata)
-    updateRect(polyid, newdata)
-    return modified;
-}
-
-function updateBoxdata(id, d) {
-    modified = false;
-    var thebox = boxdata.findIndex(function (x) {
-        return x.polyid == id;
-    });
-    // var ndata = Object.assign(new Box(), boxdata[thebox], d);
-    // boxdata[thebox] = ndata
-    d.polyid = id
-    // check if data is different
-    if (boxdata[thebox].modified || !boxdata[thebox].equals(d)) {
-        modified = true;
-        if (boxdata[thebox].text != "") {
-            d.modified = true;
-        }
-    }
-    boxdata[thebox] = d
-    // remember stuff is dirty
-    boxdataIsDirty = true;
-    lineIsDirty = false;
-    updateProgressBar({ type: 'tagging' });
-    return modified;
-}
-
-function disableEdit(rect) {
-    if (selectedPoly && rect != selectedPoly) {
-        selectedPoly.editing.disable();
-    }
-}
-
-function enableEdit(rect) {
-    selectedPoly = rect
-    selectedPoly.editing.enable()
-}
-
-function getBoxdataFromRect(rect) {
-    var firstel = boxdata.find(function (x) {
-        return x.polyid == rect._leaflet_id
-    });
-    return firstel
-}
-
-$(document).bind('keydown', 'ctrl+shift+down', getNextAndFill);
-
-$(document).bind('keydown', 'ctrl+shift+up', getPrevAndFill);
-
-$('#formtxt').bind('keydown', 'ctrl+shift+down', getNextAndFill);
-$('#formtxt').bind('keydown', 'ctrl+shift+up', getPrevAndFill);
-$('#formtxt').on('focus', function () {
-    $(this).select();
-});
-
-// Set #main-edit-area loading status
-function setMainLoadingStatus(status) {
-    if (status) {
-        $('#mapid').addClass('loading');
-        if (image != undefined) {
-            $(image._image).animate({ opacity: .3 }, 200);
-        }
-    } else {
-        $('#mapid').removeClass('loading');
-        if (image != undefined) {
-            $(image._image).animate({ opacity: 1 }, 500);
-        }
-    }
-}
-
-// process worker log messages
-function processWorkerLogMessage(message) {
-    if (message.status == 'recognizing text') {
-        message.type = 'ocr';
-    } else {
-        message.type = 'initializingWorker';
-    } updateProgressBar(message);
-}
-
-async function regenerateInitialBoxes() {
-    $("#redetectAllBoxes").addClass("double loading");
-    $("#redetectAllBoxes").addClass("disabled");
-    await generateInitialBoxes();
-    $("#redetectAllBoxes").removeClass("double loading");
-    $("#redetectAllBoxes").removeClass("disabled");
-    sortAllBoxes();
-}
-async function regenerateTextSuggestions() {
-    $("#regenerateTextSuggestions").addClass("double loading");
-    $("#regenerateTextSuggestions").addClass("disabled");
-    if (boxdata.length > 0) {
-        await redetectText(boxdata);
-        // get box by id
-        var el = boxdata.findIndex(function (x) {
-            return x.polyid == selectedBox.polyid;
-        });
-        setFromData(boxdata[el]);
-        // set styles for all boxes using setStyle(boxInactive);
-        for (let box of boxlayer.getLayers()) {
-            box.setStyle(boxInactive);
-        }
-        focusBoxID(selectedBox.polyid);
-    }
-    $("#regenerateTextSuggestions").removeClass("double loading");
-    $("#regenerateTextSuggestions").removeClass("disabled");
-    sortAllBoxes();
-}
-async function regenerateTextSuggestionForSelectedBox() {
-    $("#regenerateTextSuggestionForSelectedBox").addClass("double loading");
-    $("#regenerateTextSuggestionForSelectedBox").addClass("disabled");
-    if (boxdata.length > 0) {
-        var newValues = await redetectText([selectedBox]);
-        // get box by id
-        var el = boxdata.findIndex(function (x) {
-            return x.polyid == selectedBox.polyid;
-        });
-        boxdata[el].text = newValues[0].text;
-        setFromData(boxdata[el]);
-    }
-    $("#regenerateTextSuggestionForSelectedBox").removeClass("double loading");
-    $("#regenerateTextSuggestionForSelectedBox").removeClass("disabled");
-    sortAllBoxes();
-}
-
-async function redetectText(rectList = []) {
-    if (rectList.length == 0) {
-        // rectList = boxdata;
-        result = await worker.recognize(image._image)
-        return result;
-    } else {
-        var returnBoxes = true;
-    }
-    for (i = 0; i < rectList.length; i++) {
-        var box = rectList[i];
-        // rectangle = { left: box.x1, top: box.y1, width: box.x2 - box.x1, height: box.y2 - box.y1 }
-        rectangle = { left: box.x1, top: imageHeight - box.y2, width: box.x2 - box.x1, height: box.y2 - box.y1 }
-        // await worker.loadLanguage('RTS_from_Cyrillic');
-        // await worker.initialize('RTS_from_Cyrillic');
-        // await worker.setParameters({
-        //     tessedit_ocr_engine_mode: 1,
-        //     tessedit_pageseg_mode: 1,// 12
-        // });
-        result = await worker.recognize(image._image, { rectangle })
-        box.text = result.data.text;
-        // remove newlines
-        box.text = box.text.replace(/(\r\n|\n|\r)/gm, "");
-        box.committed = false;
-        box.visited = false;
-    }
-    if (returnBoxes) {
-        return rectList
-    }
-}
-
-async function generateInitialBoxes(includeSuggestions = true) {
-    updateProgressBar({ reset: true });
-    var file,
-        img;
-    setMainLoadingStatus(true);
-
-    boxlayer.clearLayers();
-    boxdata = [];
-    // const results = await worker.recognize(image, { left: image.width, top: image.height, width: 10, height: 10 });
-    // run worker on half of the image
-    // const rectangle = { left: 0, top: 0, width: image.width / 2, height: image.height/2 }
-    // const results = await worker.recognize(image);
-    results = await redetectText();
-    // const results = await worker.recognize(image, { rectangle });
-    // await worker.terminate();
-    recognizedLinesOfText = results.data.lines;
-    if (recognizedLinesOfText.length == 0) {
-        setMainLoadingStatus(false);
-        return false;
-    }
-    // remove newlines
-    recognizedLinesOfText.forEach(function (line) {
-        line.text = line.text.replace(/(\r\n|\n|\r)/gm, "");
-    });
-    await insertSuggestions(includeSuggestions);
-    // $('#formrow').removeClass('hidden');
-    // select next BB
-    var nextBB = getNextBB();
-    fillAndFocusRect(nextBB);
-
-    setMainLoadingStatus(false);
-    initializeSlider();
-    boxdataIsDirty = false;
-    updateProgressBar({ type: 'tagging' });
-}
-
-// if selected box is deleted, select closest box
-function selectClosestBox() {
-    var nextBB = getNextBB();
-    if (nextBB) {
-        fillAndFocusRect(nextBB);
-    } else {
-        var prevBB = getPrevBB();
-        if (prevBB) {
-            fillAndFocusRect(prevBB);
-        }
-    }
-}
-
-
-async function insertSuggestions(includeSuggestions) {
-    // if data is dirty
-    if (boxdataIsDirty) {
-        // warn user
-        var result = await askUser({
-            title: 'Warning',
-            message: 'Suggestions will be generated from the current lines. Do you want to continue?',
-            type: 'replacingTextWarning',
-            actions: [{
-                text: 'Cancel',
-                class: 'cancel',
-            }, {
-                text: 'yes',
-                class: 'positive',
-            }]
-        });
-        if (!result) {
-            return;
-        }
-    }
-    // clear all boxes
-    boxlayer.clearLayers();
-    boxdata = [];
-    var lines = recognizedLinesOfText;
-    for (var i = 0; i < lines.length; i++) {
-        var line = lines[i];
-        var box = line.bbox;
-        var text = line.text;
-        var symbole = new Box({
-            text: includeSuggestions ? text : '',
-            y1: imageHeight - box.y1, // bottom
-            y2: imageHeight - box.y0, // top
-            x1: box.x0, // right
-            x2: box.x1 // left
-        })
-        var rect = new L.rectangle([
-            [
-                symbole.y1, symbole.x1
-            ],
-            [
-                symbole.y2, symbole.x2
-            ]
-        ]);
-        rect.on('edit', editRect);
-        rect.on('click', onRectClick);
-        rect.setStyle(boxInactive);
-        // addLayer
-        boxlayer.addLayer(rect);
-        var polyid = boxlayer.getLayerId(rect)
-        symbole.polyid = polyid
-        boxdata.push(symbole);
-        map.addLayer(boxlayer);
-    }
-    numberOFBoxes = boxdata.length;
-    // selectClosestBox();
-}
-
-
-async function askUser(object) {
-    if ((object.type === 'differentFileNameWarning' && !appSettings.behavior.alerting.enableWarrningMessagesForDifferentFileNames) ||
-        (object.type === 'uncommittedChangesWarning' && !appSettings.behavior.alerting.enableWarrningMessagesForUncommittedChanges)) {
-        return true;
-    }
-    setPromptKeyboardControl();
-    if (object.actions == []) {
-        object.actions = [{
-            confirmText: 'Yes',
-            confirmTextClass: 'green positive',
-        }, {
-            denyText: 'No',
-            denyTextClass: 'red negative',
-        }]
-    }
-    return new Promise((resolve, reject) => {
-        $.modal({
-            inverted: false,
-            title: object.title,
-            // class: 'mini',
-            blurring: true,
-            closeIcon: true,
-            autofocus: true,
-            restoreFocus: true,
-            onApprove: function () {
-                resolve(true);
-            },
-            onDeny: function () {
-                resolve(false);
-            },
-            onHide: function () {
-                setFormKeyboardControl();
-                resolve(false);
-            },
-            content: object.message,
-            actions: object.actions,
-        }).modal('show');
-    });
-}
-
-
-async function loadBoxFile(e, sample = false) {
-    if (boxdataIsDirty) {
-        var result = await askUser({
-            message: 'You did not download current progress. Do you want to overwrite existing data?',
-            title: 'Unsaved Changes',
-            type: 'uncommittedChangesWarning',
-            actions: [{
-                text: 'Cancel',
-                class: 'cancel',
-            }, {
-                text: 'Yes',
-                class: 'positive',
-            }]
-        });
-        if (!result) {
-            return;
-        }
-    }
-    var reader = new FileReader();
-    var file;
-    var defaultBoxUrl = '../../assets/sampleImage.box';
-    if (sample) {
-        file = new File([await (await fetch(defaultBoxUrl)).blob()], 'sampleImage.box');
-    } else if (e.name.includes('box')) {
-        file = e;
-    } else {
-        file = this.files[0];
-    }
-    var ext = file.name.split('.').pop();
-    if (ext != 'box') {
-        displayMessage({
-            type: 'error',
-            message: 'Expected box file. Received ' + ext + ' file.',
-            title: 'Invalid File Type'
-        });
-        $('#boxFile').val(boxFileName);
-        return;
-    } else if (imageFileName != file.name.split('.').slice(0, -1).join('.') && imageFileName != undefined) {
-        result = await askUser({
-            message: 'Chosen file has name <code>' + file.name + '</code> instead of expected <code>' + imageFileName + '.box</code>.<br> Are you sure you want to continue?',
-            title: 'Unexpected File Name',
-            type: 'differentFileNameWarning',
-            actions: [{
-                text: 'No',
-                class: 'cancel',
-            }, {
-                text: 'Yes',
-                class: 'positive',
-            }]
-        });
-        if (!result) {
-            $('#boxFile').val(boxFileNameForButton);
-            return;
-        }
-    }
-    reader.readAsText(file);
-    file.name.split('.').slice(0, -1).join('.');
-    boxFileNameForButton = file;
-    $(reader).on('load', processFile);
-}
-
-async function setButtons({ state }) {
-    if (state == 'enabled') {
-        $('#boxFile').prop('disabled', false);
-        $('#downloadBoxFileButton').removeClass('disabled');
-        $('#downloadGroundTruthButton').removeClass('disabled');
-        $('#x1').prop('disabled', false);
-        $('#y1').prop('disabled', false);
-        $('#x2').prop('disabled', false);
-        $('#y2').prop('disabled', false);
-        $('#previousBB').removeClass('disabled');
-        $('#nextBB').removeClass('disabled');
-        $('#updateText').removeClass('disabled');
-        $('#myInputContainer').removeClass('disabled');
-        $('#formtxt').prop('disabled', false);
-        $('#taggingSegment').removeClass('disabled');
-        $('#invisiblesToggle').removeClass('disabled');
-        $('#redetectAllBoxes').removeClass('disabled');
-        $('#regenerateTextSuggestions').removeClass('disabled');
-        $('#regenerateTextSuggestionForSelectedBox').removeClass('disabled');
-
-    } else if (state == 'disabled') {
-        $('#boxFile').prop('disabled', true);
-        $('#downloadBoxFileButton').addClass('disabled');
-        $('#downloadGroundTruthButton').addClass('disabled');
-        $('#x1').prop('disabled', true);
-        $('#y1').prop('disabled', true);
-        $('#x2').prop('disabled', true);
-        $('#y2').prop('disabled', true);
-        $('#previousBB').addClass('disabled');
-        $('#nextBB').addClass('disabled');
-        $('#updateText').addClass('disabled');
-        $('#myInputContainer').addClass('disabled');
-        $('#formtxt').prop('disabled', true);
-        $('#taggingSegment').addClass('disabled');
-        $('#invisiblesToggle').addClass('disabled');
-        $('#redetectAllBoxes').addClass('disabled');
-        $('#regenerateTextSuggestions').addClass('disabled');
-        $('#regenerateTextSuggestionForSelectedBox').addClass('disabled');
-    }
-}
-
-function updateSlider(options) {
-    if (options.max)
-        // $('.ui.slider').slider('setting', 'max', options.max);
-        initializeSlider();
-    if (options.value)
-        $('.ui.slider').slider('set value', options.value, fireChange = false);
-    if (options.min)
-        $('.ui.slider').slider('setting', 'min', options.min);
-    return
-}
-
-function updateProgressBar(options = {}) {
-    if (options.reset) {
-        $('#editingProgress .label').text('');
-        return;
-    }
-    if (options.type == 'tagging') {
-        var currentPosition = boxdata.indexOf(selectedBox);
-        if ($('.ui.slider').slider('get max') != boxdata.length) {
-            updateSlider({ value: currentPosition + 1, max: boxdata.length });
-        } else {
-            updateSlider({ value: currentPosition + 1 });
-        }
-        // $('.ui.slider').slider('set value', currentPosition + 1);
-        // set max value
-        // $('.ui.slider').slider('setting', 'max', boxdata.length);
-        // $('#positionProgress').progress({
-        //     value: currentPosition + 1,
-        //     total: boxdata.length
-        // });
-        if (boxdata.every(function (el) {
-            return el.filled;
-        })) {
-            var linesWithModifications = boxdata.filter(function (el) {
-                return el.modified;
-            });
-            $('#editingProgress').progress({
-                value: linesWithModifications.length,
-                total: boxdata.length,
-                text: {
-                    active: 'Updating: {value} of {total} lines modified'
-                }
-            });
-            return;
-        } else {
-            $('#editingProgress').removeClass('active');
-            $('#editingProgress').removeClass('indicating');
-            var linesWithText = boxdata.filter(function (el) {
-                return el.filled;
-            });
-            $('#editingProgress').progress({
-                value: linesWithText.length,
-                total: boxdata.length,
-                text: {
-                    active: 'Tagging: {value} of {total} lines tagged'
-                }
-            });
-        }
-        return;
-    } else {
-        $('#editingProgress').addClass('indicating');
-        if (options.type == 'ocr') {
-            $('#editingProgress').progress({
-                value: options.progress,
-                total: 1,
-                text: {
-                    active: 'Analyzing Image: {percent}%'
-                }
-            });
-            return;
-        } else if (options.type == 'initializingWorker') {
-            $('#editingProgress').progress({
-                value: 0,
-                total: 1,
-                text: {
-                    active: options.status + '…'
-                }
-            });
-        }
-    }
-}
-
-async function loadImageFile(e, sample = false) {
-    if (boxdataIsDirty || lineIsDirty) {
-        var result = await askUser({
-            message: 'You did not download current progress. Are you sure you want to load a new image?',
-            title: 'Unsaved Changes',
-            type: 'uncommittedChangesWarning',
-            actions: [{
-                text: 'Cancel',
-                class: 'cancel',
-            }, {
-                text: 'Yes',
-                class: 'positive',
-            }]
-        });
-        if (!result) {
-            $('#imageFile').val(imageFileNameForButton);
-            return;
-        }
-    }
-    setButtons({ state: 'disabled' });
-
-    var defaultImageUrl = '../../assets/sampleImage.jpg';
-    if (sample) {
-        imageFileName = defaultImageUrl.split('/').pop().split('.').slice(0, -1).join('.');
-        imageFileNameForButton = defaultImageUrl;
-        filename = 'sampleImage.jpg';
-    } else if (e.type.includes('image')) {
-        imageFileName = e.name.split('.').slice(0, -1).join('.');
-        imageFileNameForButton = e;
-        filename = e.name;
-        file = e;
-    } else if (file = this.files[0]) {
-        imageFileName = file.name.split('.').slice(0, -1).join('.');
-        imageFileNameForButton = file;
-        filename = file.name;
-    }
-    img = new Image();
-    img.onload = async function () {
-        map.eachLayer(function (layer) {
-            map.removeLayer(layer);
+          } catch (error) {
+            handler.highlightCell(elem.querySelector('td:nth-child(2)'));
+            errorMessages.push({ keyCombo, enabled, error });
+          }
         });
 
-        h = this.height
-        w = this.width
-        bounds = [[0, 0], [parseInt(h), parseInt(w)]]
-        var bounds2 = [[h - 300, 0], [h, w]]
-        imageOverlayOptions = {
-            opacity: appSettings.behavior.onImageLoad.detectAllLines ? 0.25 : 1
-        }
-        if (image) {
-            $(image._image).fadeOut(750, function () {
-                map.removeLayer(image);
-                // map.fitBounds(bounds2,);
-                image = new L.imageOverlay(img.src, bounds, imageOverlayOptions).addTo(map);
-                $(image._image).fadeIn(500);
-            });
-        } else {
-            map.fitBounds(bounds2);
-            image = new L.imageOverlay(img.src, bounds, imageOverlayOptions).addTo(map);
-            $(image._image).fadeIn(750);
-        }
-        imageHeight = this.height;
-        imageWidth = this.width;
-    };
-    img.onerror = function () {
-        var ext = file.name.split('.').pop();
-        displayMessage({
-            type: 'error',
-            message: 'Expected image file. Received ' + ext + ' file.',
-            title: 'Invalid File Type'
-        })
-        $('#imageFile').val(imageFileNameForButton);
-    };
-    if (sample) {
-        img.src = defaultImageUrl;
-    } else {
-        img.src = _URL.createObjectURL(file);
-    }
-    updateDownloadButtonsLabels({
-        boxDownloadButton: imageFileName + '.box',
-        groundTruthDownloadButton: imageFileName + '.gt.txt'
-    });
-    worker = await Tesseract.createWorker({
-        langPath: '../../assets',
-        gzip: false,
-        logger: m => processWorkerLogMessage(m)
-    });
-    await worker.loadLanguage('RTS_from_Cyrillic');
-    await worker.initialize('RTS_from_Cyrillic');
-    await worker.setParameters({
-        // tessedit_ocr_engine_mode: OcrEngineMode.OEM_LSTM_ONLY,
-        // tessedit_ocr_engine_mode: "OcrEngineMode.OEM_LSTM_ONLY",
-        // tessedit_pageseg_mode: "PSM_AUTO_OSD"
-        tessedit_ocr_engine_mode: 1,
-        tessedit_pageseg_mode: 1,// 12
-    });
-    if (appSettings.behavior.onImageLoad.detectAllLines && !sample) {
-        result = await generateInitialBoxes(includeSuggestions = appSettings.behavior.onImageLoad.includeTextForDetectedLines);
-    }
-    setButtons({ state: 'enabled' });
-    if (appSettings.behavior.onImageLoad.detectAllLines) {
-        $('#formtxt').focus();
-        $('#formtxt').select();
-    }
-    // fade image opacity back to 1 during 500ms
-    $(image._image).animate({ opacity: 1 }, 500);
-    imageIsProcessed = true;
-}
-
-function initializeSlider() {
-    $('.ui.slider')
-        .slider({
-            min: 1,
-            max: boxdata.length,
-            step: 1,
-            start: 1,
-            smooth: true,
-            labelDistance: 50,
-            onChange: function (value) {
-                // displayMessage({ message: 'Slider value changed to ' + value + '.' });
-                if (currentSliderPosition == value) {
-                    return;
-                }
-                if (value > 0 && value <= boxdata.length) {
-                    fillAndFocusRect(boxdata[value - 1]);
-                    currentSliderPosition = value;
-                }
-            },
-            onMove: function (value) {
-                // displayMessage({ type: 'warning', message: 'Slider value moving to ' + value + '.' });
-                if (currentSliderPosition == value) {
-                    return;
-                }
-                // select box with index = value
-                if (value > 0 && value <= boxdata.length) {
-                    fillAndFocusRect(boxdata[value - 1]);
-                    currentSliderPosition = value;
-                }
-            },
+        duplicatedKeyboardShortcuts = false;
+        shortcutKeys = shortcuts.map(function (shortcut) {
+          return shortcut.keyCombo.toUpperCase();
         });
-    // unbind keydown event from slider
-    $('.ui.slider').off('keydown.slider');
-    $(document).off('keydown.slider1');
-}
-
-function updateDownloadButtonsLabels(options = {}) {
-    if (options.boxDownloadButton) {
-        $('#downloadBoxFileButton').html('<i class = "download icon"></i>' + options.boxDownloadButton)
-        $('#downloadBoxFileButton').css('white-space', 'nowrap');
-    } else {
-        $('#downloadBoxFileButton').html('<i class = "download icon"></i>Download')
-    }
-    if (options.groundTruthDownloadButton) {
-        $('#downloadGroundTruthButton').html('<i class = "download icon"></i>' + options.groundTruthDownloadButton)
-        $('#downloadGroundTruthButton').css('white-space', 'nowrap');
-    } else {
-        $('#downloadGroundTruthButton').html('<i class = "download icon"></i>Download')
-    }
-}
-
-// Sort all bosees from top to bottom
-function sortAllBoxes() {
-    // boxdata.sort(sortBoxes);
-    // repead three times to make sure that the boxes are sorted correctly
-    // I don't know why this is necessary, but it is 🤷‍♂️
-    boxdata.sort(Box.compare);
-    // boxdata.sort(Box.compare);
-    // boxdata.sort(Box.compare);
-}
-
-// Define regular expressions
-var cyrillic_pattern = /[\u0400-\u04FF\u0500-\u052F\u2DE0-\u2DFF\uA640-\uA69F\u1C80-\u1CBF]/;
-var latin_pattern = /[\u0000-\u007F\u0080-\u00FF]/;
-
-function updateSaturationAndLuminosity(color, saturation, luminosity) {
-    colorRegex = ''
-    // if starts with rgba
-    if (color.startsWith('rgba')) {
-        colorRegex = /^rgba\((\d+),\s*(\d+),\s*(\d+),\s*(\d+)\)$/; // Regex to extract RGB values
-    } else if (color.startsWith('rgb')) {
-        colorRegex = /^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/; // Regex to extract RGB values
-    }
-    const colorValues = colorRegex.exec(color);
-    const r = parseInt(colorValues[1]);
-    const g = parseInt(colorValues[2]);
-    const b = parseInt(colorValues[3]);
-
-    const hslColor = rgbToHsl(r, g, b);
-    hslColor[1] = Math.max(0, Math.min(100, saturation)); // Update saturation
-    hslColor[2] = Math.max(0, Math.min(100, luminosity)); // Update luminosity
-
-    modifiedColor = null;
-    if (color.startsWith('rgba')) {
-        modifiedColor = hslToRgb(hslColor[0], hslColor[1], hslColor[2], colorValues[4]);
-    } else {
-        modifiedColor = hslToRgb(hslColor[0], hslColor[1], hslColor[2]);
-    }
-    return modifiedColor;
-}
-
-function rgbToHsl(r, g, b) {
-    r /= 255;
-    g /= 255;
-    b /= 255;
-
-    const max = Math.max(r, g, b);
-    const min = Math.min(r, g, b);
-    let h, s, l = (max + min) / 2;
-
-    if (max === min) {
-        h = s = 0; // achromatic
-    } else {
-        const d = max - min;
-        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-        switch (max) {
-            case r:
-                h = (g - b) / d + (g < b ? 6 : 0);
-                break;
-            case g:
-                h = (b - r) / d + 2;
-                break;
-            case b:
-                h = (r - g) / d + 4;
-                break;
+        shortcutKeysSet = [...new Set(shortcutKeys)];
+        if (shortcutKeys.length != shortcutKeysSet.length) {
+          duplicatedKeyboardShortcuts = true;
         }
-        h /= 6;
-    }
-
-    return [h * 360, s * 100, l * 100];
-}
-
-function hslToRgb(h, s, l, a) {
-    h /= 360;
-    s /= 100;
-    l /= 100;
-
-    let r, g, b;
-
-    if (s === 0) {
-        r = g = b = l; // achromatic
-    } else {
-        const hueToRgb = (p, q, t) => {
-            if (t < 0) t += 1;
-            if (t > 1) t -= 1;
-            if (t < 1 / 6) return p + (q - p) * 6 * t;
-            if (t < 1 / 2) return q;
-            if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
-            return p;
-        };
-
-        const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-        const p = 2 * l - q;
-        r = hueToRgb(p, q, h + 1 / 3);
-        g = hueToRgb(p, q, h);
-        b = hueToRgb(p, q, h - 1 / 3);
-    }
-
-    if (a) {
-        return `rgba(${Math.round(r * 255)}, ${Math.round(g * 255)}, ${Math.round(b * 255)}, ${255})`;
-    }
-    return `rgb(${Math.round(r * 255)}, ${Math.round(g * 255)}, ${Math.round(b * 255)})`;
-}
-
-// Function to retrieve the background color of an element
-function getBackgroundColor(element) {
-    const computedStyle = window.getComputedStyle(element);
-    return computedStyle.backgroundColor;
-}
-
-// function createRule(highlighter) {
-//         color = getBackgroundColor(element);
-//         saturatedColor = updateSaturationAndLuminosity(color, 71.3, 65.9);
-//         var prefix = '.'
-//         var classes = element.classList;
-//         var classesString = '';
-//         for (var i = 0; i < classes.length; i++) {
-//             classesString += prefix + classes[i];
-//         }
-
-//         // create new css rule and add it to the stylesheet
-//     var lowerCaseColor = 'color: ' + highlighter.color + ';';
-//     var upperCaseColor = 'color: ' + highlighter.color + ';';
-//     var lowerCaseSelector = 'span.' + highlighter.name.toLowerCase();
-//     var upperCaseSelector = 'span.' + highlighter.name.toLowerCase() + '.capital';
-//     var sheet = document.styleSheets[5];
-//     sheet.insertRule(lowerCaseSelector + '{' + newRule + '}', sheet.cssRules.length); // insert CSS rule
-//         console.log(newRuleSelector + '{' + newRule + '}');
-// }
-
-function getHighlighters() {
-    var patterns = {};
-    if (appSettings.highlighter.textHighlighting.textHighlightingEnabled) {
-        if (appSettings.highlighter.textHighlighting.highlightsPatterns.length == 0) {
-            savePatternsToSettings();
-        }
-        for (entry of appSettings.highlighter.textHighlighting.highlightsPatterns) {
-            if (entry.enabled) {
-                patterns[entry.name] = entry;
-            }
-        }
-    }
-    return patterns;
-}
-
-async function colorize(text) {
-    var colored_text = '';
-    if (text == '') {
-        return '&nbsp;';
-    }
-    text = text.normalize('NFD');
-    var current_script = null;
-    var current_span = '';
-    var span_class = '';
-    charSpace = appSettings.interface.showInvisibles ? '·' : '&nbsp;';
-
-    // const highlights = getHighlighters();
-    const highlights = Object.assign(getHighlighters(), {
-        space: {
-            name: 'space',
-            color: 'space',
-            enabled: true,
-            pattern: '\\s'
-        }
-    });
-
-    for (var i = 0; i < text.length; i++) {
-        var isCapital = false;
-        var char = text.charAt(i);
-        // if character name contains COMBINING
-        var charName = getUnicodeInfo(char)[0].name;
-        if (charName.includes('COMBINING')) {
-            // add to previous span
-            current_span += char;
-            continue;
-        }
-        if (char != char.toLowerCase()) {
-            isCapital = true;
-        }
-        var foundHighlight = null;
-        const keys = Object.keys(highlights).reverse();
-        for (const key of keys) {
-            const highlight = highlights[key];
-            if (new RegExp(highlight.pattern).test(char)) {
-                foundHighlight = highlight;
-                break;
-            }
-        }
-        if (foundHighlight) {
-            span_class = foundHighlight.color.toLowerCase() + (isCapital ? ' capital' : '') + ' text-highlighter'; // Use the assigned key
-
-            if (current_script != span_class) {
-                if (current_span !== '') {
-                    colored_text += '</span>' + current_span; // Move the closing tag here
-                }
-                if (span_class.includes('space')) {
-                    current_span = '<span class="' + span_class + '">' + charSpace; // Wrap space with span
-                } else {
-                    current_span = '<span class="' + span_class + '">' + char;
-                }
-                current_script = span_class;
-            } else {
-                if (current_script.includes('space')) {
-                    if (!current_span.includes('multiple')) {
-                        // replace 'space' with 'space multiple' in current_span
-                        current_span = current_span.replace('space', 'space multiple');
-                    }
-                    current_span += charSpace;
-                } else {
-                    current_span += char;
-                }
-            }
-        } else {
-            span_class = 'other';
-            if (current_script != span_class) {
-                if (current_span !== '') {
-                    if (current_script.includes('space') && !current_script.includes('multiple')) {
-                        // replace 'space' with 'space multiple' in current_span
-                        current_span = current_span.replace('space', 'space multiple');
-                    }
-                    colored_text += '</span>' + current_span; // Close previous span
-                }
-                current_span = '<span class="' + span_class + '">' + char;
-                current_script = span_class;
-            } else {
-                current_span += char;
-            }
-        }
-    }
-    colored_text += '</span>' + current_span; // Move the closing tag here
-    return colored_text;
-}
-
-
-
-// Function to colorize text
-async function colorize2(text) {
-    var colored_text = '';
-    if (text == '') {
-        return '&nbsp;'
-    }
-    text = text.normalize('NFD');
-    var current_script = null;
-    var current_span = '';
-    var span_class = '';
-    charSpace = appSettings.interface.showInvisibles ? '·' : '&nbsp;';
-    for (var i = 0; i < text.length; i++) {
-        var isCapital = false;
-        var char = text.charAt(i);
-        // if character name contains COMBINING
-        var charName = getUnicodeInfo(char)[0].name;
-        if (charName.includes('COMBINING')) {
-            // add to previous span
-            current_span += char;
-            continue;
-        }
-        if (char != char.toLowerCase()) {
-            isCapital = true;
-        }
-        if (cyrillic_pattern.test(char)) {
-            if (isCapital)
-                span_class = 'cyrillic capital';
-            else
-                span_class = 'cyrillic';
-
-
-
-            if (current_script == span_class) {
-                current_span += char;
-            } else {
-                colored_text += '</span>' + current_span;
-                current_span = '<span class="' + span_class + '">' + char;
-                current_script = span_class;
-            }
-        } else if (char == ' ') {
-            span_class = 'space';
-            if (current_script == 'space') {
-                // current_span += '&nbsp;';
-                // replace 'space' with 'space multiple' in current_span
-                current_span = current_span.replace('space', 'space multiple');
-                current_span += charSpace;
-            } else {
-                colored_text += '</span>' + current_span;
-                // current_span = '<span class="' + span_class + '">' + '&nbsp;';
-                current_span = '<span class="' + span_class + '">' + charSpace;
-                current_script = span_class;
-            }
-        } else if (latin_pattern.test(char)) {
-            if (isCapital)
-                span_class = 'latin capital';
-            else
-                span_class = 'latin';
-
-
-
-            if (current_script == span_class) {
-                current_span += char;
-            } else {
-                colored_text += '</span>' + current_span;
-                current_span = '<span class="' + span_class + '">' + char;
-                current_script = span_class;
-            }
-        } else {
-            span_class = 'other';
-            if (current_script == span_class) {
-                current_span += char;
-            } else {
-                colored_text += '</span>' + current_span; + char;
-                current_span = '<span class="' + span_class + '">' + char;
-                current_script = span_class;
-            }
-        } isCapital = false;
-    }
-    colored_text += '</span>' + current_span;
-    return colored_text;
-}
-
-window.onbeforeunload = function (event) {
-    if (boxdataIsDirty || lineIsDirty) {
-        const confirmationMessage = 'You have unsaved changes. Are you sure you want to continue?';
-        event.returnValue = confirmationMessage; // This is required for most browsers
-        return confirmationMessage; // This will show the custom dialog box
-    }
-}
-
-async function setLineIsDirty() {
-    lineIsDirty = true;
-}
-
-// Function to update the background with the colorized text
-async function updateInputBackground(e) {
-    var input = document.getElementById("formtxt");
-    var text = input.value;
-    var colored_text = await colorize(text);
-    var background = document.getElementById("myInputBackground");
-    background.innerHTML = colored_text;
-}
-
-// Function to update the background with the colorized text
-async function updatePreviewBackground(e) {
-    var inputPreview = document.getElementById("previewText");
-    var previewText = inputPreview.value;
-    var colored_text_preview = await colorize(previewText);
-    var backgroundPreview = document.getElementById("myPreviewBackground");
-    backgroundPreview.innerHTML = colored_text_preview;
-}
-
-function displayMessage(object) {
-    if (object.title) {
-        object.message = '<br>' + object.message;
-    }
-    if (object.title == undefined) {
-        if (object.type == 'error') {
-            object.title = 'Error';
-        } else if (object.type == 'warning') {
-            object.title = 'Warning';
-        }
-    }
-    if (object.time == undefined) {
+        appSettings.behavior.keyboardShortcuts.shortcuts = shortcuts;
+      }
+      if (appSettings.behavior.keyboardShortcuts.shortcuts.length > 0) {
+        // add listener for keyboard shortcuts
+        handler.load.keyboardShortcuts();
+      }
+      handler.update.cookie();
+    },
+    highlightCell: function (elem) {
+      $(elem).addClass('red colored');
+    },
+    unhighlightCell: function (elem) {
+      $(elem).removeClass('red colored');
+    },
+    notifyUser: function (object) {
+      if (object.title == undefined) {
+        object.title = object.type.charAt(0).toUpperCase() + object.type.slice(1);
+      }
+      if (object.time == undefined) {
         object.time = 'auto';
-    }
-    $.toast({
+      }
+      $.toast({
         title: object.title,
         class: object.type,
         displayTime: object.time,
@@ -1968,884 +523,2200 @@ function displayMessage(object) {
         message: object.message,
         minDisplayTime: 3000,
         actions: object.actions ? object.actions : false,
-    });
-}
-
-var zoomControl = new L.Control.Zoom({ position: 'topright' });
-
-var drawControl = new L.Control.Draw({
-    draw: {
-        polygon: false,
-        marker: false,
-        circle: false,
-        polyline: true,
-        rectangle: true,
-        circlemarker: false
+      });
     },
-    position: 'topright',
-    edit: {
-        featureGroup: boxlayer,
-        edit: false,
-        remove: true
-    }
-});
+    askUser: async function (object) {
+      if (!object.message) return false;
+      if ((object.type === 'differentFileNameWarning' && !appSettings.behavior.alerting.enableWarrningMessagesForDifferentFileNames) ||
+        (object.type === 'uncommittedChangesWarning' && !appSettings.behavior.alerting.enableWarrningMessagesForUncommittedChanges)) {
+        return true;
+      }
+      handler.setKeyboardControl('prompt');
+      if (object.actions == []) {
+        object.actions = [{
+          confirmText: 'Yes',
+          confirmTextClass: 'green positive',
+        }, {
+          denyText: 'No',
+          denyTextClass: 'red negative',
+        }];
+      }
+      return new Promise((resolve, reject) => {
+        $.modal({
+          inverted: false,
+          title: object.title,
+          blurring: true,
+          closeIcon: true,
+          autofocus: true,
+          restoreFocus: true,
+          onApprove: function () {
+            resolve(true);
+          },
+          onDeny: function () {
+            resolve(false);
+          },
+          onHide: function () {
+            handler.setKeyboardControl('form');
+            resolve(false);
+          },
+          content: object.message,
+          actions: object.actions,
+        }).modal('show');
+      });
+    },
+    clearCookies: function () {
+      const cookies = Cookies.get();
+      for (const cookie in cookies) {
+        Cookies.remove(cookie);
+      }
+      location.reload();
+    },
+    resetAppSettingsAndCookies: async function () {
+      var
+        response = await handler.askUser({
+          title: 'Reset App',
+          message: 'The app will reset it\'s settings and reload. Are you sure you want to continue?',
+          type: 'replacingTextWarning',
+          actions: [{
+            text: 'Cancel',
+            class: 'cancel',
+          }, {
+            text: 'Reset',
+            class: 'red ok',
+          }]
+        });
+      if (response) {
+        handler.clearCookies();
+      }
+    },
+    keyboardShortcuts: {
+      getKeys: function () {
+        return appSettings.keyboardShortcuts;
+      },
+      register: function () {
+        handler.keyboardShortcuts.setUpPreview();
 
-// L.Control.Region = L.Control.extend({
-//     options: {
-//         position: 'topright'
-//     },
-//     onAdd: function (map) {
-//         var container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
-//         var section = L.DomUtil.create('div', 'leaflet-draw-section', container);
-//         // var toolbar = L.DomUtil.create('div', 'leaflet-draw-toolbar leaflet-bar leaflet-draw-toolbar-top', section);
-//         var inclusiveRegion = L.DomUtil.create('a', 'leaflet-control-button', section);
-//         inclusiveRegion.innerHTML = '<i class="large grey fitted plus circle icon"></i>';
-//         var exclusiveRegion = L.DomUtil.create('a', 'leaflet-control-button', section);
-//         exclusiveRegion.innerHTML = '<i class="large grey fitted minus circle icon"></i>';
-//         L.DomEvent.disableClickPropagation(inclusiveRegion);
-//         L.DomEvent.on(inclusiveRegion, 'click', function () {
-//             console.log('click');
-//             // Get bounds of image from map
-//             var imageBounds = map.getBounds();
-//             // get image height and width
-//             var imageHeight = imageBounds.getNorth() - imageBounds.getSouth();
-//             var imageWidth = imageBounds.getEast() - imageBounds.getWest();
-//             // get aspect ratio of image
-//             var imageAspectRatio = imageBounds.getEast() - imageBounds.getWest();
-//             imageAspectRatio = imageAspectRatio / (imageBounds.getNorth() - imageBounds.getSouth());
-//             // increase height of #mapid to fit aspect ratio. use smooth animation
-//             var mapHeight = $('#mapid').height();
-//             var mapWidth = $('#mapid').width();
-//             var mapAspectRatio = mapWidth / mapHeight;
-//             console.log(imageAspectRatio, mapAspectRatio);
-//             if (imageAspectRatio > .5) {
-//                 var newHeight = mapWidth * imageAspectRatio;
-//                 var newHeight = imageHeight;
-//                 $('#mapid').animate({ height: newHeight }, 500);
-//             }
+        // $document[0].addEventListener('keydown', handler.keyboardShortcuts.handleKeyDown);
+        // $document[0].addEventListener('keyup', handler.keyboardShortcuts.handleKeyUp);
 
-//             // set map bounds
-//             map.fitBounds(imageBounds);
-
-//         });
-
-//         container.title = "Title";
-
-//         return container;
-//     },
-//     onRemove: function (map) { },
-// });
-
-async function setMapSize(options, animate = true) {
-    // var imageBounds = map.getBounds();
-    // var imageAspectRatio = imageBounds.getEast() - imageBounds.getWest();
-    // imageAspectRatio = imageAspectRatio / (imageBounds.getNorth() - imageBounds.getSouth());
-    // var mapHeight = $('#mapid').height();
-    // var mapWidth = $('#mapid').width();
-    // var mapAspectRatio = mapWidth / mapHeight;
-    // console.log(imageAspectRatio, mapAspectRatio);
-    // if (imageAspectRatio > .5) {
-    //     var newHeight = mapWidth * imageAspectRatio;
-    //     var newHeight = imageHeight / 2;
-    //     await resizeMapTo(newHeight);
-    // }
-    if (options.height == 'short') {
-        var newHeight = 300;
-    }
-    if (options.height == 'medium') {
-        var newHeight = 500;
-    }
-    if (options.height == 'tall') {
-        var newHeight = 700;
-    }
-
-    await resizeMapTo(newHeight, animate);
-    // fit selected poly
-    var bounds = new L.LatLngBounds();
-    if (selectedPoly != undefined) {
-        for (var i = 0; i < selectedPoly.length; i++) {
-            bounds.extend(selectedPoly[i].getBounds());
+        handler.keyboardShortcuts.updatePreview();
+      },
+      has: function (key) {
+        return appSettings.keyboardShortcuts.hasOwnProperty(key);
+      },
+      handleKeyDown: function (event) {
+        if (handler.keyboardShortcuts.isModifierKey(event.key)) {
+          pressedModifiers[event.key] = true;
+          return;
         }
-    }
-    setTimeout(function () { map.invalidateSize({ pan: true }) }, 500);
-}
+        const
+          // modifierKeys are all keys of pressedModifiers that have value true
 
-async function resizeMapTo(height, animate) {
-    $('#mapid').animate({ height: height }, animate ? 500 : 0);
-}
+          modifierKeys = Object.keys(pressedModifiers).filter(
+            key => pressedModifiers[key]
+          ).join(' + '),
+          key = (modifierKeys ? modifierKeys + ' + ' : '') + event.key.toUpperCase();
 
-function formatForPopup(objects) {
-    var formatted = '<div class="ui compact grid">';
-    formatted += '<div class="two column stretched row">' + '<div class="twelve wide left floated column">' + '<b>Name</b>' + '</div>' + '<div class="four wide right floated column">' + '<b>Char</b>' + '</div>' + '</div>';
-    for (var i = 0; i < objects.length; i++) {
-        var object = objects[i];
-        formatted += '<div class="two column stretched row">' + '<div class="twelve wide left floated column">' + object.name + '</div>' + '<div class="four wide right floated column">' + object.char + '</div>' + '</div>';
-    }
-    formatted += '</div>';
-    return formatted;
-}
-
-function getUnicodeInfo(string) {
-    var unicodeInfo = [];
-    string = string.normalize('NFD');
-    for (var i = 0; i < string.length; i++) {
-        var char = string.charAt(i);
-        var code = char.charCodeAt(0);
-        var hex = code.toString(16).toUpperCase();
-        var unicode = '0000'.substring(hex.length) + hex;
-        result = getUnicodeData(unicode);
-        if (unicodeInfo.find(function (x) {
-            return x['code'] == result.code;
-        }) == undefined) {
-            unicodeInfo.push(result);
+        if (handler.keyboardShortcuts.has(key)) {
+          handler.notifyUser({
+            title: 'Shorcut Exists',
+            message: `Shortcut <strong>${key}</strong> has already been registered.`,
+            type: 'warning',
+          })
+          return;
         }
 
-    }
-    return unicodeInfo;
-}
+        handler.keyboardShortcuts.add(key);
+        handler.keyboardShortcuts.updatePreview();
 
-function getUnicodeData(code) {
-    result = unicodeData.find(function (x) {
-        return x['code'] == code;
-    });
-    result.char = String.fromCharCode(parseInt(code, 16));
-    return result;
-}
+      },
+      add: function (key) {
+        appSettings.keyboardShortcuts[key] = key;
+      },
+      handleKeyUp: function (event) {
+        if (handler.keyboardShortcuts.isModifierKey(event.key)) {
+          pressedModifiers[event.key] = false;
+        }
+        // console.log(pressedModifiers);
+      },
+      isNavigationKey: function (key) {
+        navigationKeys = ['Tab', 'ArrowLeft', 'ArrowUp', 'ArrowRight', 'ArrowDown'];
+        return navigationKeys.includes(key) ? true : false;
+      },
+      isModifierKey: function (key) {
+        modifiers = ['Alt', 'Shift', 'Control', 'Meta'];
+        return modifiers.includes(key) ? true : false;
+      },
+      setUpPreview: function () {
 
-async function toggleInvisibles(e) {
-    if (e) {
-        e.preventDefault();
-    }
-    showInvisibles = appSettings.interface.showInvisibles;
-    showInvisibles = !showInvisibles;
-    // toggle active class for button
-    $("#invisiblesToggle").toggleClass('active')
-    path = "interface.showInvisibles";
-    value = showInvisibles;
-    updateAppSettings({ path, value });
-    updateInputBackground();
-    updatePreviewBackground();
-    $('#formtxt').focus();
-    // save cookie for invisibles
-    // Cookies.set('show-invisibles', showInvisibles);
-}
+      },
+      updatePreview: function () {
+        console.log(handler.keyboardShortcuts.getKeys());
+      },
+    },
+    setKeyboardControl: function (context) {
+      if (context == 'prompt') {
+        $window.off('keydown');
+      } else if (context == 'form') {
+        handler.load.keyboardShortcuts();
+      }
+    },
+    delete: {
+      box: function (box) {
+        var
+          boxIndex = boxData.findIndex(function (object) {
+            return object.equals(box);
+          });
+        if (boxIndex > -1) {
+          boxData.splice(boxIndex, 1);
+        }
+        var
+          newIndex = recognizedLinesOfText.findIndex(function (object) {
+            object = object.bbox;
+            var newBox = new Box({
+              text: '',
+              y1: imageHeight - object.y1, // bottom
+              y2: imageHeight - newBox.y0, // top
+              x1: object.x0, // right
+              x2: object.x1 // left
+            });
+            return newBox.x1 == box.x1 && newBox.y1 == box.y1 && newBox.x2 == box.x2 && newBox.y2 == box.y2;
+          });
+        if (newIndex > -1) {
+          recognizedLinesOfText.splice(newIndex, 1);
+        }
+        return boxIndex;
+      },
+    },
+    create: {
+      defaultKeyboardShortcutsTable: async function () {
+        const
+          table = document.createElement('table'),
+          thead = document.createElement('thead'),
+          theadRow = document.createElement('tr'),
+          headers = ['', 'Action', 'Key Combo', ''],
+          tbody = document.createElement('tbody'),
+          cookie = Cookies.get('appSettings');
+        table.className = 'ui unstackable celled table';
+        thead.appendChild(theadRow);
+        for (const header of headers) {
+          const th = document.createElement('th');
+          th.className = header ? '' : 'collapsing';
+          th.className = header === 'Key Combo' ? 'eight wide' : '';
+          th.className = header === 'Action' ? 'eight wide' : '';
+          th.textContent = header;
+          theadRow.appendChild(th);
+        }
 
-async function downloadBoxFile(e) {
-    if (e) {
-        e.preventDefault();
-    }
-    if (boxdata.length == 0) {
-        displayMessage({ type: 'warning', message: 'No box files to download.' });
-        return;
-    }
-    if (lineIsDirty) {
-        displayMessage({ type: 'warning', message: 'Please commit the current line before downloading.' });
-        return;
-    }
-    sortAllBoxes()
-    var fileExtension = '.box'
-    var content = '';
-    // remove newlines from text
-    $.each(boxdata, function () {
-        this.text = this.text.replace(/(\r\n|\n|\r)/gm, "");
-    })
-    if (boxFileType == BoxFileType.CHAR_OR_LINE) {
-        $.each(boxdata, function () {
-            content = content + this.text + ' ' + this.x1 + ' ' + this.y1 + ' ' + this.x2 + ' ' + this.y2 + ' 0\n'
-        })
-    }
-    if (boxFileType == BoxFileType.WORDSTR) {
-        $.each(boxdata, function () {
-            content = content + 'WordStr ' + this.x1 + ' ' + this.y1 + ' ' + this.x2 + ' ' + this.y2 + ' 0 #' + this.text + '\n';
-            content = content + '\t ' + (
-                this.x2 + 1
-            ) + ' ' + this.y1 + ' ' + (
-                    this.x2 + 5
-                ) + ' ' + this.y2 + ' 0\n';
-        })
-    }
-    downloadFile(content, fileExtension);
-}
-
-async function downloadGroundTruth(e) {
-    if (e) {
-        e.preventDefault();
-    }
-    if (boxdata.length == 0) {
-        displayMessage({ type: 'warning', message: 'No ground-truth to download.' });
-        return;
-    }
-    if (lineIsDirty) {
-        displayMessage({ type: 'warning', message: 'Please commit the current line before downloading.' });
-        return;
-    }
-    sortAllBoxes()
-    var fileExtension = '.gt.txt'
-    var content = '';
-    // remove newlines from text
-    $.each(boxdata, function () {
-        this.text = this.text.replace(/(\r\n|\n|\r)/gm, "");
-    })
-    if (boxFileType == BoxFileType.CHAR_OR_LINE) {
-        $.each(boxdata, function () {
-            content = content + this.text + '\n'
-        })
-    }
-    if (boxFileType == BoxFileType.WORDSTR) {
-        $.each(boxdata, function () {
-            content = content + this.text + '\n';
-        })
-    }
-    downloadFile(content, fileExtension);
-}
-
-function setFormKeyboardControl(event) {
-    $(window).keydown(function (event) {
-        if (event.keyCode == 13) {
-            event.preventDefault();
-            if (event.shiftKey) {
-                getPrevAndFill();
-            } else {
-                getNextAndFill();
+        var shortcuts = [];
+        try {
+          if (cookie) {
+            const cookieSettings = JSON.parse(cookie);
+            shortcuts = cookieSettings.behavior.keyboardShortcuts.shortcuts;
+            if (shortcuts.length > 0) {
+              shortcuts.forEach(function (shortcut) {
+                const row = handler.create.keyboardShortcutRow(shortcut.enabled, shortcut.keyCombo, shortcut.name);
+                tbody.appendChild(row);
+              });
             }
-            return false;
+          }
+        } catch (error) {
+          console.error(error);
         }
-    });
-}
 
-function setPromptKeyboardControl(event) {
-    $(window).off('keydown');
-}
+        if (!cookie || shortcuts.length == 0) {
+          const rows = [
+            { enabled: true, keyCombo: 'ENTER', name: 'Move to next box' },
+            { enabled: true, keyCombo: 'Shift + ENTER', name: 'Move to previous box' },
+            // { enabled:availa
+          ];
+          rows.forEach(function (row) {
+            const rowElement = handler.create.keyboardShortcutRow(row.enabled, row.keyCombo, row.name);
+            tbody.appendChild(rowElement);
+          });
+        }
 
-// set kerning on or off
-const setKerning = (elements, kerning) => {
-    for (const element of elements) {
-        if (kerning) {
-            element.classList.remove('no-kerning');
+        table.appendChild(thead);
+        table.appendChild(tbody);
+
+        $keyboardShortcutsTableContainer[0].insertBefore(table, $keyboardShortcutsTableContainer[0].firstChild);
+
+        $keyboardShortcutsTableBody = $keyboardShortcutsTableContainer.find('.ui.celled.table tbody');
+        $keyboardShortcutsTableRows = $keyboardShortcutsTableBody.find('tr');
+
+        return table;
+      },
+      defaultHighlighterTable: async function () {
+        const
+          table = document.createElement('table'),
+          thead = document.createElement('thead'),
+          theadRow = document.createElement('tr'),
+          headers = ['', 'Name', 'Color', 'Pattern', ''],
+          tbody = document.createElement('tbody'),
+          cookie = Cookies.get('appSettings');
+        table.className = 'ui unstackable celled table';
+        thead.appendChild(theadRow);
+        for (const header of headers) {
+          const th = document.createElement('th');
+          th.className = header ? '' : 'collapsing';
+          th.className = header === 'Color' ? 'four wide' : '';
+          th.textContent = header;
+          theadRow.appendChild(th);
+        }
+
+        var highlights = [];
+        if (cookie) {
+          const cookieSettings = JSON.parse(cookie);
+          highlights = cookieSettings.highlighter.textHighlighting.highlightsPatterns;
+          if (highlights.length > 0) {
+            highlights.forEach(function (highlight) {
+              const row = handler.create.highlighterRow(highlight.enabled, highlight.name, highlight.color, highlight.pattern);
+              tbody.appendChild(row);
+            });
+          }
+        }
+
+        if (!cookie || highlights.length == 0) {
+          const rows = [
+            { enabled: true, name: 'Latin', color: 'blue', pattern: '[\\u0000-\\u007F\\u0080-\\u00FF]' },
+            { enabled: true, name: 'Cyrillic', color: 'yellow', pattern: '[\\u0400-\\u04FF\\u0500-\\u052F\\u2DE0-\\u2DFF\\uA640-\\uA69F\\u1C80-\\u1CBF]' },
+            { enabled: true, name: 'Digits', color: 'red', pattern: '[0-9]' },
+          ];
+          rows.forEach(function (row) {
+            const rowElement = handler.create.highlighterRow(row.enabled, row.name, row.color, row.pattern);
+            tbody.appendChild(rowElement);
+          });
+        }
+        table.appendChild(thead);
+        table.appendChild(tbody);
+
+        $highlighterTableContainer[0].insertBefore(table, $highlighterTableContainer[0].firstChild);
+
+        $highlighterTableBody = $highlighterTableContainer.find('.ui.celled.table tbody'),
+          $highlighterTableRows = $highlighterTableBody.find('tr');
+
+        return table;
+      },
+      infoPopupContent: function (objects) {
+        var
+          grid = document.createElement('div'),
+          row = document.createElement('div'),
+          leftColumn = document.createElement('div'),
+          rightColumn = document.createElement('div'),
+          leftHeader = document.createElement('b'),
+          rightHeader = document.createElement('b');
+
+        grid.classList.add('ui', 'compact', 'grid');
+        row.classList.add('two', 'column', 'stretched', 'row');
+        leftColumn.classList.add('twelve', 'wide', 'left', 'floated', 'column');
+        rightColumn.classList.add('four', 'wide', 'right', 'floated', 'column', 'text', 'right', 'aligned');
+        leftHeader.textContent = 'Name';
+        rightHeader.textContent = 'Char';
+
+        leftColumn.appendChild(leftHeader);
+        rightColumn.appendChild(rightHeader);
+        row.appendChild(leftColumn);
+        row.appendChild(rightColumn);
+        grid.appendChild(row);
+
+        objects.forEach(function (object) {
+          var
+            newRow = document.createElement('div'),
+            leftContent = document.createElement('div'),
+            rightContent = document.createElement('div');
+          newRow.classList.add('two', 'column', 'stretched', 'row');
+          leftContent.classList.add('twelve', 'wide', 'left', 'floated', 'column');
+          rightContent.classList.add('four', 'wide', 'right', 'floated', 'column', 'text', 'right', 'aligned');
+
+          leftContent.textContent = object.name;
+          rightContent.textContent = object.char;
+          newRow.appendChild(leftContent);
+          newRow.appendChild(rightContent);
+          grid.appendChild(newRow);
+
+        });
+        return grid;
+      },
+      highlighterRow: function (enabled, name, color, pattern) {
+        const
+          row = document.createElement('tr'),
+          checkboxCell = handler.create.checkboxCell(name, {
+            onChange: handler.saveHighlightsToSettings
+          }),
+          nameCell = handler.create.editableTextCell(name, {
+            onChange: handler.saveHighlightsToSettings
+          }),
+          colorCell = handler.create.colorCell(color, {
+            onChange: handler.saveHighlightsToSettings
+          }),
+          patternCell = handler.create.editableTextCell(pattern, {
+            onChange: handler.saveHighlightsToSettings
+          }),
+          actionsCell = handler.create.actionsCell({
+            onChange: handler.saveHighlightsToSettings
+          });
+        row.appendChild(checkboxCell);
+        row.appendChild(nameCell);
+        row.appendChild(colorCell);
+        row.appendChild(patternCell);
+        row.appendChild(actionsCell);
+
+        return row;
+      },
+      keyboardShortcutRow: function (enabled, keyCombo, name) {
+        const
+          row = document.createElement('tr'),
+          checkboxCell = handler.create.checkboxCell(keyCombo, {
+            onChange: handler.saveKeyboardShortcutsToSettings
+          }),
+          shortcutsActionCell = handler.create.shortcutActionCell(name, {
+            onChange: handler.saveKeyboardShortcutsToSettings
+          }),
+          keyComboCell = handler.create.editableTextCell(keyCombo, {
+            onChange: handler.saveKeyboardShortcutsToSettings
+          }),
+          actionsCell = handler.create.actionsCell({
+            onChange: handler.saveKeyboardShortcutsToSettings
+          });
+        row.appendChild(checkboxCell);
+        row.appendChild(shortcutsActionCell);
+        row.appendChild(keyComboCell);
+        row.appendChild(actionsCell);
+
+        return row;
+      },
+      checkboxCell: function (name, params = {}) {
+        const
+          cell = document.createElement('td'),
+          div = document.createElement('div'),
+          input = document.createElement('input');
+        cell.setAttribute('data-label', 'Enabled');
+        div.className = 'ui fitted checkbox text-highlighter-checkbox';
+        input.type = 'checkbox';
+        input.name = name;
+        input.checked = true;
+
+        div.appendChild(input);
+        $(div).checkbox({
+          onChange: () => {
+            params.onChange();
+          },
+        });
+        cell.appendChild(div);
+        return cell;
+      },
+      editableTextCell: function (name, params = {}) {
+        const
+          cell = document.createElement('td');
+        cell.contentEditable = true;
+        cell.innerText = name;
+        $(cell).on('input', params.onChange);
+        return cell;
+      },
+      colorCell: function (color, params = {}) {
+        const
+          cell = document.createElement('td'),
+          dropdownDiv = document.createElement('div'),
+          hiddenInput = document.createElement('input'),
+          dropdownIcon = document.createElement('i'),
+          defaultText = document.createElement('div'),
+          menuDiv = document.createElement('div'),
+          colors = ['red', 'orange', 'yellow', 'olive', 'green', 'teal', 'blue', 'violet', 'purple', 'pink', 'brown', 'grey'];
+        cell.className = 'collapsing';
+        cell.setAttribute('data-label', 'Color');
+        dropdownDiv.className = 'ui fluid search selection dropdown';
+        hiddenInput.type = 'hidden';
+        hiddenInput.name = 'color';
+        dropdownIcon.className = 'dropdown icon';
+        defaultText.className = 'default text';
+        defaultText.textContent = 'Color...';
+        menuDiv.className = 'menu';
+        colors.forEach(function (color) {
+          const
+            itemDiv = document.createElement('div'),
+            colorIcon = document.createElement('i'),
+            colorText = document.createElement('span');
+          itemDiv.className = 'item';
+          itemDiv.setAttribute('data-value', color);
+          colorIcon.className = `ui ${color} small empty circular label icon link text-highlighter`;
+          colorText.textContent = color.charAt(0).toUpperCase() + color.slice(1);
+          itemDiv.appendChild(colorIcon);
+          itemDiv.appendChild(colorText);
+          menuDiv.appendChild(itemDiv);
+        });
+        dropdownDiv.appendChild(hiddenInput);
+        dropdownDiv.appendChild(dropdownIcon);
+        dropdownDiv.appendChild(defaultText);
+        dropdownDiv.appendChild(menuDiv);
+
+        $(dropdownDiv).dropdown({
+          onChange: params.onChange,
+        });
+
+        if (color) {
+          $(dropdownDiv).dropdown('set selected', color, true);
         } else {
-            element.classList.add('no-kerning');
+          $(dropdownDiv).dropdown('set selected', colors[Math.floor(Math.random() * colors.length)], true);
         }
-    }
-};
+        cell.appendChild(dropdownDiv);
 
-// split the box by the intersection of the box and the polyline using turf.js bboxclip
-function cutBoxByPoly(box, poly) {
-    // split poly into segments
-    // var polyFeature = turf.polygon(poly);
-    // var multiLine = turf.multiLineString([[[0,0],[10,10]]]);
-    // make multilinestring from polyline
-    var polyFeature = turf.lineString(poly);
-    // var polyFeature = turf.lineToPolygon(poly);
-    // convert poly latlngs y component to image height - y
-    // polyFeature.geometry.coordinates._latlngs.forEach(function (element) {
-    //     element.lat = imageHeight - element.lat;
-    // });
-    var boxFeature = turf.bboxPolygon([box.x1, box.y1, box.x2, box.y2]);
-    // for each segment of the polyline, find the intersection with the box. check if point is inside box. if so, add to list of points
-    var splitLines = [];
-    for (var i = 0; i < poly._latlngs.length - 1; i++) {
-        // var segmentPoints = [poly._latlngs[i], poly._latlngs[i + 1]];
-        var segmentPoints = [[poly._latlngs[i].lng, poly._latlngs[i].lat], [poly._latlngs[i + 1].lng, poly._latlngs[i + 1].lat]];
-        var j = i + 1;
-        // while point is inside box, keep adding points to segment
+        return cell;
+      },
+      shortcutActionCell: function (action, params = {}) {
+        const
+          cell = document.createElement('td');
+        dropdownDiv = document.createElement('div'),
+          hiddenInput = document.createElement('input'),
+          dropdownIcon = document.createElement('i'),
+          defaultText = document.createElement('div'),
+          menuDiv = document.createElement('div');
+        cell.className = 'collapsing';
+        cell.setAttribute('data-label', 'Action');
+        dropdownDiv.className = 'ui fluid search selection dropdown';
+        hiddenInput.type = 'hidden';
+        hiddenInput.name = 'action';
+        dropdownIcon.className = 'dropdown icon';
+        defaultText.className = 'default text';
+        defaultText.textContent = 'Action...';
+        menuDiv.className = 'menu';
+        availableShortcutActions.forEach(function (action) {
+          const
+            itemDiv = document.createElement('div'),
+            actionIcon = document.createElement('i'),
+            actionText = document.createElement('span');
+          itemDiv.className = 'item';
+          itemDiv.setAttribute('data-value', action.name);
+          actionIcon.className = `ui small ${action.icon} icon`;
+          actionText.textContent = action.name;
+          itemDiv.appendChild(actionIcon);
+          itemDiv.appendChild(actionText);
+          menuDiv.appendChild(itemDiv);
+        });
+        dropdownDiv.appendChild(hiddenInput);
+        dropdownDiv.appendChild(dropdownIcon);
+        dropdownDiv.appendChild(defaultText);
+        dropdownDiv.appendChild(menuDiv);
+
+        $(dropdownDiv).dropdown({
+          onChange: params.onChange,
+        });
+
+        if (action) {
+          $(dropdownDiv).dropdown('set selected', action, true);
+        }
+        cell.appendChild(dropdownDiv);
+        return cell;
+      },
+      actionsCell: function (params = {}) {
+        const
+          actionCell = document.createElement('td'),
+          deleteButton = document.createElement('i');
+        actionCell.className = 'single line';
+        actionCell.setAttribute('data-label', 'Edit');
+        deleteButton.className = 'large red times circle link icon';
+        $(deleteButton).on('click', function () {
+          $(this).parent().parent().remove();
+          $highlighterTableBody = $highlighterTableContainer.find('.ui.celled.table tbody'),
+            $highlighterTableRows = $highlighterTableBody.find('tr');
+          params.onChange;
+        });
+        actionCell.appendChild(deleteButton);
+        return actionCell;
+      },
+      map: function (name) {
+        map = new L.map(name, {
+          crs: L.CRS.Simple,
+          minZoom: -2,
+          center: [0, 0],
+          zoom: 0,
+          zoomSnap: .5,
+          scrollWheelZoom: true,
+          touchZoom: true,
+          zoomControl: false,
+          drawControl: false,
+          attributionControl: false,
+          preferCanvas: true,
+          maxBoundsViscosity: .5,
+        });
+
+        var
+          zoomControl = new L.Control.Zoom({ position: 'topright' }),
+          // modifiedDraw = new L.drawLocal.extend({
+          //   draw: {
+          //     toolbar: {
+          //       buttons: {
+          //         polygon: 'Draw an awesome polygon'
+          //       }
+          //     }
+          //   }
+          // }),
+          drawControl = new L.Control.Draw({
+            draw: {
+              polygon: false,
+              marker: false,
+              circle: false,
+              polyline: true,
+              rectangle: true,
+              circlemarker: false
+            },
+            position: 'topright',
+            edit: {
+              featureGroup: boxLayer,
+              edit: false,
+              remove: true
+            }
+          });
+
+        map.addControl(zoomControl);
+        map.addControl(drawControl);
+
+        map.on('draw:deleted', function (e) {
+          Object.keys(e.layers._layers)
+            .forEach(element => {
+              var
+                polyid = parseInt(element),
+                delbox = boxData.find(function (box) {
+                  return box.polyid == polyid;
+                }),
+                delindex = handler.delete.box(delbox);
+            });
+          handler.update.progressBar({ type: 'tagging' });
+        });
+        map.on('draw:deletestart', async function (event) {
+          mapState = 'deleting';
+        });
+        map.on('draw:deletestop', async function (event) {
+          mapState = null;
+          handler.update.slider({ max: boxData.length });
+        });
+        map.on('draw:drawstart', async function (event) {
+          mapState = 'editing';
+        });
+        map.on('draw:drawstop', async function (event) {
+          mapState = null;
+        });
+        map.on(L.Draw.Event.CREATED, async function (event) {
+          if (event.layerType === 'rectangle') {
+            await handler.create.rectangle(event.layer);
+          } else if (event.layerType === 'polyline') {
+            await handler.create.polyline(event.layer);
+          }
+          handler.focusBoxID(selectedPoly._leaflet_id);
+        });
+      },
+      rectangle: function (layer) {
+        layer.on('edit', handler.editRectangle);
+        layer.on('click', handler.selectRectangle);
+        handler.style.setActive(layer);
+        boxLayer.addLayer(layer);
+        var
+          polyid = boxLayer.getLayerId(layer),
+          newBox = new Box({
+            polyid: polyid,
+            text: '',
+            x1: Math.round(layer._latlngs[0][0].lng),
+            y1: Math.round(layer._latlngs[0][0].lat),
+            x2: Math.round(layer._latlngs[0][2].lng),
+            y2: Math.round(layer._latlngs[0][2].lat)
+          }),
+          idx = 0;
+        if (selectedBox) {
+          idx = boxData.findIndex(function (x) {
+            return x.equals(selectedBox);
+          });
+        }
+        boxData.splice(idx + 1, 0, newBox);
+        handler.sortAllBoxes();
+        handler.init.slider();
+        map.addLayer(boxLayer);
+        handler.focusBoxID(polyid);
+      },
+      polyline: async function (poly) {
+        handler.set.loadingState({ main: true, buttons: true });
+        var
+          polyBounds = poly.getBounds(),
+          newSelectedPoly = null,
+          newBoxes = [],
+          deleteBoxes = [];
+        for (var i = 0; i < boxData.length; i++) {
+          var
+            box = boxData[i],
+            boxBounds = L.latLngBounds([box.y1, box.x1], [box.y2, box.x2]),
+            intersection = boxBounds.intersects(polyBounds);
+          if (intersection) {
+            deleteBoxes.push(box);
+            var boxes = handler.cutBoxByPoly(box, poly);
+            if (selectedPoly._leaflet_id == box.polyid) {
+              newSelectedPoly = boxes[0];
+            }
+            if (boxes.length > 0) {
+              newBoxes = newBoxes.concat(boxes);
+            }
+          }
+        }
+        deleteBoxes
+          .forEach(function (box) {
+            var layer = boxLayer.getLayer(box.polyid);
+            boxLayer.removeLayer(layer);
+            handler.delete.box(box);
+          });
+
+        newBoxes = newBoxes.map(box => new Box(box));
+
+        newBoxes
+          .forEach(function (newBox) {
+            var newPoly = L.rectangle([[newBox.y1, newBox.x1], [newBox.y2, newBox.x2]]);
+            newPoly.on('edit', handler.editRectangle);
+            newPoly.on('click', handler.selectRectangle);
+            handler.style.remove(newPoly);
+            boxLayer.addLayer(newPoly);
+            var polyid = boxLayer.getLayerId(newPoly);
+            newBox.polyid = polyid;
+            boxData.push(newBox);
+          });
+
+        await handler.ocr.detect(newBoxes);
+        handler.sortAllBoxes();
+        handler.update.progressBar({ type: 'tagging' });
+        handler.update.slider({ max: boxData.length });
+        if (newSelectedPoly) {
+          handler.focusBoxID(boxData.find(x =>
+            x.x1 == newSelectedPoly.x1 &&
+            x.x2 == newSelectedPoly.x2 &&
+            x.y1 == newSelectedPoly.y1 &&
+            x.y2 == newSelectedPoly.y2
+          ).polyid);
+        }
+        handler.set.loadingState({ main: false, buttons: false });
+      },
+    },
+    addNewHighlighterPattern: function () {
+      const tableBody = $highlighterTableBody[0];
+      const row = handler.create.highlighterRow(true, 'New Highlighter', false, '.');
+      tableBody.append(row);
+      // update selectors
+      $highlighterTableBody = $highlighterTableContainer.find('.ui.celled.table tbody'),
+        $highlighterTableRows = $highlighterTableBody.find('tr');
+      handler.saveHighlightsToSettings();
+    },
+    sortAllBoxes: function () {
+      boxData.sort(Box.compare);
+    },
+    editRectangle: async function (event) {
+      var
+        layer = event.target,
+        box = boxData.find(x => x.polyid == layer._leaflet_id),
+        newBox = new Box({
+          text: box.text,
+          x1: Math.round(layer._latlngs[0][0].lng),
+          y1: Math.round(layer._latlngs[0][0].lat),
+          x2: Math.round(layer._latlngs[0][2].lng),
+          y2: Math.round(layer._latlngs[0][2].lat),
+        }),
+        lineWasDirty = lineDataInfo.isDirty();
+      await handler.update.boxData(layer._leaflet_id, newBox);
+      handler.update.form(newBox);
+      if (lineWasDirty) {
+        newBox.text = $groundTruthInputField.val();
+      }
+      handler.sortAllBoxes();
+    },
+    selectRectangle: function (event) {
+      if (event.target.editing.enabled() || mapState == 'deleting') {
+        return;
+      }
+      var
+        shape = event.target;
+      handler.style.remove(selectedPoly);
+      handler.map.disableEditBox(selectedPoly);
+      handler.focusBoxID(shape._leaflet_id);
+      handler.map.enableEditBox(shape);
+      handler.sortAllBoxes();
+    },
+    cutBoxByPoly: function (box, poly) {
+      var
+        polyFeature = turf.lineString(poly),
+        boxFeature = turf.bboxPolygon([box.x1, box.y1, box.x2, box.y2]),
+        splitLines = [];
+
+      for (var i = 0; i < poly._latlngs.length - 1; i++) {
+        var
+          segmentPoints = [[poly._latlngs[i].lng, poly._latlngs[i].lat], [poly._latlngs[i + 1].lng, poly._latlngs[i + 1].lat]],
+          j = i + 1;
         while (turf.booleanPointInPolygon([poly._latlngs[j].lng, poly._latlngs[j].lat], boxFeature) && j < poly._latlngs.length - 1) {
-            j++;
-            segmentPoints.push([poly._latlngs[j].lng, poly._latlngs[j].lat]);
+          j++;
+          segmentPoints.push([poly._latlngs[j].lng, poly._latlngs[j].lat]);
         }
         var segmentFeature = turf.lineString(segmentPoints);
         splitLines.push(segmentFeature);
         i = j - 1;
-    }
+      }
 
-    // filter all segments that intersect the box
-    var intersectingLines = [];
-    splitLines.forEach(function (element) {
-        if (turf.booleanIntersects(element, boxFeature)) {
-            intersectingLines.push(element);
+      var intersectingLines = [];
+      splitLines.forEach(function (line) {
+        if (turf.booleanIntersects(line, boxFeature)) {
+          intersectingLines.push(line);
         }
-    });
+      });
 
-    // for each intersecting segment, split the box
-    var boxGaps = [];
-    intersectingLines.forEach(function (element) {
-        // var intersection = turf.lineIntersect(boxFeature, element);
-        // if (element.geometry.coordinates.length == 3) {
-        //     intersection.features.push(turf.point(element.geometry.coordinates[1]));
-        // }
-        // var intersectionBox = turf.bbox(intersection);
-        // boxGaps.push(intersectionBox);
-        boxGaps.push(turf.envelope(element));
-    });
+      var boxGaps = [];
+      intersectingLines.forEach(function (line) {
+        boxGaps.push(turf.envelope(line));
+      });
 
-    // for each gap, split the box
-    // union all box gaps
-    // if (boxGaps.length > 1) {
-    //     var gapUnion = turf.union(boxGaps[0], boxGaps[1]);
-    //     for (var i = 2; i < boxGaps.length; i++) {
-    //         gapUnion = turf.union(gapUnion, boxGaps[i]);
-    //     }
-    // }
+      var
+        newBoxes = [],
+        newEdges = [];
+      newEdges.push(box.x1);
+      boxGaps.forEach(function (gap) {
+        newEdges.push(gap.geometry.coordinates[0][0][0]);
+        newEdges.push(gap.geometry.coordinates[0][2][0]);
+      });
+      newEdges.push(box.x2);
 
-    // var difference = turf.difference(boxFeature, gapUnion);
+      newEdges.sort(function (a, b) { return a - b });
 
-    var newBoxes = [];
-    var newEdges = [];
-    newEdges.push(box.x1);
-    // push all vertical edges of box gaps
-    boxGaps.forEach(function (element) {
-        newEdges.push(element.geometry.coordinates[0][0][0]);
-        newEdges.push(element.geometry.coordinates[0][2][0]);
-    });
-    newEdges.push(box.x2);
-    // sort edges
-    newEdges.sort(function (a, b) { return a - b });
-    // for each pair of edges, create a new box
-    for (var i = 0; i < newEdges.length - 1; i += 2) {
+      for (var i = 0; i < newEdges.length - 1; i += 2) {
         var newBox = {
-            x1: newEdges[i],
-            y1: box.y1,
-            x2: newEdges[i + 1],
-            y2: box.y2
+          x1: newEdges[i],
+          y1: box.y1,
+          x2: newEdges[i + 1],
+          y2: box.y2
         };
         newBoxes.push(newBox);
-    }
-    // round box coordinates
-    newBoxes.forEach(function (element) {
+      }
+
+      newBoxes.forEach(function (element) {
         element.x1 = Math.round(element.x1);
         element.y1 = Math.round(element.y1);
         element.x2 = Math.round(element.x2);
         element.y2 = Math.round(element.y2);
-    });
-    return newBoxes;
-}
+      });
 
+      return newBoxes;
+    },
+    set: {
+      mapResize: async function (height, animate) {
+        // TODO: refresh jquery selector. It does not work even though it shoud.
+        // $map[0].animate({ height: height }, animate ? 500 : 0);
+        $('#mapid').animate({ height: height }, animate ? 500 : 0);
+      },
+      mapSize: async function (options, animate = true) {
+        var
+          heightMap = {
+            'short': 300,
+            'medium': 500,
+            'tall': 700
+          },
+          bounds = new L.LatLngBounds();
 
+        var newHeight = heightMap[options.height];
 
-function downloadFile(content, fileExtension) {
-    var element = document.createElement('a');
-    element.href = 'data:application/text;charset=utf-8,' + encodeURIComponent(content);
-    element.download = imageFileName + fileExtension;
-    element.target = '_blank';
-    element.style.display = 'none';
+        await handler.set.mapResize(newHeight, animate);
 
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
-    displayMessage({
-        message: 'Downloaded ' + imageFileName + fileExtension,
-        type: 'success'
-    });
-    boxdataIsDirty = false;
-}
-
-function showCharInfoPopup(e) { // prevent modifier keys from triggering popup
-    if (e.ctrlKey || e.altKey || e.metaKey || e.keyCode == 13) {
-        return;
-    }
-    if (e.keyCode == 13) {
-        $('#updateTxt').popup('hide');
-        return;
-    }
-    var selection;
-
-    if (window.getSelection) {
-        selection = window.getSelection();
-    } else if (document.selection) {
-        selection = document.selection.createRange();
-    }
-    // firefox fix
-    if (selection.toString().length == 0) {
-        var input = document.getElementById('formtxt');
-        var startPos = input.selectionStart;
-        var endPos = input.selectionEnd;
-        selection = input.value.substring(startPos, endPos);
-    }
-    results = getUnicodeInfo(selection.toString());
-    // TODO: replace max length with a programmatic solution
-    if (results.length == 0 || results.length > 15) {
-        $('#updateTxt').popup('hide');
-        return;
-    } else {
-        formatted = formatForPopup(results);
-        // apply style to popup
-        // max-height: 40em;overflow: scroll;
-        $('#updateTxt').popup('get popup').css('max-height', '20em');
-        $('#updateTxt').popup('get popup').css('overflow', 'visible');
-        $('#updateTxt').popup('get popup').css('scrollbar-width', 'none');
-        $('#updateTxt').popup('get popup').css('scrollbar-width', 'none');
-        $('#updateTxt').popup('get popup').css('-ms-overflow-style', 'none');
-        // apply popup scrollbar for webkit
-        $('#updateTxt').popup('get popup').css('scrollbar-width', 'none');
-
-        if ($('#updateTxt').popup('is visible')) {
-            $('#updateTxt').popup('change content (html)', formatted)
-        } else if ($('#updateTxt').popup('is hidden')) {
-            $('#updateTxt').popup({ on: 'manual', 'html': formatted }).popup('show')
-        } else {
-            console.log('error with char info popup');
+        if (selectedPoly != undefined) {
+          selectedPoly
+            .getBounds()
+            .extend(selectedPoly.getBounds());
         }
-    }
-}
-
-function closeSettingsPopup() {
-    $('.ui.settings.modal').modal('hide');
-
-    return;
-}
-
-function helpSettingsPopup() {
-    $('.popup')
-        .popup('hide')
-        ;
-    $('.ui.settings.modal')
-        .modal('show')
-        ;
-    $('#settingsMenu .item').removeClass('active');
-    $('.ui.tab').removeClass('active');
-
-    // set data-tab="help-section" active and show help-section
-    $('#settingsMenu .item').filter('#helpTab').addClass('active')
-    $('.ui.tab').filter('#helpTab').addClass('active')
-    // $('#help-section').addClass('active');
-}
-
-
-function settingsPopup() {
-    $('.popup')
-        .popup('hide')
-        ;
-    $('.ui.settings.modal')
-        .modal('show')
-        ;
-}
-
-function openSettingsPane(tabID) {
-    settingsPopup();
-    $('#settingsMenu .item').removeClass('active');
-    $('.ui.tab').removeClass('active');
-    $('#settingsMenu .item').filter(tabID).addClass('active')
-    $('.ui.tab').filter(tabID).addClass('active')
-}
-
-async function receiveDroppedFiles(e) {
-    if (e.length > 2) {
-        displayMessage({
-            title: 'Too many files',
-            message: 'Upload an image and, optionally, a box file.',
-            type: 'error'
-        });
-        return;
-    }
-    if (e.length < 1) {
-        displayMessage({
-            title: 'No files',
-            message: 'You need to drop at least one file.',
-            type: 'error'
-        });
-        return;
-    }
-
-    let imageFile = null;
-    let boxFile = null;
-
-    // Find the image and box file (if present)
-    for (let i = 0; i < e.length; i++) {
-        if (e[i].type.includes('image')) {
-            imageFile = e[i];
-        } else if (e[i].name.endsWith('.box')) {
-            boxFile = e[i];
+        // setTimeout(function () { map.invalidateSize({ pan: true }) }, 500);
+      },
+      appAppearance: function (value) {
+        var docClassesRef = $document[0].documentElement.classList;
+        docClassesRef.remove(...docClassesRef);
+        docClassesRef.toggle(value);
+      },
+      loadingState: function (object) {
+        if (object.main != undefined) {
+          if (object.main) {
+            $map.addClass('loading disabled');
+            $progressSlider.addClass('disabled');
+            $positionSlider.addClass('disabled');
+            if (image != undefined) {
+              $(image._image).animate({ opacity: 0.3 }, 200);
+            }
+          } else {
+            $map.removeClass('loading disabled');
+            $progressSlider.removeClass('disabled');
+            $positionSlider.removeClass('disabled');
+            if (image != undefined) {
+              $(image._image).animate({ opacity: 1 }, 500);
+            }
+          }
+        }
+        if (object.buttons != undefined) {
+          if (object.buttons) {
+            $fields
+              .each(function () {
+                $(this)
+                  .prop('disabled', true)
+                  .addClass('disabled');
+              });
+            $buttons
+              .each(function () {
+                $(this)
+                  .prop('disabled', true)
+                  .addClass('disabled');
+              });
+          } else {
+            $fields
+              .each(function () {
+                $(this)
+                  .prop('disabled', false)
+                  .removeClass('disabled');
+              });
+            $buttons
+              .each(function () {
+                $(this)
+                  .prop('disabled', false)
+                  .removeClass('disabled');
+              });
+          }
+        }
+      },
+    },
+    update: {
+      settingsModal: async function () {
+        // Toolbar Actions
+        for (const [key, value] of Object.entries(appSettings.interface.toolbarActions)) {
+          const path = 'interface.toolbarActions.' + key;
+          const checkbox = $checkboxes.find(`input[name="${path}"]`);
+          checkbox.prop('checked', value);
+          $('button[name="' + path + '"]').parent().toggle(appSettings.interface.toolbarActions[key]);
+        }
+        // Appearance
+        const appearancePath = 'interface.appearance';
+        document.querySelector(`input[name='${appearancePath}'][value='${appSettings.interface.appearance}']`).checked = true;
+        handler.set.appAppearance(appSettings.interface.appearance);
+        // Image View
+        const imageViewPath = 'interface.imageView';
+        document.querySelector(`input[name='${imageViewPath}'][value='${appSettings.interface.imageView}']`).checked = true;
+        handler.set.mapSize({ height: appSettings.interface.imageView });
+        // On Image Load
+        for (const [key, value] of Object.entries(appSettings.behavior.onImageLoad)) {
+          const path = 'behavior.onImageLoad.' + key;
+          document.querySelector(`input[name='${path}']`).checked = value;
+          if (key == 'detectAllLines' && !value) {
+            document.querySelector(`input[name="behavior.onImageLoad.includeTextForDetectedLines"]`).disable = true;
+            document.querySelector(`input[name="behavior.onImageLoad.includeTextForDetectedLines"]`).parentElement.classList.add('disabled');
+          }
+        }
+        // Warrning Messages
+        for (const [key, value] of Object.entries(appSettings.behavior.alerting)) {
+          const path = 'behavior.alerting.' + key;
+          document.querySelector(`input[name='${path}']`).checked = value;
+        }
+        // Workflow
+        for (const [key, value] of Object.entries(appSettings.behavior.workflow)) {
+          const path = 'behavior.workflow.' + key;
+          const checkbox = $checkboxes.find(`input[name="${path}"]`);
+          checkbox.prop('checked', value);
+          $('#' + key).toggle(appSettings.behavior.workflow[key]);
+          // }
+          // // Convenience Features
+          // for (const [key, value] of Object.entries(appSettings.behavior.workflow)) {
+          // const path = 'behavior.convenience.' + key;
+          document.querySelector(`input[name='${path}']`).checked = value;
+          // }
+        }
+        // Keyboard Shortcuts
+        for (const [key, value] of Object.entries(appSettings.behavior.keyboardShortcuts)) {
+          if (key != 'shortcuts') {
+            const path = 'behavior.keyboardShortcuts.' + key;
+            document.querySelector(`input[name='${path}']`).checked = value;
+          }
+        }
+        // Highlighter
+        for (const [key, value] of Object.entries(appSettings.highlighter.textHighlighting)) {
+          if (key != 'highlightsPatterns') {
+            const path = 'highlighter.textHighlighting.' + key;
+            document.querySelector(`input[name='${path}']`).checked = value;
+          }
+        }
+        // Invisibles Toggle
+        if (appSettings.interface.showInvisibles) {
+          $invisiblesToggleButton.addClass('active');
         } else {
-            displayMessage({
-                title: 'Invalid file type',
-                message: 'You can only upload an image and a box file.',
-                type: 'error'
+          $invisiblesToggleButton.removeClass('active');
+        }
+      },
+      progressBar: function (options = {}) {
+        if (options.reset) {
+          $progressLabel.text('');
+          return;
+        }
+        if (options.type == 'tagging') {
+          var
+            currentPosition = boxData.indexOf(selectedBox);
+          if ($positionSlider.slider('get max') != boxData.length) {
+            handler.update.slider({
+              value: currentPosition + 1,
+              max: boxData.length
+            });
+          } else {
+            handler.update.slider({ value: currentPosition + 1 });
+          }
+          if (boxData.every(box => box.filled)) {
+            var
+              modifiedLines = boxData.filter(box => box.committed);
+            $progressSlider.progress({
+              value: modifiedLines.length,
+              total: boxData.length,
+              text: {
+                active: 'Updating: {value} out of {total} / {percent}%',
+              }
+            })
+            return;
+          } else {
+            $progressSlider.removeClass('active indicating');
+            var
+              textLines = boxData.filter(box => box.filled);
+            $progressSlider.progress({
+              value: textLines.length,
+              total: boxData.length,
+              text: {
+                active: 'Tagging: {value} out of {total} / {percent}%',
+              }
+            });
+          }
+          return;
+        } else {
+          $progressSlider.addClass('indicating');
+          if (options.type == 'ocr') {
+            $progressSlider.progress({
+              value: options.progress,
+              total: 1,
+              text: {
+                active: 'Analyzing Image: {percent}%',
+              }
             });
             return;
+          } else if (options.type == 'initializingWorker') {
+            $progressSlider.progress({
+              value: 0,
+              total: 1,
+              text: {
+                active: options.status + '…',
+              }
+            });
+          } else if (options.type = 'regeneratingTextData') {
+            $progressSlider.progress({
+              value: options.value,
+              total: options.total,
+              text: {
+                active: 'Regenerating Text Data…',
+              }
+            });
+          }
         }
-    }
+      },
+      slider: function (options) {
+        if (options.max) handler.init.slider();
+        if (options.value) $positionSlider.slider('set value', options.value, fireChange = false);
+        if (options.min) $positionSlider.slider('setting', 'min', options.min);
+        return;
+      },
+      boxData: function (polyid, newData) {
+        var
+          isUpdated = false,
+          oldBoxIndex = boxData.findIndex(function (x) {
+            return x.polyid == polyid;
+          }),
+          // if oldBoxIndex is -1 then that box doesn't exist and data is new
+          oldData = oldBoxIndex > -1 ? boxData[oldBoxIndex] : boxData[0];
+        newData.polyid = polyid
+        // check if data is different
+        if (oldData.committed || !oldData.equals(newData)) {
+          isUpdated = true;
+          if (oldData.text != '') {
+            newData.committed = true;
+          }
+        }
+        boxData[oldBoxIndex] = newData
+        boxDataInfo.setDirty();
+        lineDataInfo.setDirty(false);
+        handler.update.progressBar({ type: 'tagging' });
+        return isUpdated;
+      },
+      boxCoordinates: function () {
+        var polyid = parseInt($groundTruthInputField.attr('boxid')),
+          newBoxData = new Box({
+            text: $groundTruthInputField.val(),
+            x1: Math.round($x1Field.val()),
+            y1: Math.round($y1Field.val()),
+            x2: Math.round($x2Field.val()),
+            y2: Math.round($y2Field.val()),
+          }),
+          isUpdated = handler.update.boxData(polyid, newBoxData);
+        handler.update.rectangle(polyid, newBoxData);
+      },
+      rectangle: function (polyid, data) {
+        var
+          box = boxLayer.getLayer(polyid);
+        box.setBounds([[data.y1, data.x1], [data.y2, data.x2]]);
+      },
+      form: function (box) {
+        selectedBox = box;
+        $groundTruthInputField.val(box.text);
+        $groundTruthInputField.attr('boxid', box.polyid);
+        $x1Field.val(box.x1);
+        $y1Field.val(box.y1);
+        $x2Field.val(box.x2);
+        $y2Field.val(box.y2);
+        $groundTruthInputField.focus();
+        $groundTruthInputField.select();
+        handler.update.colorizedBackground();
+        handler.update.progressBar({ type: 'tagging' });
+        lineDataInfo.setDirty(false);
+        handler.close.popups();
+      },
+      downloadButtonsLabels: function (options = {}) {
+        var icon = document.createElement('i');
+        icon.className = 'download icon';
+        if (options.boxDownloadButton) {
+          $downloadBoxFileButton.html(icon.cloneNode(true));
+          $downloadBoxFileButton.html(options.boxDownloadButton);
+        }
+        if (options.groundTruthDownloadButton) {
+          $downloadGroundTruthFileButton.html(icon.cloneNode(true));
+          $downloadGroundTruthFileButton.html(options.groundTruthDownloadButton);
+        }
+      },
+      colorizedBackground: async function () {
+        $colorizedOutputForms.each(async function () {
+          var
+            inputField = $(this).find('.colorized-input-field'),
+            outputField = $(this).find('.colorized-output-field')[0],
+            colorizedText = await handler.colorizeText(inputField.val());
+          outputField.innerHTML = colorizedText;
 
-    if (!imageFile && !imageIsProcessed) {
-        displayMessage({
-            title: 'No image file',
-            message: 'You need at least one image file.',
-            type: 'error'
+        });
+      },
+      cookie: function () {
+        // copy appSettings and delete forbidden cookie data
+        // const
+        //   settingsCopy = { ...appSettings },
+        //   forbidden = [
+        //     'action',
+        //     'target',
+        //   ]
+        // settingsCopy.behavior.keyboardShortcuts.shortcuts.forEach(function (shortcut) {
+        //   forbidden.forEach(item => delete shortcut[item]);
+        // });
+        Cookies.set('appSettings', JSON.stringify(appSettings));
+      },
+      appSettings: function ({ path, value, cookie }) {
+        if (cookie) {
+          appSettings = { ...appSettings, ...cookie };
+        } else {
+          var
+            pathElements = path.split('.'),
+            button = document.createElement('div'),
+            status = document.createElement('div'),
+            inlineLoader = document.createElement('div'),
+            lastElementIndex = pathElements.length - 1,
+            updatedSettings = pathElements.reduce((obj, key, index) => {
+              if (index === lastElementIndex) {
+                obj[key] = value;
+              } else {
+                obj[key] = { ...obj[key] };
+              }
+              return obj[key];
+            }, appSettings);
+          handler.update.cookie();
+          button.className = 'ui button ok';
+          button.tabIndex = '0';
+          button.innerText = 'OK';
+          status.className = 'ui disabled tertiary button';
+          status.innerText = 'Settings saved!';
+          inlineLoader.className = 'ui tiny active grey fast inline double loader';
+
+          setTimeout(() => {
+            $settingsModalStatus[0].innerHTML = '';
+            $settingsModalStatus[0].appendChild(status);
+            $settingsModalStatus[0].appendChild(button);
+            $settingsModalStatusMessage = $settingsModalStatus.find('.ui.disabled.tertiary.button');
+          }, 300)
+          $settingsModalStatus[0].innerHTML = '';
+          $settingsModalStatus[0].appendChild(inlineLoader);
+          $settingsModalStatus[0].appendChild(status);
+          $settingsModalStatus[0].appendChild(button);
+
+        }
+        handler.update.settingsModal();
+      },
+      patternLabels: function () {
+        $highlighterLabels.empty();
+        const highlights = handler.getHighlighters();
+        for (const key in highlights) {
+          if (highlights.hasOwnProperty(key)) {
+            const
+              highlight = highlights[key],
+              color = highlight.color,
+              itemDiv = document.createElement('div'),
+              colorDiv = document.createElement('div'),
+              nameSpan = document.createElement('span');
+            itemDiv.className = 'item';
+            colorDiv.className = `ui mini ${color} empty circular label text-highlighter`;
+            nameSpan.className = 'ui text';
+            nameSpan.innerText = highlight.name;
+            itemDiv.appendChild(colorDiv);
+            itemDiv.appendChild(nameSpan);
+            $highlighterLabels.append(itemDiv);
+          }
+        }
+      },
+    },
+    receiveDroppedFiles: async function (event) {
+      if (event.length > 2) {
+        handler.notifyUser({
+          title: 'Too many files',
+          message: 'Upload an image and, optionally, a box file.',
+          type: 'error',
         });
         return;
-    }
-
-    if (imageFile) {
-        await loadImageFile(imageFile);
-    }
-    if (boxFile) {
-        await loadBoxFile(boxFile);
-    }
-}
-
-
-function confirmDrag() {
-    displayMessage({
-        title: 'Drag Box',
-        message: 'Files dragged',
-    });
-}
-
-$(document).ready(async function () {
-    colorizedFields = [];
-    colorizedFields.push($('#myInputBackground')[0]);
-    colorizedFields.push($('#formtxt')[0]);
-    setKerning(colorizedFields, false);
-
-    $('#previewText').on('input', function () {
-        updatePreviewBackground();
-    });
-    $('#formtxt').on('input', function () {
-        updateInputBackground();
-        setLineIsDirty();
-    });
-    $('#x1').on('input', function (e) {
-        clearTimeout(movingTimer);
-        movingTimer = setTimeout(onBoxInputChange, doneMovingInterval);
-    });
-    $('#y1').on('input', function (e) {
-        clearTimeout(movingTimer);
-        movingTimer = setTimeout(onBoxInputChange, doneMovingInterval);
-    });
-    $('#x2').on('input', function (e) {
-        clearTimeout(movingTimer);
-        movingTimer = setTimeout(onBoxInputChange, doneMovingInterval);
-    });
-    $('#y2').on('input', function (e) {
-        clearTimeout(movingTimer);
-        movingTimer = setTimeout(onBoxInputChange, doneMovingInterval);
-    });
-    $('#imageFile').prop('disabled', false);
-    // displayMessage({ message: 'Hover over the question mark in the top right corner for help and keyboard shortcuts.' });
-
-    $('.menu .question.circle.icon').popup({ inline: true });
-    setFormKeyboardControl();
-
-    $('#formtxt').focus(function () {
-        $('#myInputBackground').addClass('focused');
-    });
-    $('#formtxt').blur(function () {
-        $('#myInputBackground').removeClass('focused');
-    });
-
-    // set checkbox from cookie
-    if (Cookies.get('include-suggestions') == 'true') {
-        $('.ui.include-suggestions.toggle.checkbox').checkbox('check');
-    } else {
-        $('.ui.include-suggestions.toggle.checkbox').checkbox('uncheck');
-    }
-
-    map = new L.map('mapid', {
-        crs: L.CRS.Simple,
-        minZoom: -1,
-        center: [
-            0, 0
-        ],
-        zoom: 0,
-        zoomSnap: .5,
-        scrollWheelZoom: true,
-        touchZoom: true,
-        zoomControl: false,
-        drawControl: false,
-        attributionControl: false,
-        preferCanvas: true,
-        maxBoundsViscosity: .5,
-    });
-
-    map.addControl(zoomControl);
-    // var control = new L.Control.Region()
-    // control.addTo(map);
-    map.addControl(drawControl);
-
-    $('#boxFile').change(loadBoxFile);
-    $("#imageFile").change(loadImageFile);
-
-    map.on('draw:deleted', function (event) {
-        Object.keys(event.layers._layers).forEach(function (x) {
-            var polyid = parseInt(x);
-            var delbox = boxdata.find(function (x) {
-                return x.polyid == polyid;
-            });
-
-            var delindex = deleteBox(delbox);
+      }
+      if (event.length < 1) {
+        notifyUser({
+          title: 'No files',
+          message: 'You need to drop at least one file.',
+          type: 'error',
         });
-        updateProgressBar({ type: 'tagging' });
-    });
-    map.on('draw:deletestart', async function (event) {
-        mapDeletingState = true;
-        // await setMapSize({ largeView: true });
-    });
-    map.on('draw:deletestop', async function (event) {
-        // await setMapSize({ largeView: false });
-        mapDeletingState = false;
-        updateSlider({ max: boxdata.length });
-    });
-    map.on('draw:drawstart', async function (event) {
-        mapEditingState = true;
-        // await setMapSize({ largeView: true });
-    });
-    map.on('draw:drawstop', async function (event) {
-        // await setMapSize({ largeView: false });
-        // focusRectangle(selectedPoly);
-        mapEditingState = false;
-    });
-
-    map.on(L.Draw.Event.CREATED, function (event) {
-        if (event.layerType === 'rectangle') {
-
-            var layer = event.layer;
-            layer.on('edit', editRect);
-            layer.on('click', onRectClick);
-            layer.setStyle(boxActive)
-            boxlayer.addLayer(layer);
-            var polyid = boxlayer.getLayerId(layer)
-            var newbb = new Box({
-                polyid: polyid,
-                text: '',
-                x1: Math.round(layer._latlngs[0][0].lng),
-                y1: Math.round(layer._latlngs[0][0].lat),
-                x2: Math.round(layer._latlngs[0][2].lng),
-                y2: Math.round(layer._latlngs[0][2].lat)
-            })
-            var idx;
-            if (selectedBox) {
-                idx = boxdata.findIndex(function (x) {
-                    return x.polyid == selectedBox.polyid;
-                });
-            } else {
-                idx = 0;
-            } boxdata.splice(idx + 1, 0, newbb);
-            sortAllBoxes();
-            initializeSlider();
-            fillAndFocusRect(newbb);
-            map.addLayer(boxlayer)
-            // return;
+        return;
+      }
+      var
+        files = event;
+      files.forEach(function (file) {
+        if (file.type.includes('image')) {
+          imageFile = file;
+        } else if (file.name.endsWith('.box')) {
+          boxFile = file;
+        } else {
+          handler.notifyUser({
+            title: 'Invalid File Type',
+            message: 'You can only upload an image and a box file.',
+            type: 'error',
+          });
+          return;
         }
-        if (event.layerType === 'polyline') {
-            setMainLoadingStatus(true);
-            setButtons({ state: 'disabled' });
-            // if (event.layerType === 'polygon') {
-            // cut all boxes by the polygon line
-            var poly = event.layer;
-            var polybounds = poly.getBounds();
-            var newboxes = [];
-            // delete set
-            var deleteBoxes = [];
-            for (var i = 0; i < boxdata.length; i++) {
-                var box = boxdata[i];
-                var boxbounds = L.latLngBounds([box.y1, box.x1], [box.y2, box.x2]);
-                var intersection = polybounds.intersects(boxbounds);
-                if (intersection) {
-                    var boxes = cutBoxByPoly(box, poly);
-                    deleteBoxes.push(box);
-                    if (boxes.length > 0) {
-                        newboxes = newboxes.concat(boxes);
-                    }
-                }
+      });
+
+      if (!imageFile && !imageFileInfo.isProcessed()) {
+        handler.notifyUser({
+          title: 'No image file',
+          message: 'You need at least one image file.',
+          type: 'error',
+        });
+        return;
+      }
+      if (imageFile) {
+        await handler.load.imageFile(imageFile);
+      }
+      if (boxFile) {
+        await handler.load.boxFile(boxFile);
+      }
+    },
+    init: {
+      slider: function () {
+        $positionSlider.slider({
+          min: 1,
+          max: boxData.length,
+          step: 1,
+          start: 1,
+          smooth: true,
+          labelDistance: 50,
+          onChange: function (value) {
+            if (currentSliderPosition != value &&
+              value > 0 &&
+              value <= boxData.length) {
+              handler.focusBoxID(boxData[value - 1].polyid);
+              currentSliderPosition = value;
             }
-            deleteBoxes.forEach(function (box) {
-                layer = boxlayer.getLayer(box.polyid);
-                boxlayer.removeLayer(layer);
-                deleteBox(box);
-            });
-            // for (var i = 0; i < newboxes.length; i++) {
-            // update all newboxes to Box objects in place
-            newboxes = newboxes.map(function (box) {
-                var newbox = new Box(box);
-                return newbox;
-            });
-
-            newboxes.forEach(function (newbox) {
-                // var newbox = new Box(box);
-                var newpoly = L.rectangle([[newbox.y1, newbox.x1], [newbox.y2, newbox.x2]]);
-                newpoly.on('edit', editRect);
-                newpoly.on('click', onRectClick);
-                newpoly.setStyle(boxInactive);
-                boxlayer.addLayer(newpoly);
-                var polyid = boxlayer.getLayerId(newpoly)
-                newbox.polyid = polyid;
-                boxdata.push(newbox);
-            });
-
-            redetectText(newboxes);
-            sortAllBoxes();
-            updateProgressBar({ type: 'tagging' });
-            updateSlider({ max: boxdata.length });
-            setMainLoadingStatus(false);
-            setButtons({ state: 'enabled' });
+          },
+          onMove: function (value) {
+            if (currentSliderPosition != value &&
+              value > 0 &&
+              value <= boxData.length) {
+              handler.focusBoxID(boxData[value - 1].polyid);
+              currentSliderPosition = value;
+            }
+          },
+        });
+        $positionSlider.off('keydown.slider');
+        $document.off('keydown.slider1');
+      },
+    },
+    process: {
+      workerLogMessage: function (message) {
+        if (message.status == 'recognizing text') {
+          message.type = 'ocr';
+        } else {
+          message.type = 'initializingWorker';
         }
-        focusRectangle(selectedPoly);
-    });
+        // suppress log messages
+        if (!suppressLogMessages[message.status]) {
+          handler.update.progressBar(message);
+        }
+        return message;
+      },
+      boxFile: function (event) {
+        var
+          content = event.target.result;
+        handler.getBoxFileType(content);
+        if (content && content.length) {
+          boxLayer.clearLayers();
+          boxData = [];
+          if (boxFileType == BoxFileType.WORDSTR) {
+            handler.process.wordstr(content);
+          } else if (boxFileType == BoxFileType.CHAR_OR_LINE) {
+            handler.process.char_or_line(content);
+          } else {
+            console.warn('invalid file format');
+          }
+          map.addLayer(boxLayer);
+        }
+        handler.sortAllBoxes();
+        selectedBox = handler.getBoxContent();
+        handler.focusBoxID(selectedBox.polyid);
+        handler.update.colorizedBackground();
+      },
+      wordstr: function (content) {
+        var lines = content.split(/\r?\n/);
+        lines.forEach(function (line) {
+          if (line.startsWith('WordStr ')) {
+            var [dimensions, actualText] = line.split('#');
+            dimensions = dimensions.split(' ');
+            var box = new Box({
+              text: actualText,
+              x1: parseInt(dimensions[1]),
+              y1: parseInt(dimensions[2]),
+              x2: parseInt(dimensions[3]),
+              y2: parseInt(dimensions[4]),
+            });
 
-    setButtons({ state: 'disabled' });
-    $('#nextBB').on('click', getNextAndFill);
-    $('#previousBB').on('click', getPrevAndFill);
-    $("#downloadBoxFileButton").on("click", downloadBoxFile);
-    $('#downloadGroundTruthButton').on("click", downloadGroundTruth);
-    $('#invisiblesToggle').on("click", toggleInvisibles);
-    $('#regenerateTextSuggestions').on("click", regenerateTextSuggestions);
-    $('#redetectAllBoxes').on("click", regenerateInitialBoxes);
-    $('#regenerateTextSuggestionForSelectedBox').on("click", regenerateTextSuggestionForSelectedBox);
-    $('#settingsButton').on("click", settingsPopup);
-    $('.helpSettingsPopup').on("click", helpSettingsPopup);
-    $('#resetAppSettingsAndCookies').on("click", resetAppSettingsAndCookies);
-    $('#useSampleImage').on("click", useSampleImage);
-    $('#addNewHighlighterPattern').on("click", addNewHighlighterPattern);
+            var rectangle = L.rectangle([[box.y1, box.x1], [box.y2, box.x2]]);
+            rectangle.on('edit', handler.editRectangle);
+            rectangle.on('click', handler.selectRectangle);
+            handler.style.remove(rectangle);
+            boxLayer.addLayer(rectangle);
+            box.polyid = boxLayer.getLayerId(rectangle);
+            boxData.push(box);
+          }
+        });
+      },
+      char_or_line: function (content) {
+      },
+    },
+    getBoxFileType: function (content) {
+      if (content == '') boxFileType = BoxFileType.WORDSTR;
+      var
+        firstLine = content.startsWith('WordStr '),
+        secondLine = content.split('\n')[1].startsWith('\t');
+      if (firstLine && secondLine) {
+        boxFileType = BoxFileType.WORDSTR;
+      } else {
+        boxFileType = BoxFileType.CHAR_OR_LINE;
+      }
+    },
+    formatDate: function (date) {
+      var options = { month: 'long', day: 'numeric', year: 'numeric' };
+      var dateString = date.toLocaleDateString('en-US', options);
+      // dateString = dateString.replace(/(\d+)(st|nd|rd|th)/, '$1');
+      const day = date.getDate();
+      let daySuffix;
 
-    await $.ajax({
-        url: '../../assets/unicodeData.csv',
-        dataType: 'text',
-        success: function (data) {
-            parsedData = $.csv.toObjects(data, {
+      if (day === 1 || day === 21 || day === 31) {
+        daySuffix = "st";
+      } else if (day === 2 || day === 22) {
+        daySuffix = "nd";
+      } else if (day === 3 || day === 23) {
+        daySuffix = "rd";
+      } else {
+        daySuffix = "th";
+      }
+
+      const formattedDate = dateString.replace(/\d+/, day + daySuffix);
+      return formattedDate;
+    },
+    load: {
+      keyboardShortcuts: function () {
+        $window.keyup(function (event) {
+          if (handler.keyboardShortcuts.isModifierKey(event.key)) {
+            pressedModifiers[event.key] = false;
+            // console.log('removed', event.key, 'from pressedModifiers', pressedModifiers);
+          }
+        });
+        $window.off('keydown');
+        $window.keydown(function (event) {
+          // Check if the pressed key is a modifier key
+          if (handler.keyboardShortcuts.isModifierKey(event.key)) {
+            pressedModifiers[event.key] = true;
+            return;
+          }
+          if (handler.keyboardShortcuts.isNavigationKey(event.key)) {
+            handler.showCharInfoPopup(event);
+            return;
+          }
+
+          // Combine modifiers with the pressed key to form the complete shortcut
+          const modifierKeys = Object.keys(pressedModifiers).filter(
+            key => pressedModifiers[key]).join("+");
+          const key = (modifierKeys ? modifierKeys + "+" : "") + event.key.toUpperCase();
+          const matchingAction = appSettings.behavior.keyboardShortcuts.shortcuts.find(action => action.keyCombo.replace(/\s/g, '') === key);
+
+          if (matchingAction && matchingAction.enabled) {
+            // console.log('matchingAction:', matchingAction);
+            // console.log(event);
+            event.preventDefault();
+            matchingAction.action();
+            return;
+          }
+          // console.log(key);
+
+          // if (event.keyCode == 13) {
+          //   event.preventDefault();
+          //   if (event.shiftKey) {
+          //     handler.getPreviousBoxContentAndFill();
+          //   } else {
+          //     handler.getNextBoxContentAndFill();
+          //   }
+          //   return false;
+          // }
+        });
+      },
+      eventListeners: function () {
+        $settingsModal[0].addEventListener('change', function (event) {
+          const
+            path = event.target.name,
+            value = event.target.type === 'checkbox' ? event.target.checked : event.target.value;
+          handler.update.appSettings({ path: path, value: value });
+        });
+      },
+      settings: function () {
+        handler.getAppInfo();
+        $appInfoVersion.text(appInfo.version);
+        // format date to month date, year
+        const date = new Date(appInfo.updated);
+        $appInfoUpdated.text(handler.formatDate(date));
+        $settingsMenuItems.tab();
+        $settingsModal.modal({
+          inverted: false,
+          blurring: true,
+          onHidden: function () {
+            // hide status if still visible
+            if ($settingsModalStatusMessage[0]) $settingsModalStatusMessage[0].innerHTML = '';
+            var
+              title = '',
+              message = '';
+            if (invalidPatterns) {
+              title = 'Invalid Patterns',
+                message = 'Some enabled highlighters have invalid patterns. Please fix them or disable the highlighters.';
+            } else if (identicalPatternNames) {
+              title = 'Duplicate Pattern Names',
+                message = 'Some highlighter names are the same. Please give them different names.';
+            }
+            if (message != '') {
+              handler.notifyUser({
+                title: title,
+                message: message,
+                type: 'error',
+                actions: [{
+                  text: 'Fix now',
+                  click: handler.open.settingsModal.bind(handler.open, 'highlighter-settings'),
+
+                }]
+              });
+            }
+          }
+        });
+        const cookieValue = Cookies.get('appSettings');
+        if (cookieValue) {
+          cookieSettings = JSON.parse(cookieValue);
+          handler.update.appSettings({ cookie: cookieSettings });
+        } else {
+          handler.update.settingsModal();
+        }
+      },
+      popups: function () {
+        $imageFileInput.popup({
+          popup: $useSamplePopup,
+          position: 'top left',
+          hoverable: true,
+          delay: {
+            hide: 800,
+          }
+
+        })
+      },
+      unicodeData: async function () {
+        await $.ajax({
+          url: '../../assets/unicodeData.csv',
+          dataType: 'text',
+          success: function (data) {
+            var
+              parsedData = $.csv.toObjects(data, {
                 separator: ';',
-                delimiter: '"'
-            });
+                delimiter: '"',
+              });
             unicodeData = parsedData;
-        }
-    });
-    html = $('html')
-    // dropzone = $("div.my-dropzone *")
-    highlightzone = $("div.my-dropzone")
-    html.dropzone({
-        url: receiveDroppedFiles,
-        uploadMultiple: true,
-        parallelUploads: 3,
-        disablePreviews: true,
-        clickable: false,
-        acceptedFiles: "image/*,.box",
-        // maxFiles: 3,
-    })
-    $(html).on('drag dragenter dragover', function (event) {
-        event.preventDefault();
-        event.stopPropagation();
-        if (html.hasClass('dz-drag-hover')) {
-            highlightzone
-                .dimmer('show')
-                // .transition('pulsating')
-                .addClass('raised')
-        }
-        window.setTimeout(function () {
-            if (!html.hasClass('dz-drag-hover')) {
-                highlightzone
-                    .dimmer('hide')
-                    // .transition('stop all')
-                    .removeClass('raised')
+          }
+        });
+      },
+      dropzone: function () {
+        $html.dropzone({
+          url: handler.receiveDroppedFiles,
+          uploadMultiple: true,
+          parallelUploads: 3,
+          disablePreviews: true,
+          clickable: false,
+          acceptedFiles: "image/*,.box",
+        });
+        $html.on('drag dragenter dragover', function (event) {
+          event.preventDefault();
+          event.stopPropagation();
+
+          if ($html.hasClass('dz-drag-hover')) {
+            $dropzone
+              .dimmer('show')
+              .addClass('raised');
+          }
+          window.setTimeout(function () {
+            if (!$html.hasClass('dz-drag-hover')) {
+              $dropzone
+                .dimmer('hide')
+                .removeClass('raised');
             }
-        }, 1500);
-    });
-    $(html).on('drop', function (event) {
-        event.preventDefault();
-        event.stopPropagation();
-        if (!html.hasClass('dz-drag-hover')) {
-            highlightzone
-                .transition('pulse')
+          }, 1500);
+        });
+        $html.on('drop', function (event) {
+          event.preventDefault();
+          event.stopPropagation();
+
+          if (!$html.hasClass('dz-drag-hover')) {
+            $dropzone
+              .transition('pulse');
+          }
+        });
+      },
+      sampleImageAndBox: async function (event) {
+        handler.load.imageFile(event, true);
+        handler.load.boxFile(event, true);
+        handler.close.settingsModal();
+      },
+      boxFile: async function (e, sample = false) {
+        if (boxDataInfo.isDirty()) {
+          var
+            response = await handler.askUser({
+              title: 'Unsaved Changes',
+              message: 'You did not download current progress. Do you want to overwrite existing data?',
+              type: 'uncommittedChangesWarning',
+              actions: [{
+                text: 'Cancel',
+                class: 'cancel',
+              }, {
+                text: 'Yes',
+                class: 'positive',
+              }],
+            });
+          if (!response) return false;
         }
-    });
+        handler.set.loadingState({ buttons: true });
+        var
+          reader = new FileReader(),
+          defaultBoxUrl = '../../assets/sampleImage.box',
+          file = null;
+        if (sample) {
+          file = new File([await (await fetch(defaultBoxUrl)).blob()], 'sampleImage.box');
+        } else if (e.name.includes('box')) {
+          file = e;
+        } else {
+          file = this.files[0];
+        }
 
-    // $(html).on('dragleave dragend', function (event) {
-    //     event.preventDefault()
-    //     event.stopPropagation();
-    //     // highlightzone.addClass('secondary')
-    //     // highlightzone.removeClass('raised placeholder')
-    //     if (!html.hasClass('dz-drag-hover')) {
-    //         highlightzone.dimmer('hide');
-    //     }
-    // });
+        var fileExtension = file.name.split('.').pop();
+        if (fileExtension != 'box') {
+          handler.notifyUser({
+            title: 'Invalid File Type',
+            message: 'Expected box file. Received ' + fileExtension + ' file.',
+            type: 'error',
+          });
+          $boxFileInput.val(boxFileName);
+          return false;
+        } else if (imageFileName != file.name.split('.').slice(0, -1).join('.') && imageFileName != undefined) {
+          var
+            response = await handler.askUser({
+              title: 'File Names Mismatch',
+              message: 'Expected box file with name ' + file.name + '. Received ' + imageFileName + '.<br> Are you sure you want to continue?',
+              type: 'differentFileNameWarning',
+              actions: [{
+                text: 'No',
+                class: 'cancel',
+              }, {
+                text: 'Yes',
+                class: 'positive',
+              }],
+            });
+          if (!response) {
+            $boxFileInput.val(boxFileNameForButton);
+            return false;
+          }
+        }
+        reader.readAsText(file);
+        file.name.split('.).slice(0, -1').join('.');
+        boxFileNameForButton = file;
+        $(reader).on('load', handler.process.boxFile);
+        handler.set.loadingState({ main: false, buttons: false });
+      },
+      imageFile: async function (e, sample = false) {
+        if (boxDataInfo.isDirty() || lineDataInfo.isDirty()) {
+          var response = await handler.askUser({
+            title: 'Unsaved Changes',
+            message: 'You did not download current progress. Do you want to overwrite existing data?',
+            type: 'uncommittedChangesWarning',
+            actions: [{
+              text: 'Cancel',
+              class: 'cancel',
+            }, {
+              text: 'Yes',
+              class: 'positive',
+            }],
+          });
+          if (!response) {
+            $imageFileInput.val(imageFileNameForButton);
+            return false;
+          }
+        }
+        handler.set.loadingState({ buttons: true });
 
+        var
+          defaultImageUrl = '../../assets/sampleImage.jpg',
+          img = new Image(),
+          imageOverlayOptions = {
+            opacity: appSettings.behavior.onImageLoad.detectAllLines ? 0.25 : 1
+          };
+        if (sample) {
+          imageFileName = defaultImageUrl.split('/').pop().split('.').slice(0, -1).join('.');
+          imageFileNameForButton = defaultImageUrl;
+          filename = defaultImageUrl.split('/').pop();
+        } else if (e.type.includes('image')) {
+          imageFileName = e.name.split('.').slice(0, -1).join('.');
+          imageFileNameForButton = e;
+          filename = e.name;
+          file = e;
+        } else if (file = this.files[0]) {
+          imageFileName = file.name.split('.').slice(0, -1).join('.');
+          imageFileNameForButton = file;
+          filename = file.name;
+        }
+        img.onload = async function () {
+          handler.create.map('mapid');
+          map.eachLayer(function (layer) {
+            map.removeLayer(layer);
+          });
 
+          imageHeight = this.height;
+          imageWidth = this.width;
 
+          bounds = [[0, 0], [parseInt(imageHeight), parseInt(imageWidth)]];
+          var bounds2 = [[imageHeight - 300, 0], [imageHeight, imageWidth]];
+          if (image) {
+            $(image._image).fadeOut(750, function () {
+              map.removeLayer(image);
+              image = new L.imageOverlay(img.src, bounds, imageOverlayOptions).addTo(map);
+              $(image._image).fadeIn(500);
+            });
+          } else {
+            map.fitBounds(bounds2);
+            image = new L.imageOverlay(img.src, bounds, imageOverlayOptions).addTo(map);
+            $(image._image).fadeIn(750);
+          }
+        };
+        img.onerror = function (error) {
+          var fileExtension = file.name.split('.').pop();
+          handler.notifyUser({
+            title: 'Invalid File Type',
+            message: 'Expected image file. Received ' + fileExtension + ' file.',
+            type: 'error',
+          });
+          $imageFileInput.val(imageFileNameForButton);
+        };
+        if (sample) {
+          img.src = defaultImageUrl;
+        } else {
+          img.src = _URL.createObjectURL(file);
+        }
+        handler.update.downloadButtonsLabels({
+          boxDownloadButton: imageFileName + '.box',
+          groundTruthDownloadButton: imageFileName + '.gt.txt'
+        });
 
+        worker = await Tesseract.createWorker({
+          logger: m => handler.process.workerLogMessage(m),
+          langPath: '../../assets',
+          gzip: false,
+        });
+        await worker.loadLanguage(languageModelName);
+        await worker.initialize(languageModelName);
+        await worker.setParameters({
+          tessedit_ocr_engine_mode: 1,
+          tessedit_pageseg_mode: 1,// 12
+        });
+        if (appSettings.behavior.onImageLoad.detectAllLines && !sample) {
+          var response = await handler.generate.initialBoxes(
+            includeSuggestions = appSettings.behavior.onImageLoad.includeTextForDetectedLines
+          );
+        }
+        handler.set.loadingState({ main: false, buttons: false });
+        if (appSettings.behavior.onImageLoad.detectAllLines) {
+          handler.focusGroundTruthField();
+        }
+        $(image._image).animate({ opacity: 1 }, 500);
+        imageFileInfo.setProcessed();
+      }
+    },
+    focusGroundTruthField: function () {
+      $groundTruthInputField.focus();
+      $groundTruthInputField.select();
+    },
+    focusBoxID: function (id, options = { isUpdated: false, zoom: true }) {
+      if (options.isUpdated == undefined) options.isUpdated = false;
+      if (options.zoom == undefined) options.zoom = true;
+      handler.style.remove(selectedPoly, options.isUpdated);
+      handler.map.disableEditBox(selectedBox);
+      var box = boxLayer.getLayer(id);
+      handler.update.form(boxData.find(x => x.polyid == id));
+      if (options.zoom) handler.map.focusShape(box, options.isUpdated);
+      handler.style.setActive(box);
+    },
+    submitText: function (event) {
+      if (event) event.preventDefault();
+      if (this.disabled === true) return false;
+      var
+        polyid = parseInt($groundTruthInputField.attr('boxid')),
+        newData = new Box({
+          text: $groundTruthInputField.val(),
+          x1: parseInt($x1Field.val()),
+          y1: parseInt($y1Field.val()),
+          x2: parseInt($x2Field.val()),
+          y2: parseInt($y2Field.val()),
+          committed: true,
+        }),
+        modified = handler.update.boxData(polyid, newData);
+      handler.update.rectangle(polyid, newData);
 
+      // if all boxes are committed then call download function
+      if (boxData.every(box => box.committed)) {
+        boxData.forEach(box => box.committed = false);
+        if (appSettings.behavior.workflow.autoDownloadBoxFileOnAllLinesComitted) {
+          $downloadBoxFileButton.click();
+        }
+        if (appSettings.behavior.workflow.autoDownloadGroundTruthFileOnAllLinesComitted) {
+          $downloadGroundTruthFileButton.click();
+        }
+      }
+      return modified
+    },
+    style: {
+      setProcessing: function (poly) {
+        if (poly) {
+          poly.setStyle(boxState.boxProcessing);
+        }
+      },
+      setActive: function (poly) {
+        if (poly) {
+          poly.setStyle(boxState.boxActive);
+        }
+      },
+      remove: function (poly, isUpdated = false) {
+        if (poly) {
+          poly.setStyle(isUpdated ? boxState.boxComitted : boxState.boxInactive);
+        }
+      },
+    },
+    map: {
+      disableEditBox: function (shape) {
+        if (selectedPoly && shape != selectedPoly) {
+          selectedPoly.editing.disable();
+        }
+      },
+      enableEditBox: function (shape) {
+        selectedPoly = shape;
+        shape.editing.enable();
+      },
+      getMapPosition: function () {
+        return map.getBounds();
+      },
+      fitImage: function () {
+        map.flyToBounds(image.getBounds(), {
+          // paddingBottomRight: mapPaddingBottomRight,
+          duration: .25,
+          easeLinearity: .25,
+          animate: true,
+        });
+      },
+      fitBounds: function (bounds) {
+        map.flyToBounds(bounds, {
+          maxZoom: maxZoom,
+          animate: true,
+          paddingBottomRight: mapPaddingBottomRight,
+          duration: .25,
+          easeLinearity: .25,
+        });
+      },
+      focusShape: function (box, isUpdated = false) {
+        handler.style.remove(selectedPoly, isUpdated);
+        handler.map.disableEditBox(selectedPoly);
+        map.flyToBounds(box.getBounds(), {
+          maxZoom: maxZoom,
+          animate: true,
+          paddingBottomRight: mapPaddingBottomRight,
+          duration: .25,
+          easeLinearity: .25,
+        });
+        selectedPoly = box;
+        handler.style.setActive(box);
+        handler.focusGroundTruthField();
+      },
+    },
+    getBoxContent: function (previous = false) {
+      if (typeof selectedBox === 'undefined') return boxData[0];
+      var
+        range = boxData.length,
+        el = boxData.findIndex(el => el.polyid == selectedBox.polyid);
+      if (previous) return boxData[(el + range - 1) % range];
+      return boxData[(el + 1) % range];
+    },
+    getNextBoxContentAndFill: function () {
+      var
+        isUpdated = handler.submitText(),
+        box = handler.getBoxContent();
+      handler.focusBoxID(box.polyid, { isUpdated });
+    },
+    getPreviousBoxContentAndFill: function () {
+      var
+        isUpdated = handler.submitText(),
+        box = handler.getBoxContent(previous = true);
+      handler.focusBoxID(box.polyid, { isUpdated });
 
+    },
+    download: {
+      file: async function (type, event) {
+        event.preventDefault() && event.stopPropagation();
+        if (boxData.length == 0) {
+          handler.notifyUser({
+            message: 'There is nothing to download!',
+            type: 'warning',
+          });
+          return false;
+        }
+        if (lineDataInfo.isDirty()) {
+          handler.notifyUser({
+            message: 'Please commit the current line first.',
+            type: 'warning',
+          });
+          return false;
+        }
+        handler.sortAllBoxes();
+        for (var box of boxData) {
+          box.text = box.text.replace(/(\r\n|\n|\r)/gm, '');
+        }
+        var
+          content = '',
+          fileExtension = '';
+        if (type == 'box') {
+          content = await handler.generate.boxFileContent();
+          fileExtension = 'box';
+        } else if (type == 'ground-truth') {
+          content = await handler.generate.groundTruthContent();
+          fileExtension = 'gt.txt';
+        }
+        downloadAnchor = document.createElement('a');
+        downloadAnchor.href = 'data:application/text;charset=utf-8,' + encodeURIComponent(content);
+        downloadAnchor.download = imageFileName + '.' + fileExtension;
+        downloadAnchor.target = '_blank';
+        downloadAnchor.style.display = 'none';
 
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        document.body.removeChild(downloadAnchor);
+        handler.notifyUser({
+          message: 'Downloaded file ' + imageFileName + '.' + fileExtension,
+          type: 'success',
+        });
+        boxDataInfo.setDirty(false);
+      },
+    },
+    generate: {
+      boxFileContent: async function (event) {
+        if (event) event.preventDefault();
+        var content = '';
+        if (boxFileType == BoxFileType.WORDSTR) {
+          for (var box of boxData) {
+            content = `${content}WordStr ${box.x1} ${box.y1} ${box.x2} ${box.y2} 0 #${box.text}\n`;
+            content = `${content}\t ${box.x2 + 1} ${box.y1} ${box.x2 + 5} ${box.y2} 0\n`;
+          }
+        }
+        return content;
+      },
+      groundTruthContent: async function (event) {
+        if (event) event.preventDefault();
+        var content = '';
+        if (boxFileType == BoxFileType.WORDSTR) {
+          for (var box of boxData) {
+            content = `${content}${box.text}\n`;
+          }
+        }
+        return content;
+      },
+      textSuggestion: async function () {
+        $regenerateTextSuggestionForSelectedBoxButton.addClass('disabled double loading');
+        suppressLogMessages['recognizing text'] = true;
 
-    $('#formtxt').bind('mouseup', showCharInfoPopup);
-    $('#formtxt').bind('keyup', showCharInfoPopup);
+        if (boxLayer.getLayers().length > 0) {
+          var
+            results = await handler.ocr.detect([selectedBox]),
+            element = boxData.findIndex(el => el.polyid == selectedBox.polyid);
+          boxData[element].text = results.length > 0 ? results[0].text : '';
+          handler.focusBoxID(boxData[element].polyid, { zoom: false })
+        }
 
-    $('#imageFile')
-        .popup({
-            popup: '.ui.useSampleImage.popup',
-            // position: 'top center',
-            position: 'top left',
-            hoverable: true,
-        })
-        ;
+        suppressLogMessages['recognizing text'] = false;
+        $regenerateTextSuggestionForSelectedBoxButton.removeClass('disabled double loading');
+      },
+      textSuggestions: async function () {
+        $regenerateTextSuggestionsButton.addClass('disabled double loading');
+        if (boxDataInfo.isDirty()) {
+          var response = await handler.askUser({
+            title: 'Warning',
+            message: 'Suggestions will be generated from the current lines. Do you want to continue?',
+            type: 'replacingTextWarning',
+            actions: [{
+              text: 'Cancel',
+              class: 'cancel',
+            }, {
+              text: 'yes',
+              class: 'positive',
+            }]
+          });
 
-    $('#settingsMenu .item')
-        .tab()
-        ;
-    $('.ui.settings.modal')
-        .modal({
-            inverted: false,
-            blurring: true,
-            onHidden: function () {
-                $("#settingsModalStatus").text("");
-                if (invalidPatterns) {
-                    displayMessage({
-                        title: 'Invalid Patterns',
-                        message: 'Some enabled highlighters have invalid patterns. Please fix them or disable the highlighters.',
-                        type: 'error',
-                        actions: [{
-                            text: 'Fix now',
-                            // icon: 'check',
-                            // class: 'green',
-                            click: function () {
-                                openSettingsPane('#highlighterTab');
-                            }
-                        }]
-                    });
-                }
-                if (identicalPatternNames) {
-                    displayMessage({
-                        title: 'Duplicate Pattern Names',
-                        message: 'Some highlighter names are the same. Please give them different names.',
-                        type: 'error',
-                        actions: [{
-                            text: 'Fix now',
-                            // icon: 'check',
-                            // class: 'green',
-                            click: function () {
-                                openSettingsPane('#highlighterTab');
-                            }
-                        }]
-                    });
-                }
+          if (!response) {
+            $regenerateTextSuggestionsButton.removeClass('disabled double loading');
+            return false;
+          }
+        }
+        suppressLogMessages['recognizing text'] = true;
+        handler.update.progressBar({ reset: true });
+        handler.set.loadingState({ buttons: true, main: true });
+        var mapPosition = handler.map.getMapPosition();
+        handler.map.fitImage();
+
+        if (boxLayer.getLayers().length > 0) {
+          var results = await handler.ocr.detect(boxData);
+          await Promise.all(boxData.map(async (box) => {
+            if (results.length > 0) {
+              var result = results.find(function (x) {
+                return box.equals(x);
+              });
+              box.text = result != undefined ? result.text : '';
+            }
+          }));
+          handler.focusBoxID(selectedBox.polyid, { zoom: false })
+        }
+        suppressLogMessages['recognizing text'] = false;
+        handler.map.fitBounds(mapPosition);
+        handler.set.loadingState({ buttons: false, main: false });
+        $regenerateTextSuggestionsButton.removeClass('disabled double loading');
+      },
+      initialBoxes: async function (includeSuggestions = true) {
+        $redetectAllBoxesButton.addClass('disabled double loading');
+
+        if (boxDataInfo.isDirty()) {
+          var response = await handler.askUser({
+            title: 'Warning',
+            message: 'Suggestions will be generated from the current lines. Do you want to continue?',
+            type: 'replacingTextWarning',
+            actions: [{
+              text: 'Cancel',
+              class: 'cancel',
+            }, {
+              text: 'yes',
+              class: 'positive',
+            }]
+          });
+
+          if (!response) {
+            $redetectAllBoxesButton.removeClass('disabled double loading');
+            return false;
+          }
+        }
+        handler.update.progressBar({ reset: true });
+        handler.set.loadingState({ buttons: true, main: true });
+        handler.map.fitImage();
+        boxLayer.clearLayers();
+        boxData = [];
+        try {
+          var
+            results = await handler.ocr.detect(),
+            textLines = results.data.lines;
+          if (textLines.length == 0) {
+            handler.set.loadingState({ buttons: false, main: false });
+            return false;
+          }
+
+          textLines.forEach(line => {
+            line.text = line.text.replace(/(\r\n|\n|\r)/gm, "");
+          });
+          await handler.ocr.insertSuggestions(includeSuggestions, textLines);
+          handler.focusBoxID(handler.getBoxContent().polyid);
+          handler.set.loadingState({ buttons: false, main: false });
+          handler.init.slider()
+          boxDataInfo.setDirty(false);
+          handler.update.progressBar({ type: 'tagging' });
+        } catch (error) {
+          console.log(error);
+          handler.set.loadingState({ buttons: false, main: false });
+        }
+
+        $redetectAllBoxesButton.removeClass('disabled double loading');
+      },
+    },
+    ocr: {
+      insertSuggestions: async function (includeSuggestions, textLines) {
+        boxLayer.clearLayers();
+        boxData = [];
+        for (var line of textLines) {
+          var
+            shape = line.bbox,
+            text = includeSuggestions ? line.text : '',
+            box = new Box({
+              text: text,
+              x1: shape.x0, // right
+              y1: imageHeight - shape.y1, // bottom
+              x2: shape.x1, // left
+              y2: imageHeight - shape.y0, // top
+            }),
+            rectangle = new L.rectangle([[box.y1, box.x1], [box.y2, box.x2]]);
+          rectangle.on('edit', handler.editRectangle);
+          rectangle.on('click', handler.selectRectangle);
+          handler.style.remove(rectangle);
+          boxLayer.addLayer(rectangle);
+          box.polyid = boxLayer.getLayerId(rectangle);
+          boxData.push(box);
+        }
+        map.addLayer(boxLayer);
+      },
+      detect: async function (boxList = []) {
+        if (boxList.length == 0) {
+          return await worker.recognize(image._image);
+        }
+        for (var box of boxList) {
+          var layer = boxLayer.getLayer(box.polyid);
+          handler.map.disableEditBox(layer);
+          handler.style.setProcessing(layer);
+          const message = {
+            type: 'regeneratingTextData',
+            value: boxList.findIndex(x => x.polyid == box.polyid),
+            total: boxList.length,
+          };
+          handler.update.progressBar(message);
+          var
+            rectangle = {
+              left: box.x1,
+              top: imageHeight - box.y2,
+              width: box.x2 - box.x1,
+              height: box.y2 - box.y1,
             },
+            result = await worker.recognize(image._image, { rectangle });
+          box.text = result.data.text.replace(/(\r\n|\n|\r)/gm, '');
+          box.committed = false;
+          box.visited = false;
+          handler.style.remove(layer);
+        };
+        return boxList;
+      },
+    },
+    close: {
+      settingsModal: function () {
+        $settingsModal.modal('hide');
+      },
+      popups: function () {
+        $popups.popup('hide');
+      },
+    },
+    open: {
+      settingsModal: function (location = '') {
+        // if location is an event and not a string
+        if (!(typeof location === 'string')) {
+          location = '';
+        }
+        handler.close.popups();
+        $settingsModal.modal('show');
+        if (location) {
+          $settingsMenuItems.removeClass('active');
+          $settingsMenuPaneTabs.removeClass('active');
+          $settingsMenuItems.filter('[data-tab="' + location + '"]').addClass('active');
+          $settingsMenuPaneTabs.filter('[data-tab="' + location + '"]').addClass('active');
+        }
+      },
+
+    },
+    toggleInvisibles: function () {
+      var
+        showInvisibles = !appSettings.interface.showInvisibles,
+        path = 'interface.showInvisibles',
+        value = showInvisibles;
+      handler.update.appSettings({ path, value });
+      handler.update.colorizedBackground();
+      // $invisiblesToggleButton.toggleClass('active');
+      handler.focusGroundTruthField();
+    },
+    showCharInfoPopup: function (event) {
+      if (!appSettings.behavior.workflow.unicodeInfoPopup) return;
+      if (event.ctrlKey || event.altKey || event.metaKey || event.keyCode == 13) return false;
+      var selection = null;
+      if (window.getSelection) {
+        selection = window.getSelection();
+      } else if (document.selection) {
+        selection = document.selection.createRange();
+      }
+
+      // Firefox bug workaround
+      if (selection.toString().length == 0) {
+        var
+          startPosition = $groundTruthInputField[0].selectionStart,
+          endPosition = $groundTruthInputField[0].selectionEnd,
+          selection = $groundTruthInputField[0].value.substring(startPosition, endPosition);
+      }
+      var results = handler.getUnicodeInfo(selection.toString());
+      // TODO: replace max length with a programmatic solution
+      if (results.length == 0 || results.length > 15) {
+        handler.close.popups();
+        return false;
+      } else {
+        var content = handler.create.infoPopupContent(results);
+        $groundTruthForm.popup('get popup').css('max-height', '20em');
+        $groundTruthForm.popup('get popup').css('overflow', 'visible');
+        $groundTruthForm.popup('get popup').css('scrollbar-width', 'none');
+        $groundTruthForm.popup('get popup').css('scrollbar-width', 'none');
+        $groundTruthForm.popup('get popup').css('-ms-overflow-style', 'none');
+        $groundTruthForm.popup('get popup').css('scrollbar-width', 'none');
+
+        if ($groundTruthForm.popup('is visible')) {
+          $groundTruthForm.popup('change content (html)', content);
+        } else if ($groundTruthForm.popup('is hidden')) {
+          $groundTruthForm.popup({ on: 'manual', 'html': content }).popup('show')
+        } else {
+          console.error('Unknown Char Info popup state');
+        }
+      }
+    },
+    bindInputs: function () {
+      handler.bindColorizerOnInput();
+      $groundTruthInputField.on('input', function () {
+        lineDataInfo.setDirty(true);
+      })
+      $textHighlightingEnabledCheckbox.checkbox({
+        onChange: function () {
+          handler.update.colorizedBackground();
+        }
+      });
+      $groundTruthInputField.bind('mouseup', handler.showCharInfoPopup)
+      $coordinateFields.on('input', handler.update.boxCoordinates);
+      $boxFileInput.on('change', handler.load.boxFile);
+      $imageFileInput.on('change', handler.load.imageFile);
+      $checkboxes.checkbox();
+      $checkboxes.filter('.master')
+        .checkbox({
+          // check all children
+          onChecked: function () {
+            var
+              $childCheckbox = $(this).closest('.item').siblings().find('.child')
+              ;
+            $childCheckbox.checkbox('set enabled');
+          },
+          // disable all children
+          onUnchecked: function () {
+            var
+              $childCheckbox = $(this).closest('.item').siblings().find('.child')
+              ;
+            $childCheckbox.checkbox('set disabled');
+          }
         })
-    const cookieValue = Cookies.get("appSettings");
-    if (cookieValue) {
-        cookieSettings = JSON.parse(cookieValue);
-        updateAppSettings({ cookie: cookieSettings });
-    } else {
-        updateSettingsModal();
-    }
+        ;
+    },
+    bindButtons: function () {
+      $nextBoxButton.on('click', handler.getNextBoxContentAndFill);
+      $previousBoxButton.on('click', handler.getPreviousBoxContentAndFill);
+      $downloadBoxFileButton.on('click', handler.download.file.bind(handler.download, 'box'));
+      $downloadGroundTruthFileButton.on('click', handler.download.file.bind(handler.download, 'ground-truth'));
+      $invisiblesToggleButton.on('click', handler.toggleInvisibles);
+      $regenerateTextSuggestionForSelectedBoxButton.on('click', handler.generate.textSuggestion);
+      $redetectAllBoxesButton.on('click', handler.generate.initialBoxes);
+      $regenerateTextSuggestionsButton.on('click', handler.generate.textSuggestions);
+      $settingsButton.on('click', handler.open.settingsModal);
+      $settingsButtonForHelpPane.on('click', handler.open.settingsModal.bind(handler.open, 'help-section'));
+      $resetButton.on('click', handler.resetAppSettingsAndCookies);
+      $useSampleImageButton.on('click', handler.load.sampleImageAndBox);
+      $addNewHighligherButton.on('click', handler.addNewHighlighterPattern);
+    },
+    addBehaviors: function () {
+      $groundTruthInputField.focus(function () {
+        $groundTruthColorizedOutput.addClass('focused')
+      });
+      $groundTruthInputField.blur(function () {
+        $groundTruthColorizedOutput.removeClass('focused')
+      });
+    },
+    initialize: async function () {
+      handler.bindInputs();
+      handler.bindButtons();
+      handler.addBehaviors();
+      $imageFileInput.prop('disabled', false);
+      handler.setKeyboardControl('form');
+      // handler.set.loadingState({ buttons: false });
+      await handler.load.unicodeData();
+      handler.load.dropzone();
+      handler.load.popups();
+      handler.create.defaultHighlighterTable();
+      handler.create.defaultKeyboardShortcutsTable();
+      handler.load.settings();
+      handler.load.eventListeners();
 
-    const tableContainer = document.getElementById('highlighterTableContainer');
-    const defaultTable = constructDefaultTable();
-    // make first child
-    tableContainer.insertBefore(defaultTable, tableContainer.firstChild);
-    savePatternsToSettings();
+      handler.saveHighlightsToSettings();
+      handler.saveKeyboardShortcutsToSettings();
 
-    // $('.ui.dropdown')
-    //     .dropdown({
-    //         onChange: function (value, text, $selected) {
-    //             savePatternsToSettings();
-    //         },
-    //     })
-    //     ;
-    $(`input[name='highlighter.textHighlighting.textHighlightingEnabled']`).checkbox({
-        onChange: function (value, text, $selected) {
-            savePatternsToSettings();
-        }
-    });
-    $('.ui.checkbox').checkbox(
-    );
-    $('.ui.checkbox.text-highlighter-checkbox').checkbox({
-        onChange: function (value, text, $selected) {
-            savePatternsToSettings();
-        }
-    });
-});
+    },
+  };
+
+  availableShortcutActions = [
+    {
+      // target: $window,
+      icon: 'arrow right',
+      name: 'Move to next box',
+      action: handler.getNextBoxContentAndFill,
+    },
+    {
+      // target: $window,
+      icon: 'arrow left',
+      name: 'Move to previous box',
+      action: handler.getPreviousBoxContentAndFill,
+    },
+    // {
+    //   target: $groundTruthInputField,
+    //   icon: 'info circle',
+    //   name: 'Show Unicode info',
+    //   action: handler.showCharInfoPopup,
+    // },
+  ],
+
+    app.handler = handler;
+
+  // Start the Magic
+  await app.handler.initialize();
+
+  app.handler.open.settingsModal('about-section');
+
+};
+
+// attach ready event
+$(document).ready(app.ready);
