@@ -1647,6 +1647,7 @@ app.ready = async function () {
       },
       patternLabels: function () {
         $highlighterLabels.empty();
+        if (!appSettings.highlighter.textHighlighting.textHighlightingEnabled) return;
         const highlights = handler.getHighlighters();
         for (const key in highlights) {
           if (highlights.hasOwnProperty(key)) {
