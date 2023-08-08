@@ -52,7 +52,7 @@ class Box {
 }
 
 // ready event
-app.ready = function () {
+app.ready = async function () {
 
   // selector cache
   var
@@ -79,6 +79,7 @@ app.ready = function () {
     $groundTruthForm = $('#updateTxt'),
     $settingsModal = $('.ui.settings.modal'),
     $settingsModalStatus = $('#settingsModalStatus'),
+    $settingsModalStatusMessage = $settingsModalStatus.find('.ui.disabled.tertiary.button'),
     $map = $('#mapid'),
     $boxFileInput = $('#boxFile'),
     $imageFileInput = $('#imageFile'),
@@ -113,6 +114,8 @@ app.ready = function () {
     $keyboardShortcutsTableContainer = $('#keyboardShortcutsTableContainer'),
     $keyboardShortcutsTableBody = $keyboardShortcutsTableContainer.find('.ui.celled.table tbody'),
     $keyboardShortcutsTableRows = $keyboardShortcutsTableBody.find('tr'),
+    $appInfoVersion = $('#appInfoVersion'),
+    $appInfoUpdated = $('#appInfoUpdated'),
 
 
     pressedModifiers = {},
@@ -209,6 +212,7 @@ app.ready = function () {
           progressIndicator: true,
           positionSlider: true,
           formCoordinateFields: true,
+          unicodeInfoPopup: true,
           autoDownloadBoxFileOnAllLinesComitted: false,
           autoDownloadGroundTruthFileOnAllLinesComitted: false,
         },
@@ -262,6 +266,16 @@ app.ready = function () {
 
   // event handler
   handler = {
+    getAppInfo: function () {
+      // get details from ../../app-version.json
+      appInfo = JSON.parse($.ajax({
+        url: "../../app-version.json",
+        async: false,
+        dataType: "json"
+      }).responseText);
+      appInfo.appName = appInfo.name.replace(/[^\w\s]/gi, '');
+      return appInfo;
+    },
     bindColorizerOnInput: function () {
       $colorizedOutputForms.each(function () {
         $(this).find('input').bind('input', handler.update.colorizedBackground);
@@ -327,28 +341,25 @@ app.ready = function () {
           } else {
             if (currentScript.includes('space')) {
               if (!currentSpan.includes('multiple')) {
-                currentSpan = currentSpan.reaplace('space', 'space multiple');
+                currentSpan = currentSpan.replace('space', 'space multiple');
               }
               currentSpan += charSpace;
             } else {
               currentSpan += char;
             }
           }
+          currentScript = spanClass;
         } else {
           spanClass = 'other';
-          if (currentScript != spanClass) {
             if (currentSpan !== '') {
-              if (currentScript.includes('space') &&
-                !currentScript.includes('multiple')) {
-                currentSpan = currentSpan.replace('space', 'space multiple');
-              }
+              // if (currentScript.includes('space') &&
+              //   !currentScript.includes('multiple')) {
+              //   currentSpan = currentSpan.replace('space', 'space multiple');
+              // }
               colorizedText += '</span>' + currentSpan;
             }
             currentSpan = '<span class="' + spanClass + '">' + char;
             currentScript = spanClass;
-          } else {
-            currentSpan += char;
-          }
         }
       }
       colorizedText += '</span>' + currentSpan;
@@ -356,7 +367,7 @@ app.ready = function () {
     },
     getHighlighters: function () {
       var patterns = {};
-      if (appSettings.highlighter.textHighlighting.textHighlightingEnabled) {
+      if ($textHighlightingEnabledCheckbox[0].checked) {
         if (appSettings.highlighter.textHighlighting.highlightsPatterns.length == 0) {
           handler.saveHighlightsToSettings();
         }
@@ -1002,7 +1013,7 @@ app.ready = function () {
           deleteButton = document.createElement('i');
         actionCell.className = 'single line';
         actionCell.setAttribute('data-label', 'Edit');
-        deleteButton.className = 'large red minus circle link icon';
+        deleteButton.className = 'large red times circle link icon';
         $(deleteButton).on('click', function () {
           $(this).parent().parent().remove();
           $highlighterTableBody = $highlighterTableContainer.find('.ui.celled.table tbody'),
@@ -1385,6 +1396,10 @@ app.ready = function () {
         for (const [key, value] of Object.entries(appSettings.behavior.onImageLoad)) {
           const path = 'behavior.onImageLoad.' + key;
           document.querySelector(`input[name='${path}']`).checked = value;
+          if (key == 'detectAllLines' && !value) {
+            document.querySelector(`input[name="behavior.onImageLoad.includeTextForDetectedLines"]`).disable = true;
+            document.querySelector(`input[name="behavior.onImageLoad.includeTextForDetectedLines"]`).parentElement.classList.add('disabled');
+          }
         }
         // Warrning Messages
         for (const [key, value] of Object.entries(appSettings.behavior.alerting)) {
@@ -1400,8 +1415,8 @@ app.ready = function () {
           // }
           // // Convenience Features
           // for (const [key, value] of Object.entries(appSettings.behavior.workflow)) {
-            // const path = 'behavior.convenience.' + key;
-            document.querySelector(`input[name='${path}']`).checked = value;
+          // const path = 'behavior.convenience.' + key;
+          document.querySelector(`input[name='${path}']`).checked = value;
           // }
         }
         // Keyboard Shortcuts
@@ -1594,7 +1609,7 @@ app.ready = function () {
         if (cookie) {
           appSettings = { ...appSettings, ...cookie };
         } else {
-          const
+          var
             pathElements = path.split('.'),
             button = document.createElement('div'),
             status = document.createElement('div'),
@@ -1620,6 +1635,7 @@ app.ready = function () {
             $settingsModalStatus[0].innerHTML = '';
             $settingsModalStatus[0].appendChild(status);
             $settingsModalStatus[0].appendChild(button);
+            $settingsModalStatusMessage = $settingsModalStatus.find('.ui.disabled.tertiary.button');
           }, 300)
           $settingsModalStatus[0].innerHTML = '';
           $settingsModalStatus[0].appendChild(inlineLoader);
@@ -1802,6 +1818,26 @@ app.ready = function () {
         boxFileType = BoxFileType.CHAR_OR_LINE;
       }
     },
+    formatDate: function (date) {
+      var options = { month: 'long', day: 'numeric', year: 'numeric' };
+      var dateString = date.toLocaleDateString('en-US', options);
+      // dateString = dateString.replace(/(\d+)(st|nd|rd|th)/, '$1');
+      const day = date.getDate();
+      let daySuffix;
+
+      if (day === 1 || day === 21 || day === 31) {
+        daySuffix = "st";
+      } else if (day === 2 || day === 22) {
+        daySuffix = "nd";
+      } else if (day === 3 || day === 23) {
+        daySuffix = "rd";
+      } else {
+        daySuffix = "th";
+      }
+
+      const formattedDate = dateString.replace(/\d+/, day + daySuffix);
+      return formattedDate;
+    },
     load: {
       keyboardShortcuts: function () {
         $window.keyup(function (event) {
@@ -1857,12 +1893,18 @@ app.ready = function () {
         });
       },
       settings: function () {
+        handler.getAppInfo();
+        $appInfoVersion.text(appInfo.version);
+        // format date to month date, year
+        const date = new Date(appInfo.updated);
+        $appInfoUpdated.text(handler.formatDate(date));
         $settingsMenuItems.tab();
         $settingsModal.modal({
           inverted: false,
           blurring: true,
           onHidden: function () {
-            $settingsModalStatus.text("");
+            // hide status if still visible
+            if ($settingsModalStatusMessage[0]) $settingsModalStatusMessage[0].innerHTML = '';
             var
               title = '',
               message = '';
@@ -2529,6 +2571,7 @@ app.ready = function () {
       handler.focusGroundTruthField();
     },
     showCharInfoPopup: function (event) {
+      if (!appSettings.behavior.workflow.unicodeInfoPopup) return;
       if (event.ctrlKey || event.altKey || event.metaKey || event.keyCode == 13) return false;
       var selection = null;
       if (window.getSelection) {
@@ -2572,11 +2615,34 @@ app.ready = function () {
       $groundTruthInputField.on('input', function () {
         lineDataInfo.setDirty(true);
       })
+      $textHighlightingEnabledCheckbox.checkbox({
+        onChange: function () {
+          handler.update.colorizedBackground();
+        }
+      });
       $groundTruthInputField.bind('mouseup', handler.showCharInfoPopup)
       $coordinateFields.on('input', handler.update.boxCoordinates);
       $boxFileInput.on('change', handler.load.boxFile);
       $imageFileInput.on('change', handler.load.imageFile);
       $checkboxes.checkbox();
+      $checkboxes.filter('.master')
+        .checkbox({
+          // check all children
+          onChecked: function () {
+            var
+              $childCheckbox = $(this).closest('.item').siblings().find('.child')
+              ;
+            $childCheckbox.checkbox('set enabled');
+          },
+          // disable all children
+          onUnchecked: function () {
+            var
+              $childCheckbox = $(this).closest('.item').siblings().find('.child')
+              ;
+            $childCheckbox.checkbox('set disabled');
+          }
+        })
+        ;
     },
     bindButtons: function () {
       $nextBoxButton.on('click', handler.getNextBoxContentAndFill);
@@ -2646,11 +2712,10 @@ app.ready = function () {
     app.handler = handler;
 
   // Start the Magic
-  app.handler.initialize();
+  await app.handler.initialize();
 
-  // handler.keyboardShortcuts.register()
+  app.handler.open.settingsModal('about-section');
 
-  var testRun = null;
 };
 
 // attach ready event

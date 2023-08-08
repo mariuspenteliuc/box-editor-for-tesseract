@@ -295,19 +295,19 @@
             </div>
             <div class="list">
               <div class="item">
-                <div class="ui child radio checkbox">
+                <div class="ui radio checkbox">
                   <input type="radio" name="interface.appearance" value="light-theme">
                   <label>Light</label>
                 </div>
               </div>
               <div class="item">
-                <div class="ui child radio checkbox">
+                <div class="ui radio checkbox">
                   <input type="radio" name="interface.appearance" value="dark-theme">
                   <label>Dark</label>
                 </div>
               </div>
               <div class="item">
-                <div class="ui child radio checkbox">
+                <div class="ui radio checkbox">
                   <input type="radio" name="interface.appearance" value="match-device">
                   <label>Match Device</label>
                 </div>
@@ -349,23 +349,23 @@
           <div class="item">
             <div class="header">Image View</div>
             <div class="description">
-              Adjust the height of the image view in the main screen.
+              Adjust the size of the image display area.
             </div>
             <div class="list">
               <div class="item">
-                <div class="ui child radio checkbox">
+                <div class="ui radio checkbox">
                   <input type="radio" name="interface.imageView" value="short">
                   <label>Short</label>
                 </div>
               </div>
               <div class="item">
-                <div class="ui child radio checkbox">
+                <div class="ui radio checkbox">
                   <input type="radio" name="interface.imageView" value="medium">
                   <label>Medium</label>
                 </div>
               </div>
               <div class="item">
-                <div class="ui child radio checkbox">
+                <div class="ui radio checkbox">
                   <input type="radio" name="interface.imageView" value="tall">
                   <label>Tall</label>
                 </div>
@@ -383,7 +383,7 @@
             </div>
             <div class="list">
               <div class="item">
-                <div class="ui child checkbox">
+                <div class="ui master checkbox">
                   <input type="checkbox" name="behavior.onImageLoad.detectAllLines">
                   <label>Detect all lines of text</label>
                 </div>
@@ -391,29 +391,41 @@
               <div class="item">
                 <div class="ui child checkbox">
                   <input type="checkbox" name="behavior.onImageLoad.includeTextForDetectedLines">
-                  <label>Include text for detected lines</label>
+                  <label>Include text suggestions for detected lines</label>
                 </div>
               </div>
             </div>
           </div>
           <div class="item" name="alerting">
-            <div class="header">Alerting</div>
+            <div class="header">Alerts and Warnings</div>
             <div class="description">
-              Enable or surpress the following warning messages.
+              Enable or surpress the following messages.
             </div>
             <div class="list">
               <div class="item">
-                <div class="ui child checkbox">
+                <div class="ui checkbox">
                   <input type="checkbox" name="behavior.alerting.enableWarrningMessagesForDifferentFileNames">
                   <label>Box and image file names do not match</label>
                 </div>
               </div>
               <div class="item">
-                <div class="ui child checkbox">
+                <div class="ui checkbox">
                   <input type="checkbox" name="behavior.alerting.enableWarrningMessagesForUncommittedChanges">
                   <label>Leaving or loading an image without first downloading</label>
                 </div>
               </div>
+              <!-- <div class="item">
+                <div class="ui checkbox">
+                  <input type="checkbox" name="behavior.alerting.enableWarrningMessagesForInvalidRegexPatterns">
+                  <label>Highlighter patterns have an invalid regular expression</label>
+                </div>
+              </div>
+              <div class="item">
+                <div class="ui checkbox">
+                  <input type="checkbox" name="behavior.alerting.enableWarrningMessagesForIdenticalHighlighterNames">
+                  <label>Two or more highlighter patterns have the same name</label>
+                </div>
+              </div> -->
             </div>
           </div>
           <div class="item">
@@ -423,31 +435,37 @@
             </div>
             <div class="list">
               <div class="item">
-                <div class="ui child checkbox">
+                <div class="ui checkbox">
                   <input type="checkbox" name="behavior.workflow.progressIndicator">
                   <label>Indicate task progress</label>
                 </div>
               </div>
               <div class="item">
-                <div class="ui child checkbox">
+                <div class="ui checkbox">
                   <input type="checkbox" name="behavior.workflow.positionSlider">
                   <label>Show interactive position slider</label>
                 </div>
               </div>
               <div class="item">
-                <div class="ui child checkbox">
+                <div class="ui checkbox">
                   <input type="checkbox" name="behavior.workflow.formCoordinateFields">
                   <label>Display coordinate fields in form</label>
                 </div>
               </div>
               <div class="item">
-                <div class="ui child checkbox">
+                <div class="ui checkbox">
+                  <input type="checkbox" name="behavior.workflow.unicodeInfoPopup">
+                  <label>Show Unicode info popup for selected characters</label>
+                </div>
+              </div>
+              <div class="item">
+                <div class="ui checkbox">
                   <input type="checkbox" name="behavior.workflow.autoDownloadBoxFileOnAllLinesComitted">
                   <label>Auto-download box file when all lines committed</label>
                 </div>
               </div>
               <div class="item">
-                <div class="ui child checkbox">
+                <div class="ui checkbox">
                   <input type="checkbox" name="behavior.workflow.autoDownloadGroundTruthFileOnAllLinesComitted">
                   <label>Auto-download ground truth file when all lines committed</label>
                 </div>
@@ -461,7 +479,7 @@
             </div>
             <div class="list">
               <div class="item">
-                <div class="ui disabled child checkbox">
+                <div class="ui disabled checkbox">
                   <input disabled type="checkbox" name="behavior.keyboardShortcuts.keyboardShortcutsEnabled">
                   <label>Use keyboard shortcuts</label>
                 </div>
@@ -472,13 +490,15 @@
             <!-- <div id="addNewKeyboardShortcuts" class="ui right floated small labeled icon button">
               <i class="plus icon"></i> Add Shortcut
             </div> -->
-            <div class="ui icon message">
-              <i class="bell icon"></i>
+            <div class="ui tiny icon message">
+              <i class="keyboard icon"></i>
               <div class="content">
                 <div class="header">
                   Upcoming Feature
                 </div>
-                <p>In a future update you will be able to customize the keyboard shortcuts. For now, you can use these defaults and swap them out.</p>
+                <p>In a future update you will be able to add and customize the keyboard shortcuts. For now, you can use
+                  these
+                  defaults and swap them around.</p>
               </div>
             </div>
           </div>
@@ -489,12 +509,12 @@
           <div class="item" name="text-highlighting">
             <div class="header">Text Highlighting</div>
             <div class="description">
-              Highlight text according to regex patterns.
+              Highlight text in the input field based on custom regex patterns.
             </div>
             <div class="list">
               <div class="item">
-                <div class="ui disabled child checkbox">
-                  <input disabled type="checkbox" name="highlighter.textHighlighting.textHighlightingEnabled">
+                <div class="ui checkbox">
+                  <input type="checkbox" name="highlighter.textHighlighting.textHighlightingEnabled">
                   <label>Use text highlighting</label>
                 </div>
               </div>
@@ -507,11 +527,11 @@
           </div>
           <form class="ui form colorized-output-form" id="updatePreview" spellcheck="false">
             <div id="myPreviewContainer" class="field">
-              <label class="col-sm-2 control-label" for="previewText" id="previewLabel">Text</label>
+              <label class="col-sm-2 control-label" for="previewText" id="previewLabel">&nbsp;</label>
               <div id="myPreviewBackground" class="no-kerning colorized-output-field">&nbsp;</div>
             </div>
             <div class="field">
-              <label class="col-sm-2 control-label" for="previewText" id="previewLabel">Text</label>
+              <label class="col-sm-2 control-label" for="previewText" id="previewLabel">Preview</label>
               <input type="text" id="previewText" class="no-kerning colorized-input-field"
                 value="1 colored sample here...">
             </div>
@@ -523,31 +543,24 @@
           <div class="item">
             <h3 class="ui header">How to use the Box Editor</h3>
             <p>
-              To start, you must pick an image to tag it with the ground truth. Bounding boxes are automatically
-              generated and can be
-              edited. You
-              can also upload an existing <code>.box</code> file to edit it, but the generated bounding boxes will
-              be
-              overwritten.
+              To begin, upload an image or use the provided sample. Select the buttons in the toolbar to perform certain
+              actions such as identifying lines of text and generating suggestions.
             </p>
             <p>
-              The progress bar shows the progress of the tagging. When done, download the <code>.box</code> file and
-              the
-              <code>.gt.txt</code> file to use in Tesseract.
+              Once text boxes are generated for all lines of text, you can start editing as needed. Either manually type
+              in the box dimensions in the coordinate fields or drag the handles on the image to change the size or
+              position of a text box.
+              Use the tools on the right to split boxes into columns, draw new ones, or delete existing boxes.
             </p>
             <p>
-              Box handles appear after clicking on it. You can drag them to move the box or resize it. Create boxes
-              using the
-              square tool and delete them using the trash can tool.
+              When the document is complete, download the <code>.box</code> file and <code>.gt.txt</code> files and use
+              them to train your OCR model.
             </p>
-            <div class="ui sub header">Tips</div>
-            <p>
-              Select characters in the input field to see their Unicode name.
+            The progress bar shows the progress of the tagging. When done, download the <code>.box</code> file and
+            the
+            <code>.gt.txt</code> file to use in Tesseract.
             </p>
-            <p>
-              While tagging use <code>return</code> and <code>shift+return</code> to move forward and backward.
-            </p>
-            <button id="useSampleImage" class="ui right labeled basic icon button">
+            <button tabindex="0" id="useSampleImage" class="ui right labeled basic icon button">
               <i class="right arrow icon"></i>
               Use sample
             </button>
@@ -587,7 +600,7 @@
               <div class="item">
                 <i class="plus icon"></i>
                 <div class="content">
-                  Zoom into the image.
+                  Zoom in on the image.
                 </div>
               </div>
               <div class="item">
@@ -605,13 +618,13 @@
               <div class="item">
                 <i class="square icon"></i>
                 <div class="content">
-                  Draw boxes to define regions of text.
+                  Draw new boxes for text.
                 </div>
               </div>
               <div class="item">
                 <i class="trash alternate icon"></i>
                 <div class="content">
-                  Clear drawn boxes selectively.
+                  Delete one or more boxes.
                 </div>
               </div>
             </div>
@@ -622,28 +635,49 @@
         <div class="ui very relaxed list">
           <div class="item">
             <h3 class="ui header">About</h3>
-            <p>This tool provides a powerful Box Editor for Tesseract. It allows you to efficiently generate, edit,
-              and manage
-              boxes in WordStr format. For more information and support, please visit the following links:</p>
-            <div class="ui small list">
-              <div class="item">
-                Project Website: <a class="more external"
-                  href="https://transitional-romanian-transliteration.azurewebsites.net/" target="_blank"
-                  title="ROTLA Website">ROTLA</a>
-              </div>
-              <div class="item">
-                Source code: <a class="more external" href="https://github.com/mariuspenteliuc/box-editor-for-tesseract"
-                  target="_blank" title="GitHub">GitHub</a>
-              </div>
-              <div class="item">
-                Author: <a class="more external" href="https://penteliuc.com" target="_blank"
-                  title="Author's Website">Marius E. Penteliuc</a>
-              </div>
-              <div class="item">
-                Extended from: <a class="more external" href="https://johanjunkka.com" target="_blank"
-                  title="Initial Source Code">Johan Junkka</a>
-              </div>
+            <p>This is a powerful Box Editor for Tesseract allowing for efficient generation, editing, and managing text
+              boxes in WordStr format. The tool uses a custom trained model for authoring the Romanian Transitional
+              Script.
+            </p>
+            <div class="ui basic label">
+              Version: <div id="appInfoVersion" class="detail">1.4.1</div>
             </div>
+            <div class="ui basic label">
+              Updated: <div id="appInfoUpdated" class="detail">July 22nd, 2023</div>
+            </div>
+          </div>
+          <div class="item">
+            <p>
+              For info and support, please visit the following links:</p>
+            <table class="ui unstackable striped celled collapsing table">
+              <tbody>
+                <tr>
+                  <td>Author:</td>
+                  <td class="right aligned"><a class="" href="https://penteliuc.com" target="_blank"
+                      title="Author's Website">Marius E. Penteliuc</a></td>
+                </tr>
+                <tr>
+                  <td>Source Code:</td>
+                  <td class="right aligned"><a class=""
+                      href="https://github.com/mariuspenteliuc/box-editor-for-tesseract" target="_blank"
+                      title="GitHub">GitHub Repository</a></td>
+                </tr>
+                <tr>
+                  <td>Project Website:</td>
+                  <td class="right aligned"><a class=""
+                      href="https://transitional-romanian-transliteration.azurewebsites.net/" target="_blank"
+                      title="ROTLA Website">ROTLA Team</a></td>
+                </tr>
+              </tbody>
+              <tfoot class="full-width">
+                <tr>
+                  <th colspan="2">
+                    Extended from the work of <a class="more external" href="https://johanjunkka.com" target="_blank"
+                      title="Initial Source Code">Johan Junkka.</a>
+                  </th>
+                </tr>
+              </tfoot>
+            </table>
           </div>
           <div class="item">
             <h3 class="ui header">Acknowledgements</h3>
@@ -651,15 +685,16 @@
               Digitization, CCCDI -
               UEFISCDI, project number PN-III-P2-2.1-PED-2021-0693, within PNCDI III.</p>
           </div>
-          <div class="item">
-            <div class="ui basic label">
-              Version: <div class="detail">1.4.1</div>
-            </div>
-            <div class="ui basic label">
-              Updated: <div class="detail">July 22nd, 2023</div>
+          <div class="ui tiny compact icon message">
+            <i class="translate icon"></i>
+            <div class="content">
+              <div class="header">
+                Upcoming Feature
+              </div>
+              <p>A future update will allow switching between multiple OCR models.</p>
             </div>
           </div>
-          <!-- <div class="ui hidden divider"></div> -->
+          <div class="ui divider"></div>
           <div class="item">
             <h3 class="ui header">Reset</h3>
             <p>In case of unexpected behavior, you can reset all settings to their default values.</p>
