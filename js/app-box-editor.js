@@ -80,6 +80,7 @@ app.ready = async function () {
     $settingsModal = $('.ui.settings.modal'),
     $settingsModalStatus = $('#settingsModalStatus'),
     $settingsModalStatusMessage = $settingsModalStatus.find('.ui.disabled.tertiary.button'),
+    $settingsModalContent = $settingsModal.find('.content'),
     $map = $('#mapid'),
     $boxFileInput = $('#boxFile'),
     $imageFileInput = $('#imageFile'),
@@ -351,15 +352,11 @@ app.ready = async function () {
           currentScript = spanClass;
         } else {
           spanClass = 'other';
-            if (currentSpan !== '') {
-              // if (currentScript.includes('space') &&
-              //   !currentScript.includes('multiple')) {
-              //   currentSpan = currentSpan.replace('space', 'space multiple');
-              // }
-              colorizedText += '</span>' + currentSpan;
-            }
-            currentSpan = '<span class="' + spanClass + '">' + char;
-            currentScript = spanClass;
+          if (currentSpan !== '') {
+            colorizedText += '</span>' + currentSpan;
+          }
+          currentSpan = '<span class="' + spanClass + '">' + char;
+          currentScript = spanClass;
         }
       }
       colorizedText += '</span>' + currentSpan;
@@ -368,9 +365,6 @@ app.ready = async function () {
     getHighlighters: function () {
       var patterns = {};
       if ($textHighlightingEnabledCheckbox[0].checked) {
-        if (appSettings.highlighter.textHighlighting.highlightsPatterns.length == 0) {
-          handler.saveHighlightsToSettings();
-        }
         for (entry of appSettings.highlighter.textHighlighting.highlightsPatterns) {
           if (entry.enabled) {
             patterns[entry.name] = entry;
@@ -407,7 +401,7 @@ app.ready = async function () {
       return result;
     },
     saveHighlightsToSettings: function () {
-      if (appSettings.highlighter.textHighlighting.textHighlightingEnabled) {
+      if ($textHighlightingEnabledCheckbox[0].checked) {
         var
           patterns = [],
           errorMessages = [];
@@ -451,9 +445,7 @@ app.ready = async function () {
         }
         appSettings.highlighter.textHighlighting.highlightsPatterns = patterns;
       }
-      if (appSettings.highlighter.textHighlighting.highlightsPatterns.length > 0) {
-        handler.update.colorizedBackground();
-      }
+      handler.update.colorizedBackground();
       handler.update.patternLabels();
       handler.update.cookie();
     },
@@ -1195,8 +1187,8 @@ app.ready = async function () {
       const row = handler.create.highlighterRow(true, 'New Highlighter', false, '.');
       tableBody.append(row);
       // update selectors
-      $highlighterTableBody = $highlighterTableContainer.find('.ui.celled.table tbody'),
-        $highlighterTableRows = $highlighterTableBody.find('tr');
+      $highlighterTableBody = $highlighterTableContainer.find('.ui.celled.table tbody');
+      $highlighterTableRows = $highlighterTableBody.find('tr');
       handler.saveHighlightsToSettings();
     },
     sortAllBoxes: function () {
@@ -1647,6 +1639,7 @@ app.ready = async function () {
       },
       patternLabels: function () {
         $highlighterLabels.empty();
+        if (!$textHighlightingEnabledCheckbox[0].checked) return;
         const highlights = handler.getHighlighters();
         for (const key in highlights) {
           if (highlights.hasOwnProperty(key)) {
@@ -2617,7 +2610,7 @@ app.ready = async function () {
       })
       $textHighlightingEnabledCheckbox.checkbox({
         onChange: function () {
-          handler.update.colorizedBackground();
+          handler.saveHighlightsToSettings();
         }
       });
       $groundTruthInputField.bind('mouseup', handler.showCharInfoPopup)
