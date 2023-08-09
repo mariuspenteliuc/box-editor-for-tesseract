@@ -64,3 +64,4 @@ jobs:
           # branch: ${{ github.head_ref }}
           title: Update 'updated' field
           body: Automatically updated the 'updated' field in app-version.json
+          delete-branch: true
