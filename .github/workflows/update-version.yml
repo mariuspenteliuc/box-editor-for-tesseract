@@ -35,13 +35,7 @@ jobs:
       - name: Update Version
         if: steps.actor_check.outputs.skip_update == false
         run: |
-          # if [[ steps.actor_check.outputs.skip_update == 'true' ]]; then
-          #   echo "skip update is true"
-          # else
-          #   echo "skip update is false"
-          # fi
           # Create a new branch
-          echo "skip update is false"
           branch_name="update-version-$(date +'%Y%m%d%H%M%S')"
           git checkout -b "$branch_name"
 
@@ -56,7 +50,7 @@ jobs:
           git push origin "$branch_name"
 
       - name: Create Pull Request
-        if: steps.actor_check.outputs.skip_update == 'false'
+        if: steps.actor_check.outputs.skip_update == false
         uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
