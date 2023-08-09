@@ -40,6 +40,21 @@ jobs:
         with:
           repository: mariuspenteliuc/box-editor-for-tesseract
           releases-only: true
+          
+      - name: Create Pull Request
+        if: steps.actor_check.outputs.skip_update == false
+        uses: peter-evans/create-pull-request@v5
+        with:
+          # token: ${{ secrets.GITHUB_TOKEN }}
+          # branch: 'master'
+          author: GitHub Actions  <actions@github.com>
+          base: 'master'
+          # base: ${{ github.ref }}
+          # base: ${{ github.head_ref }}
+          branch: 'update/version'
+          title: Update 'updated' field
+          body: Automatically updated the 'updated' field in app-version.json
+          delete-branch: true
 
       - name: Create Branch and Update Version
         id: create_branch
@@ -74,20 +89,6 @@ jobs:
           # Output branch name
           echo "{branch}={$branch_name}" >> "$GITHUB_OUTPUT"
 
-      - name: Create Pull Request
-        if: steps.actor_check.outputs.skip_update == false
-        uses: peter-evans/create-pull-request@v5
-        with:
-          # token: ${{ secrets.GITHUB_TOKEN }}
-          # branch: 'master'
-          author: GitHub Actions  <actions@github.com>
-          base: 'master'
-          # base: ${{ github.ref }}
-          # base: ${{ github.head_ref }}
-          branch: 'update/version'
-          title: Update 'updated' field
-          body: Automatically updated the 'updated' field in app-version.json
-          delete-branch: true
       - name: Enable Pull Request Automerge
         run: gh pr merge 'update/version' --merge --delete-branch
         env:
