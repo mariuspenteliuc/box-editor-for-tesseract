@@ -20,10 +20,10 @@ jobs:
         id: actor_check
         run: |
           if [[ "${GITHUB_ACTOR}" != "github-actions[bot]" ]]; then
-            echo "Workflow initiated by GitHub Actions bot. Skipping update."
+            echo "Workflow initiated by ${GITHUB_ACTOR}. Skipping update."
             echo "{skip_update}={true}" >> $GITHUB_ENV
           else
-            echo "Workflow initiated by user or app. Continuing with update."
+            echo "Workflow initiated by ${GITHUB_ACTOR}. Continuing with update."
             echo "{skip_update}={false}" >> $GITHUB_ENV
           fi
 
