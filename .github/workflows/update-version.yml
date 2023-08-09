@@ -70,6 +70,7 @@ jobs:
           # token: ${{ secrets.GITHUB_TOKEN }}
           # branch: 'master'
           author: GitHub Actions  <actions@github.com>
+          base: 'master'
           base: ${{ github.ref }}
           # base: ${{ github.head_ref }}
           branch: 'update/version'
