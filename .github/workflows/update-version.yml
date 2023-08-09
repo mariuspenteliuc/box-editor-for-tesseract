@@ -50,10 +50,11 @@ jobs:
           # Update the "version" field with the release tag
           release_version=${GITHUB_REF#refs/tags/}
           # release_version=${GITHUB_REF}
-          # echo ${GITHUB_REF#refs/tags/}
           if [[ "${GITHUB_REF}" != 'refs/heads/master' ]]; then
             sed -i 's/"version": "[^"]*"/"version": "'"$release_version"'"/' app-version.json
           fi
+          echo ${GITHUB_REF#refs/tags/}
+          echo ${GITHUB_REF}
 
           # Commit the changes
           # git commit -am "Update 'updated' field"
