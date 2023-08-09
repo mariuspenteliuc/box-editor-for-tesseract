@@ -65,3 +65,7 @@ jobs:
           title: Update 'updated' field
           body: Automatically updated the 'updated' field in app-version.json
           delete-branch: true
+      - name: Enable Pull Request Automerge
+        run: gh pr merge --merge --auto --delete-branch "1"
+        env:
+          GH_TOKEN: ${{ secrets.PAT }}
