@@ -1,0 +1,45 @@
+name: Update App Version
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  update-version:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Get latest commit date
+        id: commit-date
+        run: echo "::set-output name=date::$(git log -1 --format=%ci)"
+
+      - name: Get latest release tag
+        id: latest-tag
+        run: echo "::set-output name=tag::$(git describe --abbrev=0 --tags)"
+
+      - name: Update app-version.json
+        run: |
+          # Read the current content of app-version.json
+          CONTENT=$(cat app-version.json)
+          
+          # Replace the "updated" field with the latest commit date
+          UPDATED=$(echo ${{ steps.commit-date.outputs.date }} | cut -d' ' -f1)
+          NEW_CONTENT=$(echo $CONTENT | jq --arg updated $UPDATED '.updated = $updated')
+
+          # Replace the "version" field with the latest release tag
+          VERSION=${{ steps.latest-tag.outputs.tag }}
+          NEW_CONTENT=$(echo $NEW_CONTENT | jq --arg version $VERSION '.version = $version')
+
+          # Write the updated content back to app-version.json
+          echo "$NEW_CONTENT" > app-version.json
+          git add app-version.json
+          git commit -m "Update app version and update date" || echo "No changes to commit"
+
+      - name: Push changes
+        uses: ad-m/github-push-action@v0.6.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
