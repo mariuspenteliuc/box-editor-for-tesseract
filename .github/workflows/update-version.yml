@@ -71,7 +71,7 @@ jobs:
           # branch: 'master'
           author: GitHub Actions  <actions@github.com>
           base: 'master'
-          base: ${{ github.ref }}
+          # base: ${{ github.ref }}
           # base: ${{ github.head_ref }}
           branch: 'update/version'
           title: Update 'updated' field
