@@ -70,7 +70,8 @@ jobs:
           # token: ${{ secrets.GITHUB_TOKEN }}
           # branch: 'master'
           author: GitHub Actions  <actions@github.com>
-          base: ${{ github.head_ref }}
+          base: ${GITHUB_REF}
+          # base: ${{ github.head_ref }}
           branch: 'update/version'
           title: Update 'updated' field
           body: Automatically updated the 'updated' field in app-version.json
