@@ -33,7 +33,7 @@ jobs:
           fi
 
       - name: Update Version
-        if: steps.actor_check.outputs.skip_update == 'false'
+        if: steps.actor_check.outputs.skip_update == false
         run: |
           # if [[ steps.actor_check.outputs.skip_update == 'true' ]]; then
           #   echo "skip update is true"
