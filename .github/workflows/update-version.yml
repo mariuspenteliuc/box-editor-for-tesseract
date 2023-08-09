@@ -57,10 +57,11 @@ jobs:
           release_version=${{ steps.release_tag.outputs.tag }}
           # release_version=${GITHUB_REF#refs/tags/}
           # release_version=${GITHUB_REF}
-          # if [[ "${GITHUB_REF}" != 'refs/heads/master' ]]; then
+          if [[ "${GITHUB_REF}" != 'refs/heads/master' ]]; then
+            echo ${{ steps.octokit.outputs.tag }}
+            git checkout -b "update/version"
+          fi
           sed -i 's/"version": "[^"]*"/"version": "'"$release_version"'"/' app-version.json
-          # fi
-          echo ${{ steps.octokit.outputs.tag }}
           # echo ${GITHUB_REF#refs/tags/}
           # echo ${GITHUB_REF}
 
