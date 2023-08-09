@@ -62,6 +62,7 @@ jobs:
           author: GitHub Actions  <actions@github.com>
           # base: ${{ steps.create_branch.outputs.branch }}
           # branch: ${{ github.head_ref }}
+          branch: update-version-$(date +'%Y%m%d%H%M%S')
           title: Update 'updated' field
           body: Automatically updated the 'updated' field in app-version.json
           delete-branch: true
