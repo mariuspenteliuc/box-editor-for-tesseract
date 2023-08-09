@@ -32,7 +32,8 @@ jobs:
             echo "{skip_update}={false}" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Update Version
+      - name: Create Branch and Update Version
+        id: create_branch
         if: steps.actor_check.outputs.skip_update == false
         run: |
           # Create a new branch
@@ -49,11 +50,15 @@ jobs:
           # Push the changes to the new branch
           git push origin "$branch_name"
 
+          # Output branch name
+          echo "{branch}={$branch_name}" >> "$GITHUB_OUTPUT"
+
       - name: Create Pull Request
         if: steps.actor_check.outputs.skip_update == false
         uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ github.head_ref }}
+          branch: ${{ steps.create_branch.outputs.branch }}
+          # branch: ${{ github.head_ref }}
           title: Update 'updated' field
           body: Automatically updated the 'updated' field in app-version.json
