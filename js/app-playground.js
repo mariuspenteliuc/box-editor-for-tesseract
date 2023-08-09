@@ -86,6 +86,8 @@ app.ready = async function () {
     $dropzone = $('div.my-dropzone'),
     $appInfoVersion = $('#appInfoVersion'),
     $appInfoUpdated = $('#appInfoUpdated'),
+    $toggleOutputScriptButton = $('#toggleOutputScript'),
+    $copyToClipboardButton = $('#copyOutputToClipboard'),
 
     // variables
     pressedModifiers = {},
@@ -255,6 +257,14 @@ app.ready = async function () {
         const imageViewPath = 'interface.imageView';
         document.querySelector(`input[name='${imageViewPath}'][value='${appSettings.interface.imageView}']`).checked = true;
         handler.set.mapSize({ height: appSettings.interface.imageView });
+        // Output Script
+        if (appSettings.interface.displayText == 'rts') {
+          $toggleOutputScriptButton.find('span').text('Transliteration');
+          // $toggleOutputScriptButton.setAttribute('data-tooltip', 'Switch to recognized RTS text');
+        } else {
+          $toggleOutputScriptButton.find('span').text('RTS');
+          // $toggleOutputScriptButton.setAttribute('data-tooltip', 'Switch to transliterated text');
+        }
         // On Image Load
         for (const [key, value] of Object.entries(appSettings.behavior.onImageLoad)) {
           const path = 'behavior.onImageLoad.' + key;
@@ -1044,7 +1054,7 @@ app.ready = async function () {
       $output.text('');
     },
     pasteOutput: function () {
-      if (appSettings.interface.showTransliteratedText) {
+      if (appSettings.interface.displayText == 'rts') {
         if (transliteratedOutput == "" || transliteratedOutput == undefined) {
           handler.process.text(ocrOutput, (transliteratedText) => {
             $output.text(transliteratedText);
@@ -1165,28 +1175,33 @@ app.ready = async function () {
 
     },
     copyToClipboard: function () {
-      $('#copyOutputToClipboard').addClass('double loading disabled');
+      $copyToClipboardButton.addClass('double loading disabled');
       var output = document.getElementById('text-output').value;
       if (output.length > 0) {
         navigator.clipboard.writeText(output).then(function () {
-          handler.notifyUser({ message: 'Copied ' + output.length + ' characters.' });
+          handler.notifyUser({ message: 'Copied ' + output.length + ' characters.', type: 'info'});
         }, function (err) {
-          handler.notifyUser({ message: 'Could not copy output. ' + err });
+          handler.notifyUser({ message: 'Could not copy output. ' + err, type: 'info'});
         });
       } else {
-        handler.notifyUser({ message: 'No text to copy.' });
+        handler.notifyUser({ message: 'No text to copy.', type: 'info'});
       }
       setTimeout(() => {
-        $('#copyOutputToClipboard').removeClass('double loading disabled');
+        $copyToClipboardButton.removeClass('double loading disabled');
       }, 100);
     },
-    toggleBetweenTransliterationAndOCR: function (e) {
-      appSettings.interface.showTransliteratedText = !appSettings.interface.showTransliteratedText
-      handler.pasteOutput();
-      if (appSettings.interface.showTransliteratedText) {
-        $("#toggleBetweenTransliterationAndOCR span")[0].setAttribute('data-tooltip', 'Switch to recognized RTS text');
+    toggleOutputScript: async function (e) {
+      scripts = ['transliteration', 'rts'];
+      // if 'transliteration' then switch to 'rts' and vice versa
+      appSettings.interface.displayText = scripts.find(v => v !== appSettings.interface.displayText);
+      handler.update.cookie();
+      await handler.pasteOutput();
+      if (appSettings.interface.displayText == 'rts') {
+        $toggleOutputScriptButton.find('span').text('Transliteration' );
+        // $toggleOutputScriptButton.setAttribute('data-tooltip', 'Switch to recognized RTS text');
       } else {
-        $("#toggleBetweenTransliterationAndOCR span")[0].setAttribute('data-tooltip', 'Switch to transliterated text');
+        $toggleOutputScriptButton.find('span').text('RTS');
+        // $toggleOutputScriptButton.setAttribute('data-tooltip', 'Switch to transliterated text');
       }
     },
     receiveDroppedFiles: async function (files) {
@@ -1236,6 +1251,8 @@ app.ready = async function () {
       $checkboxes.checkbox();
     },
     bindButtons: function () {
+      $copyToClipboardButton.on('click', handler.copyToClipboard);
+      $toggleOutputScriptButton.on('click', handler.toggleOutputScript);
       $regenerateTextSuggestionForSelectedBoxButton.on('click', handler.generate.textSuggestion);
       $redetectAllBoxesButton.on('click', handler.generate.initialBoxes);
       $regenerateTextSuggestionsButton.on('click', handler.generate.textSuggestions);
