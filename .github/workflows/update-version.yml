@@ -48,7 +48,8 @@ jobs:
           sed -i 's/"updated": "[^"]*"/"updated": "'"$updated"'"/' app-version.json
 
           # Update the "version" field with the release tag
-          release_version=${{github.ref_name}}
+          # release_version=${{github.ref_name}}
+          release_version=$(git describe --abbrev=0 --tags || true)
           echo $release_version
           sed -i 's/"version": "[^"]*"/"version": "'"$release_version"'"/' app-version.json
 
