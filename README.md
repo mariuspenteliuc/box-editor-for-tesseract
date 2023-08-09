@@ -1,7 +1,7 @@
 Web-based Box Editor for Tesseract OCR
 -------------
 
-Use app » [Box Editor for Tesseract OCR](https://www.penteliuc.com/box-editor-for-tesseract/)
+Use app → [Box Editor for Tesseract OCR](https://www.penteliuc.com/box-editor-for-tesseract/)
 
 ![screenshot](img/app-screenshot-3-min.png)
 
