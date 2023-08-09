@@ -1,50 +1,30 @@
-name: Update App Version
+name: Update Version Date
 
 on:
   push:
     branches:
-      - master
+      - master  # Change this to "master" if that's your main branch name
+  pull_request:
+    types:
+      - closed
 
 jobs:
   update-version:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+    - name: Check out code
+      uses: actions/checkout@v2
 
-      - name: Get latest commit date
-        id: commit-date
-        run: echo "DATE=$(git log -1 --format=%ci)" >> $GITHUB_ENV
-
-      - name: Get latest release tag
-        id: latest-tag
-        run: echo "TAG=$(git describe --abbrev=0 --tags)" >> $GITHUB_ENV
-
-      - name: Set environment variables
-        run: |
-          echo "DATE=$DATE" >> $GITHUB_ENV
-          echo "TAG=$TAG" >> $GITHUB_ENV
-
-      - name: Update app-version.json
-        run: |
-          # Read the current content of app-version.json
-          CONTENT=$(cat app-version.json)
-          
-          # Replace the "updated" field with the latest commit date
-          UPDATED=$DATE
-          NEW_CONTENT=$(echo $CONTENT | jq --arg updated $UPDATED '.updated = $updated')
-          
-          # Replace the "version" field with the latest release tag
-          VERSION=$TAG
-          NEW_CONTENT=$(echo $NEW_CONTENT | jq --arg version $VERSION '.version = $version')
-          
-          # Write the updated content back to app-version.json
-          echo "$NEW_CONTENT" > app-version.json
-          git add app-version.json
-          git commit -m "Update app version and update date" || echo "No changes to commit"
-
-      - name: Push changes
-        uses: ad-m/github-push-action@v0.6.0
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+    - name: Update version date
+      run: |
+        updated_date=$(date -u +"%Y-%m-%d")
+        echo "Updating version date to $updated_date"
+        jq --arg updated "$updated_date" '.updated = $updated' app-version.json > app-version-temp.json
+        mv app-version-temp.json app-version.json
+        git config user.name "GitHub Actions"
+        git config user.email "actions@github.com"
+        git commit -am "Update version date [skip ci]"
+        git push
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
