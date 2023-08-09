@@ -9,21 +9,22 @@ jobs:
   update-version:
     runs-on: ubuntu-latest
 
-    env:  # Define the environment variables here
-      DATE: ${{ github.event.head_commit.timestamp }}
-      TAG: ${{ steps.latest-tag.outputs.tag }}
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
       - name: Get latest commit date
         id: commit-date
-        run: echo "DATE=$DATE" >> $GITHUB_ENV
+        run: echo "DATE=$(git log -1 --format=%ci)" >> $GITHUB_ENV
 
       - name: Get latest release tag
         id: latest-tag
         run: echo "TAG=$(git describe --abbrev=0 --tags)" >> $GITHUB_ENV
+
+      - name: Set environment variables
+        run: |
+          echo "DATE=$DATE" >> $GITHUB_ENV
+          echo "TAG=$TAG" >> $GITHUB_ENV
 
       - name: Update app-version.json
         run: |
