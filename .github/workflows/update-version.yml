@@ -56,7 +56,7 @@ jobs:
           #   echo 'was triggered by a tag' ${GITHUB_REF_TYPE} ${{github.ref.type}} ${release_version}
           # fi
           echo ${GITHUB_REF}
-          if [[ "${GITHUB_REF}" == 'refs/heads/master ]]; then
+          if [[ "${GITHUB_REF}" == 'refs/heads/master' ]]; then
             echo 'it is master'
           fi
           if [["${GITHUB_REF_TYPE}" == branch]]; then
