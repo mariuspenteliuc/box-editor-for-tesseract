@@ -59,6 +59,7 @@ jobs:
         with:
           # token: ${{ secrets.GITHUB_TOKEN }}
           branch: 'master'
+          author: GitHub Actions  <actions@github.com>
           base: ${{ steps.create_branch.outputs.branch }}
           # branch: ${{ github.head_ref }}
           title: Update 'updated' field
