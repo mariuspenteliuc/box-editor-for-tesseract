@@ -29,9 +29,9 @@
 
   <!-- Turf -->
   <script src='https://unpkg.com/@turf/turf@6/turf.min.js'></script>
-  <!-- <script>
-    var bbox = turf.bbox(features);
-  </script> -->
+  <!-- Dropzone -->
+  <script src="https://unpkg.com/dropzone@5/dist/min/dropzone.min.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/dropzone@5/dist/min/dropzone.min.css" type="text/css" />
 
   <!-- Tesseract -->
   <script src='https://unpkg.com/tesseract.js@4.0.2/dist/tesseract.min.js'></script>
@@ -80,34 +80,34 @@
     <div class="ui borderless secondary segment">
       <div class="ui row">
         <div id="custom-controls">
-          <div class="ui useSampleImage flowing center aligned popup">
-            <h4 class="ui header">Use Sample Image</h4>
-            <div>
-              <a class="helpSettingsPopup">
-                <i class="fitted cog circle icon"></i>
-                Settings
-                <i class="fitted caret right icon"></i>
-                Help
-              </a>
-            </div>
-          </div>
           <div class="ui icon buttons">
+            <div class="ui useSampleImage flowing center aligned popup">
+              <h4 class="ui header">Use Sample Image</h4>
+              <div>
+                <a class="helpSettingsPopup">
+                  <i class="fitted cog circle icon"></i>
+                  Settings
+                  <i class="fitted caret right icon"></i>
+                  Help
+                </a>
+              </div>
+            </div>
             <label for="imageFile" id="uploadNewImage" name="interface.toolbarActions.uploadNewImageButton"
               class="ui button" title="Upload a new image" tabindex="0">
               <input type="file" disabled id="imageFile" name="imageFile" accept="image/*"
                 class="ui invisible file input">
               <i class="upload icon"></i>
             </label>
-            <button id="redetectAllBoxes" name="interface.toolbarActions.detectAllLines" class="ui button"
+            <button id="redetectAllBoxes" disabled name="interface.toolbarActions.detectAllLines" class="ui disabled button"
               title="Find all text in image" tabindex="0">
               <span data-tooltip="Find all text" data-position="top left"><i class="magic icon"></i></span>
             </button>
-            <button id="regenerateTextSuggestions" name="interface.toolbarActions.detectAllBoxes" class="ui button"
+            <button id="regenerateTextSuggestions" disabled name="interface.toolbarActions.detectAllBoxes" class="ui disabled button"
               title="Regenerate Text Suggestions" tabindex="0">
               <span data-tooltip="Recognize all boxes" data-position="top left"><i class="sync icon"></i></span>
             </button>
-            <button id="regenerateTextSuggestionForSelectedBox" name="interface.toolbarActions.detectSelectedBox"
-              class="ui button" title="Regenerate Text Suggestion for Selected Box" tabindex="0">
+            <button id="regenerateTextSuggestionForSelectedBox" disabled name="interface.toolbarActions.detectSelectedBox"
+              class="ui disabled button" title="Regenerate Text Suggestion for Selected Box" tabindex="0">
               <span data-tooltip="Recognize current box" data-position="top left"><i class="redo icon"></i></span>
             </button>
           </div>
@@ -125,7 +125,7 @@
         </div>
       </div>
       <div class="ui hidden divider"></div>
-      <div class="ui blurring row guideMessage">
+      <div class="ui blurring row guideMessage my-dropzone">
         <div class="ui inverted dimmer">
           <div class="content">
             <h2 class="ui inverted icon header">
@@ -176,11 +176,11 @@
     </div>
     <div id="navSettingsPane" class="four wide column scrolling content">
       <div id="settingsMenu" class="ui fluid secondary vertical menu">
-        <a id="interfaceTab" class="item active" data-tab="interface-settings">
+        <a class="item active" data-tab="interface-settings">
           <i class="grey adjust icon"></i>
           Interface
         </a>
-        <a id="behaviorTab" class="item" data-tab="behavior-settings">
+        <a class="item" data-tab="behavior-settings">
           <i class="grey toggle on icon"></i>
           Behavior
         </a>
@@ -188,36 +188,36 @@
         <a id="helpTab" class="bottom attached item" data-tab="help-section">
           <i class="grey help circle icon"></i>
           Help
-          <!-- <i class="top right orange circle icon"></i></a> -->
-        <a id="aboutTab" class="bottom attached item" data-tab="about-section">
+        </a>
+        <a class="bottom attached item" data-tab="about-section">
           <i class="grey info circle icon"></i>
           About
         </a>
       </div>
     </div>
     <div id="mainSettingsPane" class="twelve wide column scrolling content">
-      <div id="interfaceTab" class="ui tab active" data-tab="interface-settings">
-        <div class="ui relaxed list">
+      <div class="ui tab active" data-tab="interface-settings">
+        <div class="ui very relaxed list">
           <div class="item">
-            <div class="header">Appearance</div>
+            <div class="header">App Appearance</div>
             <div class="description">
               Adjust the appearance of the interface.
             </div>
             <div class="list">
               <div class="item">
-                <div class="ui child radio checkbox">
+                <div class="ui radio checkbox">
                   <input type="radio" name="interface.appearance" value="light-theme">
                   <label>Light</label>
                 </div>
               </div>
               <div class="item">
-                <div class="ui child radio checkbox">
+                <div class="ui radio checkbox">
                   <input type="radio" name="interface.appearance" value="dark-theme">
                   <label>Dark</label>
                 </div>
               </div>
               <div class="item">
-                <div class="ui child radio checkbox">
+                <div class="ui radio checkbox">
                   <input type="radio" name="interface.appearance" value="match-device">
                   <label>Match Device</label>
                 </div>
@@ -227,23 +227,23 @@
           <div class="item">
             <div class="header">Image View</div>
             <div class="description">
-              Adjust the height of the image view in the main screen.
+              Adjust the size of the image display area.
             </div>
             <div class="list">
               <div class="item">
-                <div class="ui child radio checkbox">
+                <div class="ui radio checkbox">
                   <input type="radio" name="interface.imageView" value="short">
                   <label>Short</label>
                 </div>
               </div>
               <div class="item">
-                <div class="ui child radio checkbox">
+                <div class="ui radio checkbox">
                   <input type="radio" name="interface.imageView" value="medium">
                   <label>Medium</label>
                 </div>
               </div>
               <div class="item">
-                <div class="ui child radio checkbox">
+                <div class="ui radio checkbox">
                   <input type="radio" name="interface.imageView" value="tall">
                   <label>Tall</label>
                 </div>
@@ -252,8 +252,8 @@
           </div>
         </div>
       </div>
-      <div id="behaviorTab" class="ui tab" data-tab="behavior-settings">
-        <div class="ui relaxed list">
+      <div class="ui tab" data-tab="behavior-settings">
+        <div class="ui very relaxed list">
           <div class="item" name="onImageLoad">
             <div class="header">On Image Load</div>
             <div class="description">
@@ -261,7 +261,7 @@
             </div>
             <div class="list">
               <div class="item">
-                <div class="ui child checkbox">
+                <div class="ui master checkbox">
                   <input type="checkbox" name="behavior.onImageLoad.detectAllLines">
                   <label>Detect all lines of text</label>
                 </div>
@@ -271,23 +271,15 @@
         </div>
       </div>
       <div id="helpTab" class="ui tab" data-tab="help-section">
-        <div class="ui relaxed list">
+        <div class="ui very relaxed list">
           <div class="item">
             <h3 class="ui header">How to use the Playground</h3>
-            <!-- <div class="ui warning message">
-              <div class="header">
-                Disclaimer
-              </div>
-              <p>The transliteration module, ported from Python, may not be behave correctly due to technical
-                differences
-                between technologies. Improvements are underway to address any issues.</p>
-            </div> -->
             <p>
               To start, you must pick an image. After that, you can mark regions of interest or let this app to detect
               all lines of text. It will recognize all text and display the output next to the image. You can choose
               between RTS script (OCR) or Latin script (OCR + transliteration) output.
             </p>
-            <button id="useSampleImage" class="ui right labeled basic icon button">
+            <button tabindex="0" id="useSampleImage" class="ui right labeled basic icon button">
               <i class="right arrow icon"></i>
               Use sample
             </button>
@@ -334,12 +326,12 @@
             </div>
           </div>
           <div class="item">
-            <h4>Image Actions:</h4>
+            <h3>Image Actions:</h3>
             <div class="ui list">
               <div class="item">
                 <i class="plus icon"></i>
                 <div class="content">
-                  Zoom into the image.
+                  Zoom in on the image.
                 </div>
               </div>
               <div class="item">
@@ -357,57 +349,75 @@
               <div class="item">
                 <i class="square icon"></i>
                 <div class="content">
-                  Draw boxes to define regions of text.
+                  Draw new boxes for text.
                 </div>
               </div>
               <div class="item">
                 <i class="trash alternate icon"></i>
                 <div class="content">
-                  Clear drawn boxes selectively.
+                  Delete one or more boxes.
                 </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-      <div id="aboutTab" class="ui tab" data-tab="about-section">
-        <div class="ui relaxed list">
+      <div class="ui tab" data-tab="about-section">
+        <div class="ui very relaxed list">
           <div class="item">
             <h3 class="ui header">About</h3>
-            <p>This tool provides a playground for experimenting with the model we built. For more information and
-              support, please visit the project's website:</p>
-            <div class="ui small list">
-              <div class="item">
-                Project Website: <a class="more external"
-                  href="https://transitional-romanian-transliteration.azurewebsites.net/" target="_blank"
-                  title="ROTLA Website">ROTLA</a>
-              </div>
-              <div class="item">
-                Source code: <a class="more external" href="https://github.com/mariuspenteliuc/box-editor-for-tesseract"
-                  target="_blank" title="GitHub">GitHub</a>
-              </div>
-              <div class="item">
-                Author: <a class="more external" href="https://penteliuc.com" target="_blank"
-                  title="Author's Website">Marius E.
-                  Penteliuc</a>
-              </div>
+            <p>This is a powerful Box Editor for Tesseract allowing for efficient generation, editing, and managing text
+              boxes in WordStr format. The tool uses a custom trained model for authoring the Romanian Transitional
+              Script.
+            </p>
+            <div class="ui basic label">
+              Version: <div id="appInfoVersion" class="detail">1.4.1</div>
+            </div>
+            <div class="ui basic label">
+              Updated: <div id="appInfoUpdated" class="detail">July 22nd, 2023</div>
             </div>
           </div>
           <div class="item">
-            <h3 class="ui header">Acknowledgements</h3>
+            <p>
+              For info and support, please visit the following links:</p>
+            <table class="ui unstackable striped celled collapsing table">
+              <tbody>
+                <tr>
+                  <td>Author:</td>
+                  <td class="right aligned"><a class="" href="https://penteliuc.com" target="_blank"
+                      title="Author's Website">Marius E. Penteliuc</a></td>
+                </tr>
+                <tr>
+                  <td>Source Code:</td>
+                  <td class="right aligned"><a class=""
+                      href="https://github.com/mariuspenteliuc/box-editor-for-tesseract" target="_blank"
+                      title="GitHub">GitHub Repository</a></td>
+                </tr>
+                <tr>
+                  <td>Project Website:</td>
+                  <td class="right aligned"><a class=""
+                      href="https://transitional-romanian-transliteration.azurewebsites.net/" target="_blank"
+                      title="ROTLA Website">ROTLA Team</a></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="item">
+            <h3 class="ui header">Acknowledgement</h3>
             <p>This work was supported by a grant from the Romanian Ministry of Research, Innovation and
               Digitization, CCCDI -
               UEFISCDI, project number PN-III-P2-2.1-PED-2021-0693, within PNCDI III.</p>
           </div>
-          <div class="item">
-            <div class="ui basic label">
-              Version: <div class="detail">1.4.1</div>
-            </div>
-            <div class="ui basic label">
-              Updated: <div class="detail">July 22nd, 2023</div>
+          <div class="ui tiny compact icon message">
+            <i class="translate icon"></i>
+            <div class="content">
+              <div class="header">
+                Upcoming Feature
+              </div>
+              <p>A future update will allow switching between multiple OCR models.</p>
             </div>
           </div>
-          <div class="ui hidden divider"></div>
+          <div class="ui divider"></div>
           <div class="item">
             <h3 class="ui header">Reset</h3>
             <p>In case of unexpected behavior, you can reset all settings to their default values.</p>
@@ -416,9 +426,8 @@
         </div>
       </div>
     </div>
-    <div class="actions">
-      <div id="settingsModalStatus" class="ui disabled tertiary button"></div>
-      <div class="ui button ok">OK</div>
+    <div id="settingsModalStatus" class="actions">
+      <div class="ui button ok" tabindex="0">OK</div>
     </div>
   </div>
 </body>
