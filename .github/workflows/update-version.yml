@@ -14,23 +14,22 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
 
       - name: Check Actor
         id: actor_check
         run: |
           if [[ "${GITHUB_ACTOR}" == "github-actions[bot]" ]]; then
             echo "Workflow initiated by GitHub Actions bot. Skipping update."
-            echo "{skip_update}={true}" >> $GITHUB_OUTPUT
+            echo "skip_update=true" >> $GITHUB_ENV
           else
             echo "Workflow initiated by user or app. Continuing with update."
-            echo "{skip_update}={false}" >> $GITHUB_OUTPUT
+            echo "skip_update=false" >> $GITHUB_ENV
           fi
 
       - name: Update Version
         if: steps.actor_check.outputs.skip_update == 'false'
         run: |
-          echo steps.actor_check >> $GITHUB_OUTPUT
           # Create a new branch
           branch_name="update-version-$(date +'%Y%m%d%H%M%S')"
           git checkout -b "$branch_name"
@@ -47,7 +46,7 @@ jobs:
 
       - name: Create Pull Request
         if: steps.actor_check.outputs.skip_update == 'false'
-        uses: peter-evans/create-pull-request@v5
+        uses: peter-evans/create-pull-request@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: ${{ github.head_ref }}
