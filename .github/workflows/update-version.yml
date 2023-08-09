@@ -61,11 +61,11 @@ jobs:
           # branch: 'master'
           author: GitHub Actions  <actions@github.com>
           base: ${{ github.head_ref }}
-          branch: ${{ steps.create_branch.outputs.branch }}
+          branch: 'update/version'
           title: Update 'updated' field
           body: Automatically updated the 'updated' field in app-version.json
           delete-branch: true
       - name: Enable Pull Request Automerge
-        run: gh pr merge ${{ steps.create_branch.outputs.branch }} --merge --delete-branch
+        run: gh pr merge 'update/version' --merge --delete-branch
         env:
           GH_TOKEN: ${{ github.token }}
