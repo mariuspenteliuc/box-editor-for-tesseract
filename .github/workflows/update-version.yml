@@ -49,6 +49,7 @@ jobs:
 
           # Update the "version" field with the release tag
           release_version="${GITHUB_REF#refs/tags/}"
+          echo $release_version
           sed -i 's/"version": "[^"]*"/"version": "'"$release_version"'"/' app-version.json
 
           # Commit the changes
