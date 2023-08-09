@@ -54,7 +54,7 @@ jobs:
           branch: 'update/version'
           title: Update 'updated' field
           body: Automatically updated the 'updated' field in app-version.json
-          delete-branch: true
+          # delete-branch: true
 
       - name: Create Branch and Update Version
         id: create_branch
