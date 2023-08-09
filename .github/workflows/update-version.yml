@@ -57,7 +57,7 @@ jobs:
         if: steps.actor_check.outputs.skip_update == false
         uses: peter-evans/create-pull-request@v5
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          # token: ${{ secrets.GITHUB_TOKEN }}
           branch: 'master'
           base: ${{ steps.create_branch.outputs.branch }}
           # branch: ${{ github.head_ref }}
