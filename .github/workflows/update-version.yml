@@ -16,14 +16,39 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Update Version
+      - name: Check Actor
+        id: actor_check
         run: |
+          if [[ "${GITHUB_ACTOR}" == "github-actions[bot]" ]]; then
+            echo "Workflow initiated by GitHub Actions bot. Skipping update."
+            echo "::set-output name=skip_update::true"
+          else
+            echo "Workflow initiated by user or app. Continuing with update."
+            echo "::set-output name=skip_update::false"
+          fi
+
+      - name: Update Version
+        if: steps.actor_check.outputs.skip_update == 'false'
+        run: |
+          # Create a new branch
+          branch_name="update-version-$(date +'%Y%m%d%H%M%S')"
+          git checkout -b "$branch_name"
+
           # Update the "updated" field with the current date
           updated=$(date +%F)
           sed -i 's/"updated": "[^"]*"/"updated": "'"$updated"'"/' app-version.json
 
-          # Commit and push the changes if needed
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
-          git commit -am "Update 'updated' field" || true
-          git push origin master
+          # Commit the changes
+          git commit -am "Update 'updated' field"
+
+          # Push the changes to the new branch
+          git push origin "$branch_name"
+
+      - name: Create Pull Request
+        if: steps.actor_check.outputs.skip_update == 'false'
+        uses: peter-evans/create-pull-request@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.head_ref }}
+          title: Update 'updated' field
+          body: Automatically updated the 'updated' field in app-version.json
