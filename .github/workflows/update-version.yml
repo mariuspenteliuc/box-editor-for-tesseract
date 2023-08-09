@@ -30,6 +30,7 @@ jobs:
       - name: Update Version
         if: steps.actor_check.outputs.skip_update == 'false'
         run: |
+          echo steps.actor_check >> $GITHUB_OUTPUT
           # Create a new branch
           branch_name="update-version-$(date +'%Y%m%d%H%M%S')"
           git checkout -b "$branch_name"
