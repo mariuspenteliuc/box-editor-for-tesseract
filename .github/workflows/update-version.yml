@@ -37,30 +37,30 @@ jobs:
         if: steps.actor_check.outputs.skip_update == false
         run: |
           # Create a new branch
-          branch_name="update-version-$(date +'%Y%m%d%H%M%S')"
-          git checkout -b "$branch_name"
+          # branch_name="update-version-$(date +'%Y%m%d%H%M%S')"
+          # git checkout -b "$branch_name"
 
           # Update the "updated" field with the current date
           updated=$(date +%F)
           sed -i 's/"updated": "[^"]*"/"updated": "'"$updated"'"/' app-version.json
 
           # Commit the changes
-          git commit -am "Update 'updated' field"
+          # git commit -am "Update 'updated' field"
 
           # Push the changes to the new branch
-          git push origin "$branch_name"
-
+          # git push origin "$branch_name"
+          
           # Output branch name
-          echo "{branch}={$branch_name}" >> "$GITHUB_OUTPUT"
+          # echo "{branch}={$branch_name}" >> "$GITHUB_OUTPUT"
 
       - name: Create Pull Request
         if: steps.actor_check.outputs.skip_update == false
         uses: peter-evans/create-pull-request@v5
         with:
           # token: ${{ secrets.GITHUB_TOKEN }}
-          branch: 'master'
+          # branch: 'master'
           author: GitHub Actions  <actions@github.com>
-          base: ${{ steps.create_branch.outputs.branch }}
+          # base: ${{ steps.create_branch.outputs.branch }}
           # branch: ${{ github.head_ref }}
           title: Update 'updated' field
           body: Automatically updated the 'updated' field in app-version.json
