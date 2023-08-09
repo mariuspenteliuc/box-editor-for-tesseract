@@ -59,7 +59,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           base: 'master'
-          branch: steps.create_branch.outputs.branch
+          branch: ${{ steps.create_branch.outputs.branch }}
           # branch: ${{ github.head_ref }}
           title: Update 'updated' field
           body: Automatically updated the 'updated' field in app-version.json
