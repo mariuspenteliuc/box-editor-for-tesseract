@@ -7,6 +7,9 @@ on:
   pull_request:
     types:
       - closed
+  release:
+    types:
+      - published
 
 jobs:
   update:
@@ -43,6 +46,10 @@ jobs:
           # Update the "updated" field with the current date
           updated=$(date +%F)
           sed -i 's/"updated": "[^"]*"/"updated": "'"$updated"'"/' app-version.json
+
+          # Update the "version" field with the release tag
+          release_version="${GITHUB_REF#refs/tags/}"
+          sed -i 's/"version": "[^"]*"/"version": "'"$release_version"'"/' app-version.json
 
           # Commit the changes
           # git commit -am "Update 'updated' field"
