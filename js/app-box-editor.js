@@ -118,10 +118,8 @@ app.ready = async function () {
     $appInfoVersion = $('#appInfoVersion'),
     $appInfoUpdated = $('#appInfoUpdated'),
 
-
-    pressedModifiers = {},
-
     // variables
+    pressedModifiers = {},
     _URL = window.URL || window.webkitURL,
     bounds,
     BoxFileType = Object.freeze({
@@ -187,6 +185,7 @@ app.ready = async function () {
     suppressLogMessages = {
       'recognizing text': false,
     },
+    worker,
 
     appSettings = {
       interface: {
@@ -228,8 +227,6 @@ app.ready = async function () {
           highlightsPatterns: [],
         },
       },
-      keyboardShortcuts: {
-      },
     },
 
     boxState = {
@@ -258,7 +255,7 @@ app.ready = async function () {
         color: 'green',
         stroke: false,
         fillOpacity: 0.3,
-      }
+      },
     },
 
     // alias
@@ -1585,16 +1582,6 @@ app.ready = async function () {
         });
       },
       cookie: function () {
-        // copy appSettings and delete forbidden cookie data
-        // const
-        //   settingsCopy = { ...appSettings },
-        //   forbidden = [
-        //     'action',
-        //     'target',
-        //   ]
-        // settingsCopy.behavior.keyboardShortcuts.shortcuts.forEach(function (shortcut) {
-        //   forbidden.forEach(item => delete shortcut[item]);
-        // });
         Cookies.set('appSettings', JSON.stringify(appSettings));
       },
       appSettings: function ({ path, value, cookie }) {
@@ -2218,6 +2205,11 @@ app.ready = async function () {
       setActive: function (poly) {
         if (poly) {
           poly.setStyle(boxState.boxActive);
+        }
+      },
+      setCommitted: function (poly) {
+        if (poly) {
+          poly.setStyle(boxState.boxComitted);
         }
       },
       remove: function (poly, isUpdated = false) {
