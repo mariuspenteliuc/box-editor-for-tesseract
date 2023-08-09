@@ -49,22 +49,10 @@ jobs:
 
           # Update the "version" field with the release tag
           release_version=${GITHUB_REF#refs/tags/}
-          # release_version=$(git describe --abbrev=0 --tags || true)
-          # if [[ "${GITHUB_REF_TYPE}" == 'branch']]; then
-          #   echo 'was triggered by commit or merge' ${GITHUB_REF_TYPE} ${release_version}
-          # else
-          #   echo 'was triggered by a tag' ${GITHUB_REF_TYPE} ${{github.ref.type}} ${release_version}
-          # fi
           echo ${GITHUB_REF}
-          if [[ "${GITHUB_REF}" == 'refs/heads/master' ]]; then
-            echo 'it is master'
+          if [[ "${GITHUB_REF}" != 'refs/heads/master' ]]; then
+            sed -i 's/"version": "[^"]*"/"version": "'"$release_version"'"/' app-version.json
           fi
-          if [["${GITHUB_REF_TYPE}" == branch]]; then
-            echo 'branch' ${GITHUB_REF_TYPE}
-          else
-            echo 'tag' ${GITHUB_REF_TYPE}
-          fi
-          sed -i 's/"version": "[^"]*"/"version": "'"$release_version"'"/' app-version.json
 
           # Commit the changes
           # git commit -am "Update 'updated' field"
