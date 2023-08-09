@@ -31,9 +31,9 @@ jobs:
         # if: steps.actor_check.outputs.skip_update == 'false'
         run: |
           if [[ steps.actor_check.outputs.skip_update == 'true' ]]; then
-            echo "skip update is true'
+            echo "skip update is true"
           else
-            echo "skip update is false'
+            echo "skip update is false"
           fi
           # Create a new branch
           branch_name="update-version-$(date +'%Y%m%d%H%M%S')"
