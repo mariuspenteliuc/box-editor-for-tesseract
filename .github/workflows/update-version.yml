@@ -14,22 +14,23 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Check Actor
         id: actor_check
         run: |
           if [[ "${GITHUB_ACTOR}" != "github-actions[bot]" ]]; then
             echo "Workflow initiated by GitHub Actions bot. Skipping update."
-            echo "skip_update=true" >> $GITHUB_ENV
+            echo "{skip_update}={true}" >> $GITHUB_ENV
           else
             echo "Workflow initiated by user or app. Continuing with update."
-            echo "skip_update=false" >> $GITHUB_ENV
+            echo "{skip_update}={false}" >> $GITHUB_ENV
           fi
 
       - name: Update Version
         if: steps.actor_check.outputs.skip_update == 'false'
         run: |
+          echo "Updating Version"
           # Create a new branch
           branch_name="update-version-$(date +'%Y%m%d%H%M%S')"
           git checkout -b "$branch_name"
