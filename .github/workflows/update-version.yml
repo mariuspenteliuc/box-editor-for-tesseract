@@ -21,10 +21,10 @@ jobs:
         run: |
           if [[ "${GITHUB_ACTOR}" == "github-actions[bot]" ]]; then
             echo "Workflow initiated by GitHub Actions bot. Skipping update."
-            echo "::set-output name=skip_update::true"
+            echo "{skip_update}={true}" >> $GITHUB_OUTPUT
           else
             echo "Workflow initiated by user or app. Continuing with update."
-            echo "::set-output name=skip_update::false"
+            echo "{skip_update}={false}" >> $GITHUB_OUTPUT
           fi
 
       - name: Update Version
