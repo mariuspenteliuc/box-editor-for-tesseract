@@ -55,6 +55,12 @@ jobs:
           else
             echo 'was triggered by a tag' ${GITHUB_REF_TYPE} ${{github.ref.type}} ${release_version}
           fi
+
+          if [[${GITHUB_REF_TYPE} === 'tag']]; then
+            echo 'tag'
+          else
+            echo 'branch'
+          fi
           sed -i 's/"version": "[^"]*"/"version": "'"$release_version"'"/' app-version.json
 
           # Commit the changes
