@@ -16,7 +16,6 @@ Web app for editing Tesseract OCR LSTM box files in WordStr format, using [Tesse
 * Be notified of potential issues and errors;
 * Indicates document tagging progress;
 
-
 ### How to use
 1. Upload an image and wait for bounding boxes to be automatically generated.
   - optionally, upload an existing box file to edit.
