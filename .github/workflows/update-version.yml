@@ -58,6 +58,7 @@ jobs:
         uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          base: 'master'
           branch: ${{ steps.create_branch.outputs.branch }}
           # branch: ${{ github.head_ref }}
           title: Update 'updated' field
