@@ -61,7 +61,7 @@ jobs:
           # branch: 'master'
           author: GitHub Actions  <actions@github.com>
           base: ${{ github.head_ref }}
-          branch: ${{ steps.create_branch.outputs.branch }}
+          branch: steps.create_branch.outputs.branch
           title: Update 'updated' field
           body: Automatically updated the 'updated' field in app-version.json
           delete-branch: true
