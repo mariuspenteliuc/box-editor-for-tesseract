@@ -15,23 +15,23 @@ jobs:
 
       - name: Get latest commit date
         id: commit-date
-        run: echo "::set-output name=date::$(git log -1 --format=%ci)"
+        run: echo "DATE=$(git log -1 --format=%ci)" >> $GITHUB_ENV
 
       - name: Get latest release tag
         id: latest-tag
-        run: echo "::set-output name=tag::$(git describe --abbrev=0 --tags)"
+        run: echo "TAG=$(git describe --abbrev=0 --tags)" >> $GITHUB_ENV
 
       - name: Update app-version.json
         run: |
           # Read the current content of app-version.json
           CONTENT=$(cat app-version.json)
-          
+
           # Replace the "updated" field with the latest commit date
-          UPDATED=$(echo ${{ steps.commit-date.outputs.date }} | cut -d' ' -f1)
+          UPDATED=$DATE
           NEW_CONTENT=$(echo $CONTENT | jq --arg updated $UPDATED '.updated = $updated')
 
           # Replace the "version" field with the latest release tag
-          VERSION=${{ steps.latest-tag.outputs.tag }}
+          VERSION=$TAG
           NEW_CONTENT=$(echo $NEW_CONTENT | jq --arg version $VERSION '.version = $version')
 
           # Write the updated content back to app-version.json
