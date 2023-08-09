@@ -63,7 +63,6 @@ jobs:
           # Create a new branch
           branch_name="update-version-$(date +'%Y%m%d%H%M%S')"
           # git checkout -b "$branch_name"
-          git checkout -b "update/version"
 
           # Update the "updated" field with the current date
           updated=$(date +%F)
