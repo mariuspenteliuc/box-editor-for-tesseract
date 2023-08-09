@@ -3,7 +3,7 @@ name: Update App Version
 on:
   push:
     branches:
-      - main
+      - master
 
 jobs:
   update-version:
