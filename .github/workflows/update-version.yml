@@ -37,7 +37,7 @@ jobs:
         if: steps.actor_check.outputs.skip_update == false
         run: |
           # Create a new branch
-          # branch_name="update-version-$(date +'%Y%m%d%H%M%S')"
+          branch_name="update-version-$(date +'%Y%m%d%H%M%S')"
           # git checkout -b "$branch_name"
 
           # Update the "updated" field with the current date
@@ -51,7 +51,7 @@ jobs:
           # git push origin "$branch_name"
           
           # Output branch name
-          # echo "{branch}={$branch_name}" >> "$GITHUB_OUTPUT"
+          echo "{branch}={$branch_name}" >> "$GITHUB_OUTPUT"
 
       - name: Create Pull Request
         if: steps.actor_check.outputs.skip_update == false
@@ -62,7 +62,7 @@ jobs:
           author: GitHub Actions  <actions@github.com>
           # base: ${{ steps.create_branch.outputs.branch }}
           # branch: ${{ github.head_ref }}
-          branch: ${{ "update-version-$(date +'%Y%m%d%H%M%S')" }}
+          branch: ${{ steps.create_branch.outputs.branch }}
           title: Update 'updated' field
           body: Automatically updated the 'updated' field in app-version.json
           delete-branch: true
