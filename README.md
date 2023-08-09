@@ -12,7 +12,7 @@ Web app for editing Tesseract OCR LSTM box files in WordStr format, using [Tesse
 * Tools for adding, editing, and deleting bounding boxes;
 * Upload existing box files;
 * Download tagged text;
-* Highlights Latin and Cyrillic characters;
+* Highlights characters according to regex patterns;
 * Be notified of potential issues and errors;
 * Indicates document tagging progress;
 
