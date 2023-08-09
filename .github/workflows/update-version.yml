@@ -30,11 +30,11 @@ jobs:
       - name: Update Version
         # if: steps.actor_check.outputs.skip_update == 'false'
         run: |
-          echo steps.actor_check.outputs
-          echo $skip_update
-          echo skip_update
-          echo ${skip_update}
-          echo "Updating Version"
+          if [[ steps.actor_check.outputs.skip_update == 'true' ]]; then
+            echo "skip update is true'
+          else
+            echo "skip update is false'
+          fi
           # Create a new branch
           branch_name="update-version-$(date +'%Y%m%d%H%M%S')"
           git checkout -b "$branch_name"
