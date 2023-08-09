@@ -28,8 +28,10 @@ jobs:
           fi
 
       - name: Update Version
-        if: steps.actor_check.outputs.skip_update == 'false'
+        # if: steps.actor_check.outputs.skip_update == 'false'
         run: |
+          echo "{steps.actor_check.outputs}"
+          echo "{steps.actor_check.outputs.skip_update}"
           echo "Updating Version"
           # Create a new branch
           branch_name="update-version-$(date +'%Y%m%d%H%M%S')"
