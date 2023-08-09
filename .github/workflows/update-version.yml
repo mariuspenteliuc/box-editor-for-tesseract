@@ -34,6 +34,12 @@ jobs:
             echo "Workflow initiated by ${GITHUB_ACTOR}. Continuing with update."
             echo "{skip_update}={false}" >> "$GITHUB_OUTPUT"
           fi
+      - name: Get Latest Release Tag
+        id: release_tag
+        uses: oprypin/find-latest-tag@v1
+        with:
+          repository: mariuspenteliuc/box-editor-for-tesseract
+          releases-only: true
 
       - name: Create Branch and Update Version
         id: create_branch
@@ -48,13 +54,15 @@ jobs:
           sed -i 's/"updated": "[^"]*"/"updated": "'"$updated"'"/' app-version.json
 
           # Update the "version" field with the release tag
-          release_version=${GITHUB_REF#refs/tags/}
+          release_version=${{ steps.release_tag.outputs.tag }}
+          # release_version=${GITHUB_REF#refs/tags/}
           # release_version=${GITHUB_REF}
-          if [[ "${GITHUB_REF}" != 'refs/heads/master' ]]; then
-            sed -i 's/"version": "[^"]*"/"version": "'"$release_version"'"/' app-version.json
-          fi
-          echo ${GITHUB_REF#refs/tags/}
-          echo ${GITHUB_REF}
+          # if [[ "${GITHUB_REF}" != 'refs/heads/master' ]]; then
+          sed -i 's/"version": "[^"]*"/"version": "'"$release_version"'"/' app-version.json
+          # fi
+          echo ${{ steps.octokit.outputs.tag }}
+          # echo ${GITHUB_REF#refs/tags/}
+          # echo ${GITHUB_REF}
 
           # Commit the changes
           # git commit -am "Update 'updated' field"
