@@ -41,6 +41,7 @@ jobs:
           #   echo "skip update is false"
           # fi
           # Create a new branch
+          echo "skip update is false"
           branch_name="update-version-$(date +'%Y%m%d%H%M%S')"
           git checkout -b "$branch_name"
 
