@@ -3,7 +3,7 @@ window.app = {
 };
 
 class Box {
-  constructor({ text, x1, x2, y1, y2, polyid, visited = false }) {
+  constructor({ text, x1, x2, y1, y2, polyid, visited = false, isModelGeneratedText, modelConfidenceScore = null }) {
     this.text = text;
     this.x1 = x1;
     this.x2 = x2;
@@ -13,6 +13,8 @@ class Box {
     this.filled = text != '' ? true : false;
     this.visited = visited;
     this.committed = false;
+    this.isModelGeneratedText = isModelGeneratedText;
+    this.modelConfidenceScore = modelConfidenceScore;
   }
 
   static compare(a, b) {
@@ -115,6 +117,8 @@ app.ready = async function () {
     $keyboardShortcutsTableContainer = $('#keyboardShortcutsTableContainer'),
     $keyboardShortcutsTableBody = $keyboardShortcutsTableContainer.find('.ui.celled.table tbody'),
     $keyboardShortcutsTableRows = $keyboardShortcutsTableBody.find('tr'),
+    $modelConfidenceScoreDetail = $('#modelConfidenceScore'),
+    $modelConfidenceScoreEnabledCheckbox = $(`input[name='behavior.workflow.confidenceScoreEnabled']`),
     $appInfoVersion = $('#appInfoVersion'),
     $appInfoUpdated = $('#appInfoUpdated'),
 
@@ -213,6 +217,7 @@ app.ready = async function () {
           positionSlider: true,
           formCoordinateFields: true,
           unicodeInfoPopup: true,
+          confidenceScoreEnabled: true,
           autoDownloadBoxFileOnAllLinesComitted: false,
           autoDownloadGroundTruthFileOnAllLinesComitted: false,
         },
@@ -1308,7 +1313,6 @@ app.ready = async function () {
             .getBounds()
             .extend(selectedPoly.getBounds());
         }
-        // setTimeout(function () { map.invalidateSize({ pan: true }) }, 500);
       },
       appAppearance: function (value) {
         var docClassesRef = $document[0].documentElement.classList;
@@ -1552,12 +1556,38 @@ app.ready = async function () {
         $y1Field.val(box.y1);
         $x2Field.val(box.x2);
         $y2Field.val(box.y2);
+        handler.update.confidenceScoreField(box);
         $groundTruthInputField.focus();
         $groundTruthInputField.select();
         handler.update.colorizedBackground();
         handler.update.progressBar({ type: 'tagging' });
         lineDataInfo.setDirty(false);
         handler.close.popups();
+      },
+      confidenceScoreField: async function (box) {
+        if (!$modelConfidenceScoreEnabledCheckbox[0].checked) {
+          $modelConfidenceScoreDetail.text('');
+          return;
+        }
+        $modelConfidenceScoreDetail.text(box.isModelGeneratedText ? `Suggestion Confidence: ${box.modelConfidenceScore}%` : '');
+        // colorize if low confidence
+        if (box.isModelGeneratedText) {
+          colorMap = {
+            70: 'red',
+            85: 'orange',
+            95: 'grey',
+            100: 'green',
+          }
+          for (var lowConfidence in colorMap) {
+            if (box.modelConfidenceScore < lowConfidence) {
+              $modelConfidenceScoreDetail.addClass(colorMap[lowConfidence]);
+              // $modelConfidenceScoreDetail.removeClass('grey');
+              break;
+            }
+            $modelConfidenceScoreDetail.removeClass(Object.values(colorMap).join(' '));
+            // $modelConfidenceScoreDetail.addClass('grey');
+          }
+        }
       },
       downloadButtonsLabels: function (options = {}) {
         var icon = document.createElement('i');
@@ -1772,6 +1802,7 @@ app.ready = async function () {
               y1: parseInt(dimensions[2]),
               x2: parseInt(dimensions[3]),
               y2: parseInt(dimensions[4]),
+              isModelGeneratedText: false,
             });
 
             var rectangle = L.rectangle([[box.y1, box.x1], [box.y2, box.x2]]);
@@ -2180,6 +2211,8 @@ app.ready = async function () {
           x2: parseInt($x2Field.val()),
           y2: parseInt($y2Field.val()),
           committed: true,
+          isModelGeneratedText: false,
+          modelConfidenceScore: null,
         }),
         modified = handler.update.boxData(polyid, newData);
       handler.update.rectangle(polyid, newData);
@@ -2230,6 +2263,9 @@ app.ready = async function () {
       },
       getMapPosition: function () {
         return map.getBounds();
+      },
+      invalidateSize: function () {
+        setTimeout(function () { map.invalidateSize({ pan: true }) }, 500);
       },
       fitImage: function () {
         map.flyToBounds(image.getBounds(), {
@@ -2475,6 +2511,8 @@ app.ready = async function () {
             text = includeSuggestions ? line.text : '',
             box = new Box({
               text: text,
+              isModelGeneratedText: true,
+              modelConfidenceScore: line.confidence,
               x1: shape.x0, // right
               y1: imageHeight - shape.y1, // bottom
               x2: shape.x1, // left
@@ -2513,6 +2551,8 @@ app.ready = async function () {
             },
             result = await worker.recognize(image._image, { rectangle });
           box.text = result.data.text.replace(/(\r\n|\n|\r)/gm, '');
+          box.isModelGeneratedText = true;
+          box.modelConfidenceScore = result.data.confidence;
           box.committed = false;
           box.visited = false;
           handler.style.remove(layer);
@@ -2603,6 +2643,11 @@ app.ready = async function () {
       $textHighlightingEnabledCheckbox.checkbox({
         onChange: function () {
           handler.saveHighlightsToSettings();
+        }
+      });
+      $modelConfidenceScoreEnabledCheckbox.checkbox({
+        onChange: async function () {
+          await handler.update.confidenceScoreField(selectedBox);
         }
       });
       $groundTruthInputField.bind('mouseup', handler.showCharInfoPopup)

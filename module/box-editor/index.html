@@ -175,12 +175,14 @@
         <div id="positionSlider" class="ui small grey disabled labeled slider"></div>
         <form class="ui big form colorized-output-form" id="updateTxt" spellcheck="false">
           <div id="myInputContainer" class="disabled field">
-            <label class="col-sm-2 control-label" for="formtxt" id="txtlabel">Text</label>
+            <label class="col-sm-2 control-label" for="formtxt" id="txtlabel">&nbsp;</label>
             <div id="myInputBackground" class="no-kerning colorized-output-field">&nbsp;</div>
             <!-- <input type="text" id="forsmtxt" boxid="" name="txt" value="" onkeyup="updateBackground()"> -->
           </div>
           <div class="field">
-            <label class="col-sm-2 control-label" for="formtxt" id="txtlabel">Text</label>
+            <label class="col-sm-2 control-label" for="formtxt" id="txtlabel">Text
+              <span id="modelConfidenceScore" class="ui small text"></span>
+            </label>
             <input disabled type="text" id="formtxt" class="no-kerning colorized-input-field" boxid="" name="txt"
               value="">
           </div>
@@ -457,6 +459,12 @@
               </div>
               <div class="item">
                 <div class="ui checkbox">
+                  <input type="checkbox" name="behavior.workflow.confidenceScoreEnabled">
+                  <label>Display confidence score for text suggestions</label>
+                </div>
+              </div>
+              <div class="item">
+                <div class="ui checkbox">
                   <input type="checkbox" name="behavior.workflow.autoDownloadBoxFileOnAllLinesComitted">
                   <label>Auto-download box file when all lines committed</label>
                 </div>
@@ -672,8 +680,8 @@
                 </tr>
                 <tr>
                   <td>Training Dataset:</td>
-                  <td class="right aligned"><a class="" href="https://www.kaggle.com/datasets/mariuspenteliuc/rts-ocr" target="_blank"
-                      title="Training Dataset">Kaggle</a></td>
+                  <td class="right aligned"><a class="" href="https://www.kaggle.com/datasets/mariuspenteliuc/rts-ocr"
+                      target="_blank" title="Training Dataset">Kaggle</a></td>
                 </tr>
               </tbody>
               <tfoot class="full-width">
