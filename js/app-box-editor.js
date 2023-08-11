@@ -67,6 +67,7 @@ app.ready = async function () {
     $regenerateTextSuggestionsButton = $('#regenerateTextSuggestions'),
     $regenerateTextSuggestionForSelectedBoxButton = $('#regenerateTextSuggestionForSelectedBox'),
     $ocrModelDropdown = $('#ocrModelDropdown'),
+    $ocrModelDropdownInSettings = $('#ocrModelDropdownInSettings'),
     $colorizedOutputForms = $('.colorized-output-form'),
     $colorizedInputFields = $('.colorized-input-field'),
     $colorizedOutputFields = $('.colorized-output-field'),
@@ -202,8 +203,6 @@ app.ready = async function () {
         },
         imageView: 'medium',
         showInvisibles: false,
-        languageModelName: 'RTS_from_Cyrillic',
-        languageModelIsCustom: true,
       },
       behavior: {
         onImageLoad: {
@@ -227,6 +226,10 @@ app.ready = async function () {
           keyboardShortcutsEnabled: true,
           shortcuts: []
         },
+      },
+      language: {
+        recognitionModel: 'RTS_from_Cyrillic',
+        languageModelIsCustom: true,
       },
       highlighter: {
         textHighlighting: {
@@ -1421,6 +1424,8 @@ app.ready = async function () {
             document.querySelector(`input[name='${path}']`).checked = value;
           }
         }
+        // Language Models
+        // $ocrModelDropdownInSettings.dropdown('set value', appSettings.language.recognitionModel, true);
         // Highlighter
         for (const [key, value] of Object.entries(appSettings.highlighter.textHighlighting)) {
           if (key != 'highlightsPatterns') {
@@ -1856,7 +1861,7 @@ app.ready = async function () {
         var
           langPathURL = 'https://tessdata.projectnaptha.com/4.0.0_best',
           isGzip = true;
-        if (appSettings.interface.languageModelIsCustom) {
+        if (appSettings.language.languageModelIsCustom) {
           langPathURL = '../../assets';
           isGzip = false;
         }
@@ -1873,8 +1878,8 @@ app.ready = async function () {
         return true;
       },
       tesseractLanguage: async function () {
-        await worker.loadLanguage(appSettings.interface.languageModelName);
-        await worker.initialize(appSettings.interface.languageModelName);
+        await worker.loadLanguage(appSettings.language.recognitionModel);
+        await worker.initialize(appSettings.language.recognitionModel);
         return true;
       },
       dropdowns: function () {
@@ -1882,15 +1887,37 @@ app.ready = async function () {
           onChange: async function (value, text, $selectedItem) {
             $ocrModelDropdown.addClass('loading');
             handler.set.loadingState({ buttons: true });
-            appSettings.interface.languageModelName = value;
+            appSettings.language.recognitionModel = value;
             var custom = value == 'RTS_from_Cyrillic' ? true : false;
-            if (appSettings.interface.languageModelIsCustom != custom) {
-              appSettings.interface.languageModelIsCustom = custom;
+            if (appSettings.language.languageModelIsCustom != custom) {
+              appSettings.language.languageModelIsCustom = custom;
               await handler.load.tesseractWorker();
             } else {
               await handler.load.tesseractLanguage();
             }
+            $ocrModelDropdownInSettings.dropdown('set selected', appSettings.language.recognitionModel, true);
             $ocrModelDropdown.removeClass('loading');
+            handler.set.loadingState({ buttons: false });
+          }
+        });
+        $ocrModelDropdownInSettings.dropdown({
+          onChange: async function (value, text, $selectedItem) {
+            // $ocrModelDropdownInSettings.dropdown('set selected', value, true);
+            // handler.update.appSettings({
+            //   path: $ocrModelDropdownInSettings[0].getAttribute('name'), value: value
+            // });
+            $ocrModelDropdownInSettings.addClass('loading');
+            handler.set.loadingState({ buttons: true });
+            appSettings.language.recognitionModel = value;
+            var custom = value == 'RTS_from_Cyrillic' ? true : false;
+            if (appSettings.language.languageModelIsCustom != custom) {
+              appSettings.language.languageModelIsCustom = custom;
+              await handler.load.tesseractWorker();
+            } else {
+              await handler.load.tesseractLanguage();
+            }
+            $ocrModelDropdown.dropdown('set selected', appSettings.language.recognitionModel, true);
+            $ocrModelDropdownInSettings.removeClass('loading');
             handler.set.loadingState({ buttons: false });
           }
         });
