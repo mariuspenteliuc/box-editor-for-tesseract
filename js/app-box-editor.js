@@ -66,6 +66,7 @@ app.ready = async function () {
     $redetectAllBoxesButton = $('#redetectAllBoxes'),
     $regenerateTextSuggestionsButton = $('#regenerateTextSuggestions'),
     $regenerateTextSuggestionForSelectedBoxButton = $('#regenerateTextSuggestionForSelectedBox'),
+    $ocrModelDropdown = $('#ocrModelDropdown'),
     $colorizedOutputForms = $('.colorized-output-form'),
     $colorizedInputFields = $('.colorized-input-field'),
     $colorizedOutputFields = $('.colorized-output-field'),
@@ -134,7 +135,6 @@ app.ready = async function () {
     boxLayer = new L.FeatureGroup(),
     selectedPoly,
     selectedBox,
-    languageModelName = 'RTS_from_Cyrillic',
     maxZoom = 1,
     map,
     mapPaddingBottomRight = [40, 0],
@@ -202,6 +202,8 @@ app.ready = async function () {
         },
         imageView: 'medium',
         showInvisibles: false,
+        languageModelName: 'RTS_from_Cyrillic',
+        languageModelIsCustom: true,
       },
       behavior: {
         onImageLoad: {
@@ -1569,7 +1571,7 @@ app.ready = async function () {
           $modelConfidenceScoreDetail.text('');
           return;
         }
-        $modelConfidenceScoreDetail.text(box.isModelGeneratedText ? `Suggestion Confidence: ${box.modelConfidenceScore}%` : '');
+        $modelConfidenceScoreDetail.text(box.isModelGeneratedText ? `Suggestion Confidence: ${Math.round(box.modelConfidenceScore)}%` : '');
         // colorize if low confidence
         if (box.isModelGeneratedText) {
           colorMap = {
@@ -1850,6 +1852,49 @@ app.ready = async function () {
       return formattedDate;
     },
     load: {
+      tesseractWorker: async function () {
+        var
+          langPathURL = 'https://tessdata.projectnaptha.com/4.0.0_best',
+          isGzip = true;
+        if (appSettings.interface.languageModelIsCustom) {
+          langPathURL = '../../assets';
+          isGzip = false;
+        }
+        worker = await Tesseract.createWorker({
+          logger: m => handler.process.workerLogMessage(m),
+          langPath: langPathURL,
+          gzip: isGzip,
+        });
+        await handler.load.tesseractLanguage();
+        await worker.setParameters({
+          tessedit_ocr_engine_mode: 1,
+          tessedit_pageseg_mode: 1,// 12
+        });
+        return true;
+      },
+      tesseractLanguage: async function () {
+        await worker.loadLanguage(appSettings.interface.languageModelName);
+        await worker.initialize(appSettings.interface.languageModelName);
+        return true;
+      },
+      dropdowns: function () {
+        $ocrModelDropdown.dropdown({
+          onChange: async function (value, text, $selectedItem) {
+            $ocrModelDropdown.addClass('loading');
+            handler.set.loadingState({ buttons: true });
+            appSettings.interface.languageModelName = value;
+            var custom = value == 'RTS_from_Cyrillic' ? true : false;
+            if (appSettings.interface.languageModelIsCustom != custom) {
+              appSettings.interface.languageModelIsCustom = custom;
+              await handler.load.tesseractWorker();
+            } else {
+              await handler.load.tesseractLanguage();
+            }
+            $ocrModelDropdown.removeClass('loading');
+            handler.set.loadingState({ buttons: false });
+          }
+        });
+      },
       keyboardShortcuts: function () {
         $window.keyup(function (event) {
           if (handler.keyboardShortcuts.isModifierKey(event.key)) {
@@ -2160,18 +2205,9 @@ app.ready = async function () {
           boxDownloadButton: imageFileName + '.box',
           groundTruthDownloadButton: imageFileName + '.gt.txt'
         });
+        // Load Tesseract Worker
+        await handler.load.tesseractWorker();
 
-        worker = await Tesseract.createWorker({
-          logger: m => handler.process.workerLogMessage(m),
-          langPath: '../../assets',
-          gzip: false,
-        });
-        await worker.loadLanguage(languageModelName);
-        await worker.initialize(languageModelName);
-        await worker.setParameters({
-          tessedit_ocr_engine_mode: 1,
-          tessedit_pageseg_mode: 1,// 12
-        });
         if (appSettings.behavior.onImageLoad.detectAllLines && !sample) {
           var response = await handler.generate.initialBoxes(
             includeSuggestions = appSettings.behavior.onImageLoad.includeTextForDetectedLines
@@ -2706,6 +2742,7 @@ app.ready = async function () {
       // handler.set.loadingState({ buttons: false });
       await handler.load.unicodeData();
       handler.load.dropzone();
+      handler.load.dropdowns();
       handler.load.popups();
       handler.create.defaultHighlighterTable();
       handler.create.defaultKeyboardShortcutsTable();
