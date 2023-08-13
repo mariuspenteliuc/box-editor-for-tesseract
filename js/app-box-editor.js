@@ -1380,7 +1380,7 @@ app.ready = async function () {
           const path = 'interface.toolbarActions.' + key;
           const checkbox = $checkboxes.find(`input[name="${path}"]`);
           checkbox.prop('checked', value);
-          $('button[name="' + path + '"]').parent().toggle(appSettings.interface.toolbarActions[key]);
+          $('#custom-controls [name="' + path + '"]').parent().toggle(appSettings.interface.toolbarActions[key]);
         }
         // Appearance
         const appearancePath = 'interface.appearance';
