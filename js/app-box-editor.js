@@ -193,7 +193,8 @@ app.ready = async function () {
     worker,
 
     appSettings = {
-      cookieName: 'appSettings-boxEditor',
+      // cookieName: 'appSettings-boxEditor',
+      localStorageKey: 'appSettings-boxEditor',
       interface: {
         appearance: 'match-device',
         toolbarActions: {
@@ -697,7 +698,8 @@ app.ready = async function () {
           theadRow = document.createElement('tr'),
           headers = ['', 'Action', 'Key Combo', ''],
           tbody = document.createElement('tbody'),
-          cookie = Cookies.get(appSettings.cookieName);
+          // cookie = Cookies.get(appSettings.cookieName),
+          localStorageValue = localStorage.getItem(appSettings.localStorageKey);
         table.className = 'ui unstackable celled table';
         thead.appendChild(theadRow);
         for (const header of headers) {
@@ -711,9 +713,9 @@ app.ready = async function () {
 
         var shortcuts = [];
         try {
-          if (cookie) {
-            const cookieSettings = JSON.parse(cookie);
-            shortcuts = cookieSettings.behavior.keyboardShortcuts.shortcuts;
+          if (localStorageValue) {
+            const localStorageSettings = JSON.parse(localStorageValue);
+            shortcuts = localStorageSettings.behavior.keyboardShortcuts.shortcuts;
             if (shortcuts.length > 0) {
               shortcuts.forEach(function (shortcut) {
                 const row = handler.create.keyboardShortcutRow(shortcut.enabled, shortcut.keyCombo, shortcut.name);
@@ -725,7 +727,7 @@ app.ready = async function () {
           console.error(error);
         }
 
-        if (!cookie || shortcuts.length == 0) {
+        if (!localStorageValue || shortcuts.length == 0) {
           const rows = [
             { enabled: true, keyCombo: 'ENTER', name: 'Move to next box' },
             { enabled: true, keyCombo: 'Shift + ENTER', name: 'Move to previous box' },
@@ -754,7 +756,8 @@ app.ready = async function () {
           theadRow = document.createElement('tr'),
           headers = ['', 'Name', 'Color', 'Pattern', ''],
           tbody = document.createElement('tbody'),
-          cookie = Cookies.get(appSettings.cookieName);
+          // cookie = Cookies.get(appSettings.cookieName),
+          localStorageValue = localStorage.getItem(appSettings.localStorageKey);
         table.className = 'ui unstackable celled table';
         thead.appendChild(theadRow);
         for (const header of headers) {
@@ -766,9 +769,9 @@ app.ready = async function () {
         }
 
         var highlights = [];
-        if (cookie) {
-          const cookieSettings = JSON.parse(cookie);
-          highlights = cookieSettings.highlighter.textHighlighting.highlightsPatterns;
+        if (localStorageValue) {
+          const localStorageSettings = JSON.parse(localStorageValue);
+          highlights = localStorageSettings.highlighter.textHighlighting.highlightsPatterns;
           if (highlights.length > 0) {
             highlights.forEach(function (highlight) {
               const row = handler.create.highlighterRow(highlight.enabled, highlight.name, highlight.color, highlight.pattern);
@@ -777,7 +780,7 @@ app.ready = async function () {
           }
         }
 
-        if (!cookie || highlights.length == 0) {
+        if (!localStorageValue || highlights.length == 0) {
           const rows = [
             { enabled: true, name: 'Latin', color: 'blue', pattern: '[\\u0000-\\u007F\\u0080-\\u00FF]' },
             { enabled: true, name: 'Cyrillic', color: 'yellow', pattern: '[\\u0400-\\u04FF\\u0500-\\u052F\\u2DE0-\\u2DFF\\uA640-\\uA69F\\u1C80-\\u1CBF]' },
@@ -1621,7 +1624,8 @@ app.ready = async function () {
         });
       },
       cookie: function () {
-        Cookies.set(appSettings.cookieName, JSON.stringify(appSettings));
+        // Cookies.set(appSettings.cookieName, JSON.stringify(appSettings));
+        localStorage.setItem(appSettings.localStorageKey, JSON.stringify(appSettings));
       },
       appSettings: function ({ path, value, cookie }) {
         if (cookie) {
@@ -2014,10 +2018,11 @@ app.ready = async function () {
             }
           }
         });
-        const cookieValue = Cookies.get(appSettings.cookieName);
-        if (cookieValue) {
-          cookieSettings = JSON.parse(cookieValue);
-          handler.update.appSettings({ cookie: cookieSettings });
+        // const cookieValue = Cookies.get(appSettings.cookieName);
+        const localStorageValue = localStorage.getItem(appSettings.localStorageKey);
+        if (localStorageValue) {
+          localStorageSettings = JSON.parse(localStorageValue);
+          handler.update.appSettings({ cookie: localStorageSettings });
         } else {
           handler.update.settingsModal();
         }
