@@ -200,6 +200,7 @@ app.ready = async function () {
           detectSelectedBox: true,
           detectAllBoxes: true,
           invisiblesToggle: true,
+          languageModelDropdown: true,
         },
         imageView: 'medium',
         showInvisibles: false,
