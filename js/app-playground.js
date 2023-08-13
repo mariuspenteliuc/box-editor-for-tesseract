@@ -140,6 +140,7 @@ app.ready = async function () {
     transliteratedOutput = "",
 
     appSettings = {
+      cookieName: 'appSettings-playground',
       interface: {
         appearance: 'match-device',
         imageView: 'medium',
@@ -206,7 +207,7 @@ app.ready = async function () {
     },
     update: {
       cookie: function () {
-        Cookies.set('appSettings', JSON.stringify(appSettings));
+        Cookies.set(appSettings.cookieName, JSON.stringify(appSettings));
       },
       appSettings: function ({ path, value, cookie }) {
         if (cookie) {
@@ -308,7 +309,7 @@ app.ready = async function () {
             if ($settingsModalStatusMessage[0]) $settingsModalStatusMessage[0].innerHTML = '';
           }
         });
-        const cookieValue = Cookies.get('appSettings');
+        const cookieValue = Cookies.get(appSettings.cookieName);
         if (cookieValue) {
           cookieSettings = JSON.parse(cookieValue);
           handler.update.appSettings({ cookie: cookieSettings });
@@ -822,6 +823,39 @@ app.ready = async function () {
       if (response) {
         handler.clearCookies();
       }
+    },
+    askUser: async function (object) {
+      if (!object.message) return false;
+      if (object.actions == []) {
+        object.actions = [{
+          confirmText: 'Yes',
+          confirmTextClass: 'green positive',
+        }, {
+          denyText: 'No',
+          denyTextClass: 'red negative',
+        }];
+      }
+      return new Promise((resolve, reject) => {
+        $.modal({
+          inverted: false,
+          title: object.title,
+          blurring: true,
+          closeIcon: true,
+          autofocus: true,
+          restoreFocus: true,
+          onApprove: function () {
+            resolve(true);
+          },
+          onDeny: function () {
+            resolve(false);
+          },
+          onHide: function () {
+            resolve(false);
+          },
+          content: object.message,
+          actions: object.actions,
+        }).modal('show');
+      });
     },
     clearCookies: function () {
       const cookies = Cookies.get();

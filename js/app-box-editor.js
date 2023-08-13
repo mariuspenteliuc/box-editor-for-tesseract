@@ -193,6 +193,7 @@ app.ready = async function () {
     worker,
 
     appSettings = {
+      cookieName: 'appSettings-boxEditor',
       interface: {
         appearance: 'match-device',
         toolbarActions: {
@@ -696,7 +697,7 @@ app.ready = async function () {
           theadRow = document.createElement('tr'),
           headers = ['', 'Action', 'Key Combo', ''],
           tbody = document.createElement('tbody'),
-          cookie = Cookies.get('appSettings');
+          cookie = Cookies.get(appSettings.cookieName);
         table.className = 'ui unstackable celled table';
         thead.appendChild(theadRow);
         for (const header of headers) {
@@ -753,7 +754,7 @@ app.ready = async function () {
           theadRow = document.createElement('tr'),
           headers = ['', 'Name', 'Color', 'Pattern', ''],
           tbody = document.createElement('tbody'),
-          cookie = Cookies.get('appSettings');
+          cookie = Cookies.get(appSettings.cookieName);
         table.className = 'ui unstackable celled table';
         thead.appendChild(theadRow);
         for (const header of headers) {
@@ -1620,7 +1621,7 @@ app.ready = async function () {
         });
       },
       cookie: function () {
-        Cookies.set('appSettings', JSON.stringify(appSettings));
+        Cookies.set(appSettings.cookieName, JSON.stringify(appSettings));
       },
       appSettings: function ({ path, value, cookie }) {
         if (cookie) {
@@ -2013,7 +2014,7 @@ app.ready = async function () {
             }
           }
         });
-        const cookieValue = Cookies.get('appSettings');
+        const cookieValue = Cookies.get(appSettings.cookieName);
         if (cookieValue) {
           cookieSettings = JSON.parse(cookieValue);
           handler.update.appSettings({ cookie: cookieSettings });
