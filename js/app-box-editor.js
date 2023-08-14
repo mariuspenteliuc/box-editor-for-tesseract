@@ -1639,7 +1639,7 @@ app.ready = async function () {
             default:
               break;
           }
-          appSettings = { ...appSettings, ...localStorage };
+          handler.update.localStorage();
         } else {
           var
             pathElements = path.split('.'),
@@ -1702,11 +1702,14 @@ app.ready = async function () {
     },
     migrateSettings: function (oldSettings, downgrade = false) {
       if (downgrade) {
-        console.log('Downgrading settings');
+        // Downgrading settings
+
+        // ignore newer settings
       } else {
-        console.log('Upgrading settings');
+        // Upgrading settings
 
         // clear cookies set by versions prior to 1.6.0
+        // also remove html script tag for JS Cookie
         const cookies = Cookies.get();
         for (const cookie in cookies) {
           Cookies.remove(cookie);
@@ -2047,6 +2050,7 @@ app.ready = async function () {
           localStorageSettings = JSON.parse(localStorageValue);
           handler.update.appSettings({ localStorage: localStorageSettings });
         } else {
+          handler.update.appSettings({ localStorage: { appVersion: undefined } });
           handler.update.settingsModal();
         }
       },
@@ -2801,9 +2805,9 @@ app.ready = async function () {
       handler.load.dropzone();
       handler.load.dropdowns();
       handler.load.popups();
+      handler.load.settings();
       handler.create.defaultHighlighterTable();
       handler.create.defaultKeyboardShortcutsTable();
-      handler.load.settings();
       handler.load.eventListeners();
 
       handler.saveHighlightsToSettings();
