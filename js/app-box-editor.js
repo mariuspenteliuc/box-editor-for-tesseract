@@ -689,6 +689,22 @@ app.ready = async function () {
         }
         return boxIndex;
       },
+      expiredNotifications: function () {
+        const currentDate = new Date();
+
+        $('.updateNotification').each(function () {
+          const
+            releaseDate = new Date($(this).attr('data-release-date')),
+            removeDays = parseInt($(this).attr('data-expire-notification')),
+            timeDifference = currentDate - releaseDate,
+            daysDifference = timeDifference / (1000 * 60 * 60 * 24);
+
+          if (daysDifference >= removeDays) {
+            $(this).remove();
+            console.info(`Notification removed: ${$(this).attr('data-release-date')}`);
+          }
+        });
+      },
     },
     create: {
       defaultKeyboardShortcutsTable: async function () {
@@ -2813,6 +2829,7 @@ app.ready = async function () {
       handler.saveHighlightsToSettings();
       handler.saveKeyboardShortcutsToSettings();
 
+      handler.delete.expiredNotifications();
     },
   };
 

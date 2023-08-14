@@ -71,7 +71,10 @@
             Words Pairing
           </a>
           <a id="settingsButton" class="item">
-            <i class="large fitted cog circle icon"></i>
+            <i class="icons">
+              <i class="large fitted cog icon"></i>
+              <i class="top right corner orange circle icon updateNotification" data-release-date="2023-08-14" data-expire-notification="14"></i>
+            </i>
           </a>
         </div>
       </div>
@@ -168,8 +171,8 @@
             </button>
           </div>
           <div class="field">
-            <div id="ocrModelDropdown" name="interface.toolbarActions.languageModelDropdown" class="ui floating compact dropdown labeled search icon button"
-              spellcheck="false">
+            <div id="ocrModelDropdown" name="interface.toolbarActions.languageModelDropdown"
+              class="ui floating compact dropdown labeled search icon button" spellcheck="false">
               <i class="world icon"></i>
               <span class="text">Romanian Transitional Script</span>
               <div class="menu">
@@ -384,15 +387,23 @@
     <div id="navSettingsPane" class="four wide column scrolling content">
       <div id="settingsMenu" class="ui fluid secondary vertical menu">
         <a class="item active" data-tab="interface-settings">
-          <i class="grey adjust icon"></i>
+          <i class="icons">
+            <i class="grey adjust icon"></i>
+            <i class="top right corner orange circle icon updateNotification" data-release-date="2023-08-14"
+              data-expire-notification="7"></i>
+          </i>
           Interface
         </a>
         <a class="item" data-tab="behavior-settings">
-          <i class="grey toggle on icon"></i>
+          <i class="icons">
+            <i class="grey toggle on icon"></i>
+            <i class="top right corner orange circle icon updateNotification" data-release-date="2023-08-14" data-expire-notification="7"></i>
+          </i>
           Behavior
         </a>
         <a class="item" data-tab="language-settings">
-          <i class="globe icon"></i>
+          <i class="grey globe icon"></i>
+          <i class="orange certificate icon updateNotification" data-release-date="2023-08-14" data-expire-notification="14"></i>
           Language Models
         </a>
         <a id="highlighterTab" class="item" data-tab="highlighter-settings">
@@ -472,7 +483,9 @@
               <div class="item">
                 <div class="ui checkbox">
                   <input type="checkbox" name="interface.toolbarActions.languageModelDropdown">
-                  <label>Language model selector</label>
+                  <label>Language model dropdown selector
+                    <span class="ui small italic orange text updateNotification" data-release-date="2023-08-14" data-expire-notification="14">new</span>
+                  </label>
                 </div>
               </div>
             </div>
@@ -592,7 +605,9 @@
               <div class="item">
                 <div class="ui checkbox">
                   <input type="checkbox" name="behavior.workflow.confidenceScoreEnabled">
-                  <label>Display confidence score for text suggestions</label>
+                  <label>Display confidence score for text suggestions
+                    <span class="ui small italic orange text updateNotification" data-release-date="2023-08-14" data-expire-notification="14">new</span>
+                  </label>
                 </div>
               </div>
               <div class="item">
@@ -644,9 +659,11 @@
       <div class="ui tab" data-tab="language-settings">
         <div class="ui very relaxed list">
           <div class="item" name="recognitionModel">
-            <div class="header">Recognition Model</div>
+            <div class="header">Recognition Model
+              <span class="ui small italic orange text updateNotification" data-release-date="2023-08-14" data-expire-notification="14">new</span>
+            </div>
             <div class="description">
-              Choose a language model to use for OCR corrections suggestions.
+              Choose a language to use for OCR text suggestions.
             </div>
           </div>
           <div class="item">
@@ -775,7 +792,8 @@
                 <div class="header">
                   Known Issue
                 </div>
-                <p>Not all recognition models are fully supported yet. Right-to-left scripts do not properly display in the input field, especially when mixed with left-to-right text.
+                <p>Not all recognition models are fully supported yet. Right-to-left scripts do not properly display in
+                  the input field, especially when mixed with left-to-right text.
                 </p>
               </div>
             </div>
@@ -973,15 +991,15 @@
               Digitization, CCCDI -
               UEFISCDI, project number PN-III-P2-2.1-PED-2021-0693, within PNCDI III.</p>
           </div>
-          <div class="ui tiny compact icon message">
+          <!-- <div class="ui tiny compact icon message">
             <i class="translate icon"></i>
             <div class="content">
               <div class="header">
                 Upcoming Feature
               </div>
-              <p>A future update will allow switching between multiple OCR models.</p>
+              <p>Description.</p>
             </div>
-          </div>
+          </div> -->
           <div class="ui divider"></div>
           <div class="item">
             <h3 class="ui header">Reset</h3>

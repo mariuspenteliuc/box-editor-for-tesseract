@@ -176,6 +176,9 @@ span.space.multiple {
   font-kerning: none;
 }
 
+.italic {
+  font-style: italic;
+}
 
 span.red.text-highlighter {
   color: rgb(219, 40, 40);
