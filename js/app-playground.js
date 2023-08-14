@@ -79,7 +79,7 @@ app.ready = async function () {
     $settingsMenuPaneTabs = $settingsMenuPane.find('.ui.tab'),
     $settingsButton = $('#settingsButton'),
     $settingsButtonForHelpPane = $('.helpSettingsPopup'),
-    $resetButton = $('#resetAppSettingsAndCookies'),
+    $resetButton = $('#resetAppSettings'),
     $useSampleImageButton = $('#useSampleImage'),
     $useSampleImagePopupTrigger = $('#uploadNewImage'),
     $useSamplePopup = $('.ui.useSampleImage.popup'),
@@ -806,7 +806,7 @@ app.ready = async function () {
       }
       return text;
     },
-    resetAppSettingsAndCookies: async function () {
+    resetAppSettings: async function () {
       var
         response = await handler.askUser({
           title: 'Reset App',
@@ -1292,7 +1292,7 @@ app.ready = async function () {
       $regenerateTextSuggestionsButton.on('click', handler.generate.textSuggestions);
       $settingsButton.on('click', handler.open.settingsModal);
       $settingsButtonForHelpPane.on('click', handler.open.settingsModal.bind(handler.open, 'help-section'));
-      $resetButton.on('click', handler.resetAppSettingsAndCookies);
+      $resetButton.on('click', handler.resetAppSettings);
       $useSampleImageButton.on('click', handler.load.sampleImageAndBox);
     },
     addBehaviors: function () {
