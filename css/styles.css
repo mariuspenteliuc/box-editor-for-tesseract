@@ -176,6 +176,9 @@ span.space.multiple {
   font-kerning: none;
 }
 
+.italic {
+  font-style: italic;
+}
 
 span.red.text-highlighter {
   color: rgb(219, 40, 40);
@@ -7514,12 +7517,20 @@ div.ui.blue.empty.circular.label.text-highlighter {
   background: #3d3e3f;
 }
 
+.ui:not(.upward).floating.dropdown>.menu {
+  z-index: 500;
+}
+
+#ocrModelDropdown > .menu {
+  min-width: 20rem;
+}
+
 @media(prefers-color-scheme: dark) {
 
   .match-device #previewText::selection,
   .match-device #formtxt::selection {
     color: transparent;
-    background: rgba(255, 255, 255, .5);
+    background: rgba(255, 255, 255, .25);
     /* background: #65656533; */
     /* mix-blend-mode: exclusion; */
   }
@@ -7528,7 +7539,7 @@ div.ui.blue.empty.circular.label.text-highlighter {
   .match-device #previewText::-moz-selection,
   .match-device #formtxt::-moz-selection {
     color: transparent;
-    background: rgba(255, 255, 255, .5);
+    background: rgba(255, 255, 255, .25);
     /* background: #65656533; */
   }
 

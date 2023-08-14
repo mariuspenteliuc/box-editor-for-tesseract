@@ -79,7 +79,7 @@ app.ready = async function () {
     $settingsMenuPaneTabs = $settingsMenuPane.find('.ui.tab'),
     $settingsButton = $('#settingsButton'),
     $settingsButtonForHelpPane = $('.helpSettingsPopup'),
-    $resetButton = $('#resetAppSettingsAndCookies'),
+    $resetButton = $('#resetAppSettings'),
     $useSampleImageButton = $('#useSampleImage'),
     $useSampleImagePopupTrigger = $('#uploadNewImage'),
     $useSamplePopup = $('.ui.useSampleImage.popup'),
@@ -140,6 +140,8 @@ app.ready = async function () {
     transliteratedOutput = "",
 
     appSettings = {
+      localStorageKey: 'appSettings-playground',
+      appVersion: null,
       interface: {
         appearance: 'match-device',
         imageView: 'medium',
@@ -204,13 +206,45 @@ app.ready = async function () {
       appInfo.appName = appInfo.name.replace(/[^\w\s]/gi, '');
       return appInfo;
     },
+    compareVersions: function (a, b) {
+      return compareVersions.compareVersions(a, b);
+    },
+    migrateSettings: function (oldSettings, downgrade = false) {
+      if (downgrade) {
+        // Downgrading settings
+
+        // ignore newer settings
+      } else {
+        // Upgrading settings
+
+        // clear cookies set by versions prior to 1.6.0
+        // also remove html script tag for JS Cookie
+        const cookies = Cookies.get();
+        for (const cookie in cookies) {
+          Cookies.remove(cookie);
+        }
+      }
+    },
     update: {
-      cookie: function () {
-        Cookies.set('appSettings', JSON.stringify(appSettings));
+      localStorage: function () {
+        localStorage.setItem(appSettings.localStorageKey, JSON.stringify(appSettings));
       },
-      appSettings: function ({ path, value, cookie }) {
-        if (cookie) {
-          appSettings = { ...appSettings, ...cookie };
+      appSettings: function ({ path, value, localStorage }) {
+        if (localStorage) {
+          if (localStorage.appVersion == undefined) {
+            localStorage.appVersion = '0';
+          }
+          switch (handler.compareVersions(appSettings.appVersion, localStorage.appVersion)) {
+            case -1:
+              handler.migrateSettings(localStorage.appVersion, true);
+              break;
+            case 1:
+              handler.migrateSettings(localStorage.appVersion);
+              break;
+            default:
+              break;
+          }
+          handler.update.localStorage();
         } else {
           var
             pathElements = path.split('.'),
@@ -226,7 +260,7 @@ app.ready = async function () {
               }
               return obj[key];
             }, appSettings);
-          handler.update.cookie();
+          handler.update.localStorage();
           button.className = 'ui button ok';
           button.tabIndex = '0';
           button.innerText = 'OK';
@@ -296,6 +330,7 @@ app.ready = async function () {
       settings: function () {
         handler.getAppInfo();
         $appInfoVersion.text(appInfo.version);
+        appSettings.appVersion = appInfo.version;
         // format date to month date, year
         const date = new Date(appInfo.updated);
         $appInfoUpdated.text(handler.formatDate(date));
@@ -308,11 +343,12 @@ app.ready = async function () {
             if ($settingsModalStatusMessage[0]) $settingsModalStatusMessage[0].innerHTML = '';
           }
         });
-        const cookieValue = Cookies.get('appSettings');
-        if (cookieValue) {
-          cookieSettings = JSON.parse(cookieValue);
-          handler.update.appSettings({ cookie: cookieSettings });
+        const localStorageValue = localStorage.getItem(appSettings.localStorageKey);
+        if (localStorageValue) {
+          localStorageSettings = JSON.parse(localStorageValue);
+          handler.update.appSettings({ localStorage: localStorageSettings });
         } else {
+          handler.update.appSettings({ localStorage: { appVersion: undefined } });
           handler.update.settingsModal();
         }
       },
@@ -805,7 +841,7 @@ app.ready = async function () {
       }
       return text;
     },
-    resetAppSettingsAndCookies: async function () {
+    resetAppSettings: async function () {
       var
         response = await handler.askUser({
           title: 'Reset App',
@@ -820,14 +856,44 @@ app.ready = async function () {
           }]
         });
       if (response) {
-        handler.clearCookies();
+        handler.clearLocalStorage();
       }
     },
-    clearCookies: function () {
-      const cookies = Cookies.get();
-      for (const cookie in cookies) {
-        Cookies.remove(cookie);
+    askUser: async function (object) {
+      if (!object.message) return false;
+      if (object.actions == []) {
+        object.actions = [{
+          confirmText: 'Yes',
+          confirmTextClass: 'green positive',
+        }, {
+          denyText: 'No',
+          denyTextClass: 'red negative',
+        }];
       }
+      return new Promise((resolve, reject) => {
+        $.modal({
+          inverted: false,
+          title: object.title,
+          blurring: true,
+          closeIcon: true,
+          autofocus: true,
+          restoreFocus: true,
+          onApprove: function () {
+            resolve(true);
+          },
+          onDeny: function () {
+            resolve(false);
+          },
+          onHide: function () {
+            resolve(false);
+          },
+          content: object.message,
+          actions: object.actions,
+        }).modal('show');
+      });
+    },
+    clearLocalStorage: function () {
+      localStorage.removeItem(appSettings.localStorageKey);
       location.reload();
     },
     getBoxFileType: function (content) {
@@ -923,6 +989,22 @@ app.ready = async function () {
           recognizedLinesOfText.splice(newIndex, 1);
         }
         return boxIndex;
+      },
+      expiredNotifications: function () {
+        const currentDate = new Date();
+
+        $('.updateNotification').each(function () {
+          const
+            releaseDate = new Date($(this).attr('data-release-date')),
+            removeDays = parseInt($(this).attr('data-expire-notification')),
+            timeDifference = currentDate - releaseDate,
+            daysDifference = timeDifference / (1000 * 60 * 60 * 24);
+
+          if (daysDifference >= removeDays) {
+            $(this).remove();
+            console.info(`Notification removed: ${$(this).attr('data-release-date')}`);
+          }
+        });
       },
     },
     map: {
@@ -1194,7 +1276,7 @@ app.ready = async function () {
       scripts = ['transliteration', 'rts'];
       // if 'transliteration' then switch to 'rts' and vice versa
       appSettings.interface.displayText = scripts.find(v => v !== appSettings.interface.displayText);
-      handler.update.cookie();
+      handler.update.localStorage();
       await handler.pasteOutput();
       if (appSettings.interface.displayText == 'rts') {
         $toggleOutputScriptButton.find('span').text('Transliteration' );
@@ -1258,7 +1340,7 @@ app.ready = async function () {
       $regenerateTextSuggestionsButton.on('click', handler.generate.textSuggestions);
       $settingsButton.on('click', handler.open.settingsModal);
       $settingsButtonForHelpPane.on('click', handler.open.settingsModal.bind(handler.open, 'help-section'));
-      $resetButton.on('click', handler.resetAppSettingsAndCookies);
+      $resetButton.on('click', handler.resetAppSettings);
       $useSampleImageButton.on('click', handler.load.sampleImageAndBox);
     },
     addBehaviors: function () {
@@ -1273,6 +1355,8 @@ app.ready = async function () {
       handler.load.popups();
       handler.load.settings();
       handler.load.eventListeners();
+
+      handler.delete.expiredNotifications();
     },
   };
   app.handler = handler;

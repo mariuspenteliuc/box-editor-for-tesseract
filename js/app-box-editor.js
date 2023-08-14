@@ -3,7 +3,7 @@ window.app = {
 };
 
 class Box {
-  constructor({ text, x1, x2, y1, y2, polyid, visited = false }) {
+  constructor({ text, x1, x2, y1, y2, polyid, visited = false, isModelGeneratedText, modelConfidenceScore = null }) {
     this.text = text;
     this.x1 = x1;
     this.x2 = x2;
@@ -13,6 +13,8 @@ class Box {
     this.filled = text != '' ? true : false;
     this.visited = visited;
     this.committed = false;
+    this.isModelGeneratedText = isModelGeneratedText;
+    this.modelConfidenceScore = modelConfidenceScore;
   }
 
   static compare(a, b) {
@@ -64,6 +66,8 @@ app.ready = async function () {
     $redetectAllBoxesButton = $('#redetectAllBoxes'),
     $regenerateTextSuggestionsButton = $('#regenerateTextSuggestions'),
     $regenerateTextSuggestionForSelectedBoxButton = $('#regenerateTextSuggestionForSelectedBox'),
+    $ocrModelDropdown = $('#ocrModelDropdown'),
+    $ocrModelDropdownInSettings = $('#ocrModelDropdownInSettings'),
     $colorizedOutputForms = $('.colorized-output-form'),
     $colorizedInputFields = $('.colorized-input-field'),
     $colorizedOutputFields = $('.colorized-output-field'),
@@ -104,7 +108,7 @@ app.ready = async function () {
     $highlighterTextPreview = $('#previewText'),
     $useSampleImageButton = $('#useSampleImage'),
     $useSamplePopup = $('.ui.useSampleImage.popup'),
-    $resetButton = $('#resetAppSettingsAndCookies'),
+    $resetButton = $('#resetAppSettings'),
     $addNewHighligherButton = $('#addNewHighlighterPattern'),
     $dropzone = $('div.my-dropzone'),
     $textHighlightingEnabledCheckbox = $(`input[name='highlighter.textHighlighting.textHighlightingEnabled']`),
@@ -115,6 +119,8 @@ app.ready = async function () {
     $keyboardShortcutsTableContainer = $('#keyboardShortcutsTableContainer'),
     $keyboardShortcutsTableBody = $keyboardShortcutsTableContainer.find('.ui.celled.table tbody'),
     $keyboardShortcutsTableRows = $keyboardShortcutsTableBody.find('tr'),
+    $modelConfidenceScoreDetail = $('#modelConfidenceScore'),
+    $modelConfidenceScoreEnabledCheckbox = $(`input[name='behavior.workflow.confidenceScoreEnabled']`),
     $appInfoVersion = $('#appInfoVersion'),
     $appInfoUpdated = $('#appInfoUpdated'),
 
@@ -130,7 +136,6 @@ app.ready = async function () {
     boxLayer = new L.FeatureGroup(),
     selectedPoly,
     selectedBox,
-    languageModelName = 'RTS_from_Cyrillic',
     maxZoom = 1,
     map,
     mapPaddingBottomRight = [40, 0],
@@ -188,6 +193,8 @@ app.ready = async function () {
     worker,
 
     appSettings = {
+      localStorageKey: 'appSettings-boxEditor',
+      appVersion: null,
       interface: {
         appearance: 'match-device',
         toolbarActions: {
@@ -195,6 +202,7 @@ app.ready = async function () {
           detectSelectedBox: true,
           detectAllBoxes: true,
           invisiblesToggle: true,
+          languageModelDropdown: true,
         },
         imageView: 'medium',
         showInvisibles: false,
@@ -213,6 +221,7 @@ app.ready = async function () {
           positionSlider: true,
           formCoordinateFields: true,
           unicodeInfoPopup: true,
+          confidenceScoreEnabled: true,
           autoDownloadBoxFileOnAllLinesComitted: false,
           autoDownloadGroundTruthFileOnAllLinesComitted: false,
         },
@@ -220,6 +229,10 @@ app.ready = async function () {
           keyboardShortcutsEnabled: true,
           shortcuts: []
         },
+      },
+      language: {
+        recognitionModel: 'RTS_from_Cyrillic',
+        languageModelIsCustom: true,
       },
       highlighter: {
         textHighlighting: {
@@ -273,6 +286,9 @@ app.ready = async function () {
       }).responseText);
       appInfo.appName = appInfo.name.replace(/[^\w\s]/gi, '');
       return appInfo;
+    },
+    compareVersions: function (a, b) {
+      return compareVersions.compareVersions(a, b);
     },
     bindColorizerOnInput: function () {
       $colorizedOutputForms.each(function () {
@@ -444,7 +460,7 @@ app.ready = async function () {
       }
       handler.update.colorizedBackground();
       handler.update.patternLabels();
-      handler.update.cookie();
+      handler.update.localStorage();
     },
     saveKeyboardShortcutsToSettings: function () {
       if (appSettings.behavior.keyboardShortcuts.keyboardShortcutsEnabled) {
@@ -487,7 +503,7 @@ app.ready = async function () {
         // add listener for keyboard shortcuts
         handler.load.keyboardShortcuts();
       }
-      handler.update.cookie();
+      handler.update.localStorage();
     },
     highlightCell: function (elem) {
       $(elem).addClass('red colored');
@@ -553,14 +569,11 @@ app.ready = async function () {
         }).modal('show');
       });
     },
-    clearCookies: function () {
-      const cookies = Cookies.get();
-      for (const cookie in cookies) {
-        Cookies.remove(cookie);
-      }
+    clearLocalStorage: function () {
+      localStorage.removeItem(appSettings.localStorageKey);
       location.reload();
     },
-    resetAppSettingsAndCookies: async function () {
+    resetAppSettings: async function () {
       var
         response = await handler.askUser({
           title: 'Reset App',
@@ -575,7 +588,7 @@ app.ready = async function () {
           }]
         });
       if (response) {
-        handler.clearCookies();
+        handler.clearLocalStorage();
       }
     },
     keyboardShortcuts: {
@@ -676,6 +689,22 @@ app.ready = async function () {
         }
         return boxIndex;
       },
+      expiredNotifications: function () {
+        const currentDate = new Date();
+
+        $('.updateNotification').each(function () {
+          const
+            releaseDate = new Date($(this).attr('data-release-date')),
+            removeDays = parseInt($(this).attr('data-expire-notification')),
+            timeDifference = currentDate - releaseDate,
+            daysDifference = timeDifference / (1000 * 60 * 60 * 24);
+
+          if (daysDifference >= removeDays) {
+            $(this).remove();
+            console.info(`Notification removed: ${$(this).attr('data-release-date')}`);
+          }
+        });
+      },
     },
     create: {
       defaultKeyboardShortcutsTable: async function () {
@@ -685,7 +714,7 @@ app.ready = async function () {
           theadRow = document.createElement('tr'),
           headers = ['', 'Action', 'Key Combo', ''],
           tbody = document.createElement('tbody'),
-          cookie = Cookies.get('appSettings');
+          localStorageValue = localStorage.getItem(appSettings.localStorageKey);
         table.className = 'ui unstackable celled table';
         thead.appendChild(theadRow);
         for (const header of headers) {
@@ -699,9 +728,9 @@ app.ready = async function () {
 
         var shortcuts = [];
         try {
-          if (cookie) {
-            const cookieSettings = JSON.parse(cookie);
-            shortcuts = cookieSettings.behavior.keyboardShortcuts.shortcuts;
+          if (localStorageValue) {
+            const localStorageSettings = JSON.parse(localStorageValue);
+            shortcuts = localStorageSettings.behavior.keyboardShortcuts.shortcuts;
             if (shortcuts.length > 0) {
               shortcuts.forEach(function (shortcut) {
                 const row = handler.create.keyboardShortcutRow(shortcut.enabled, shortcut.keyCombo, shortcut.name);
@@ -713,7 +742,7 @@ app.ready = async function () {
           console.error(error);
         }
 
-        if (!cookie || shortcuts.length == 0) {
+        if (!localStorageValue || shortcuts.length == 0) {
           const rows = [
             { enabled: true, keyCombo: 'ENTER', name: 'Move to next box' },
             { enabled: true, keyCombo: 'Shift + ENTER', name: 'Move to previous box' },
@@ -742,7 +771,7 @@ app.ready = async function () {
           theadRow = document.createElement('tr'),
           headers = ['', 'Name', 'Color', 'Pattern', ''],
           tbody = document.createElement('tbody'),
-          cookie = Cookies.get('appSettings');
+          localStorageValue = localStorage.getItem(appSettings.localStorageKey);
         table.className = 'ui unstackable celled table';
         thead.appendChild(theadRow);
         for (const header of headers) {
@@ -754,9 +783,9 @@ app.ready = async function () {
         }
 
         var highlights = [];
-        if (cookie) {
-          const cookieSettings = JSON.parse(cookie);
-          highlights = cookieSettings.highlighter.textHighlighting.highlightsPatterns;
+        if (localStorageValue) {
+          const localStorageSettings = JSON.parse(localStorageValue);
+          highlights = localStorageSettings.highlighter.textHighlighting.highlightsPatterns;
           if (highlights.length > 0) {
             highlights.forEach(function (highlight) {
               const row = handler.create.highlighterRow(highlight.enabled, highlight.name, highlight.color, highlight.pattern);
@@ -765,7 +794,7 @@ app.ready = async function () {
           }
         }
 
-        if (!cookie || highlights.length == 0) {
+        if (!localStorageValue || highlights.length == 0) {
           const rows = [
             { enabled: true, name: 'Latin', color: 'blue', pattern: '[\\u0000-\\u007F\\u0080-\\u00FF]' },
             { enabled: true, name: 'Cyrillic', color: 'yellow', pattern: '[\\u0400-\\u04FF\\u0500-\\u052F\\u2DE0-\\u2DFF\\uA640-\\uA69F\\u1C80-\\u1CBF]' },
@@ -1308,7 +1337,6 @@ app.ready = async function () {
             .getBounds()
             .extend(selectedPoly.getBounds());
         }
-        // setTimeout(function () { map.invalidateSize({ pan: true }) }, 500);
       },
       appAppearance: function (value) {
         var docClassesRef = $document[0].documentElement.classList;
@@ -1371,7 +1399,7 @@ app.ready = async function () {
           const path = 'interface.toolbarActions.' + key;
           const checkbox = $checkboxes.find(`input[name="${path}"]`);
           checkbox.prop('checked', value);
-          $('button[name="' + path + '"]').parent().toggle(appSettings.interface.toolbarActions[key]);
+          $('#custom-controls [name="' + path + '"]').parent().toggle(appSettings.interface.toolbarActions[key]);
         }
         // Appearance
         const appearancePath = 'interface.appearance';
@@ -1415,6 +1443,8 @@ app.ready = async function () {
             document.querySelector(`input[name='${path}']`).checked = value;
           }
         }
+        // Language Models
+        // $ocrModelDropdownInSettings.dropdown('set value', appSettings.language.recognitionModel, true);
         // Highlighter
         for (const [key, value] of Object.entries(appSettings.highlighter.textHighlighting)) {
           if (key != 'highlightsPatterns') {
@@ -1552,12 +1582,38 @@ app.ready = async function () {
         $y1Field.val(box.y1);
         $x2Field.val(box.x2);
         $y2Field.val(box.y2);
+        handler.update.confidenceScoreField(box);
         $groundTruthInputField.focus();
         $groundTruthInputField.select();
         handler.update.colorizedBackground();
         handler.update.progressBar({ type: 'tagging' });
         lineDataInfo.setDirty(false);
         handler.close.popups();
+      },
+      confidenceScoreField: async function (box) {
+        if (!$modelConfidenceScoreEnabledCheckbox[0].checked) {
+          $modelConfidenceScoreDetail.text('');
+          return;
+        }
+        $modelConfidenceScoreDetail.text(box.isModelGeneratedText ? `Suggestion Confidence: ${Math.round(box.modelConfidenceScore)}%` : '');
+        // colorize if low confidence
+        if (box.isModelGeneratedText) {
+          colorMap = {
+            70: 'red',
+            85: 'orange',
+            95: 'grey',
+            100: 'green',
+          }
+          for (var lowConfidence in colorMap) {
+            if (box.modelConfidenceScore < lowConfidence) {
+              $modelConfidenceScoreDetail.addClass(colorMap[lowConfidence]);
+              // $modelConfidenceScoreDetail.removeClass('grey');
+              break;
+            }
+            $modelConfidenceScoreDetail.removeClass(Object.values(colorMap).join(' '));
+            // $modelConfidenceScoreDetail.addClass('grey');
+          }
+        }
       },
       downloadButtonsLabels: function (options = {}) {
         var icon = document.createElement('i');
@@ -1581,12 +1637,25 @@ app.ready = async function () {
 
         });
       },
-      cookie: function () {
-        Cookies.set('appSettings', JSON.stringify(appSettings));
+      localStorage: function () {
+        localStorage.setItem(appSettings.localStorageKey, JSON.stringify(appSettings));
       },
-      appSettings: function ({ path, value, cookie }) {
-        if (cookie) {
-          appSettings = { ...appSettings, ...cookie };
+      appSettings: function ({ path, value, localStorage }) {
+        if (localStorage) {
+          if (localStorage.appVersion == undefined) {
+            localStorage.appVersion = '0';
+          }
+          switch (handler.compareVersions(appSettings.appVersion, localStorage.appVersion)) {
+            case -1:
+              handler.migrateSettings(localStorage.appVersion, true);
+              break;
+            case 1:
+              handler.migrateSettings(localStorage.appVersion);
+              break;
+            default:
+              break;
+          }
+          handler.update.localStorage();
         } else {
           var
             pathElements = path.split('.'),
@@ -1602,7 +1671,7 @@ app.ready = async function () {
               }
               return obj[key];
             }, appSettings);
-          handler.update.cookie();
+          handler.update.localStorage();
           button.className = 'ui button ok';
           button.tabIndex = '0';
           button.innerText = 'OK';
@@ -1646,6 +1715,22 @@ app.ready = async function () {
           }
         }
       },
+    },
+    migrateSettings: function (oldSettings, downgrade = false) {
+      if (downgrade) {
+        // Downgrading settings
+
+        // ignore newer settings
+      } else {
+        // Upgrading settings
+
+        // clear cookies set by versions prior to 1.6.0
+        // also remove html script tag for JS Cookie
+        const cookies = Cookies.get();
+        for (const cookie in cookies) {
+          Cookies.remove(cookie);
+        }
+      }
     },
     receiveDroppedFiles: async function (event) {
       if (event.length > 2) {
@@ -1772,6 +1857,7 @@ app.ready = async function () {
               y1: parseInt(dimensions[2]),
               x2: parseInt(dimensions[3]),
               y2: parseInt(dimensions[4]),
+              isModelGeneratedText: false,
             });
 
             var rectangle = L.rectangle([[box.y1, box.x1], [box.y2, box.x2]]);
@@ -1819,6 +1905,71 @@ app.ready = async function () {
       return formattedDate;
     },
     load: {
+      tesseractWorker: async function () {
+        var
+          langPathURL = 'https://tessdata.projectnaptha.com/4.0.0_best',
+          isGzip = true;
+        if (appSettings.language.languageModelIsCustom) {
+          langPathURL = '../../assets';
+          isGzip = false;
+        }
+        worker = await Tesseract.createWorker({
+          logger: m => handler.process.workerLogMessage(m),
+          langPath: langPathURL,
+          gzip: isGzip,
+        });
+        await handler.load.tesseractLanguage();
+        await worker.setParameters({
+          tessedit_ocr_engine_mode: 1,
+          tessedit_pageseg_mode: 1,// 12
+        });
+        return true;
+      },
+      tesseractLanguage: async function () {
+        await worker.loadLanguage(appSettings.language.recognitionModel);
+        await worker.initialize(appSettings.language.recognitionModel);
+        return true;
+      },
+      dropdowns: function () {
+        $ocrModelDropdown.dropdown({
+          onChange: async function (value, text, $selectedItem) {
+            $ocrModelDropdown.addClass('loading');
+            handler.set.loadingState({ buttons: true });
+            appSettings.language.recognitionModel = value;
+            var custom = value == 'RTS_from_Cyrillic' ? true : false;
+            if (appSettings.language.languageModelIsCustom != custom) {
+              appSettings.language.languageModelIsCustom = custom;
+              await handler.load.tesseractWorker();
+            } else {
+              await handler.load.tesseractLanguage();
+            }
+            $ocrModelDropdownInSettings.dropdown('set selected', appSettings.language.recognitionModel, true);
+            $ocrModelDropdown.removeClass('loading');
+            handler.set.loadingState({ buttons: false });
+          }
+        });
+        $ocrModelDropdownInSettings.dropdown({
+          onChange: async function (value, text, $selectedItem) {
+            // $ocrModelDropdownInSettings.dropdown('set selected', value, true);
+            // handler.update.appSettings({
+            //   path: $ocrModelDropdownInSettings[0].getAttribute('name'), value: value
+            // });
+            $ocrModelDropdownInSettings.addClass('loading');
+            handler.set.loadingState({ buttons: true });
+            appSettings.language.recognitionModel = value;
+            var custom = value == 'RTS_from_Cyrillic' ? true : false;
+            if (appSettings.language.languageModelIsCustom != custom) {
+              appSettings.language.languageModelIsCustom = custom;
+              await handler.load.tesseractWorker();
+            } else {
+              await handler.load.tesseractLanguage();
+            }
+            $ocrModelDropdown.dropdown('set selected', appSettings.language.recognitionModel, true);
+            $ocrModelDropdownInSettings.removeClass('loading');
+            handler.set.loadingState({ buttons: false });
+          }
+        });
+      },
       keyboardShortcuts: function () {
         $window.keyup(function (event) {
           if (handler.keyboardShortcuts.isModifierKey(event.key)) {
@@ -1875,6 +2026,7 @@ app.ready = async function () {
       settings: function () {
         handler.getAppInfo();
         $appInfoVersion.text(appInfo.version);
+        appSettings.appVersion = appInfo.version;
         // format date to month date, year
         const date = new Date(appInfo.updated);
         $appInfoUpdated.text(handler.formatDate(date));
@@ -1909,11 +2061,12 @@ app.ready = async function () {
             }
           }
         });
-        const cookieValue = Cookies.get('appSettings');
-        if (cookieValue) {
-          cookieSettings = JSON.parse(cookieValue);
-          handler.update.appSettings({ cookie: cookieSettings });
+        const localStorageValue = localStorage.getItem(appSettings.localStorageKey);
+        if (localStorageValue) {
+          localStorageSettings = JSON.parse(localStorageValue);
+          handler.update.appSettings({ localStorage: localStorageSettings });
         } else {
+          handler.update.appSettings({ localStorage: { appVersion: undefined } });
           handler.update.settingsModal();
         }
       },
@@ -2129,18 +2282,9 @@ app.ready = async function () {
           boxDownloadButton: imageFileName + '.box',
           groundTruthDownloadButton: imageFileName + '.gt.txt'
         });
+        // Load Tesseract Worker
+        await handler.load.tesseractWorker();
 
-        worker = await Tesseract.createWorker({
-          logger: m => handler.process.workerLogMessage(m),
-          langPath: '../../assets',
-          gzip: false,
-        });
-        await worker.loadLanguage(languageModelName);
-        await worker.initialize(languageModelName);
-        await worker.setParameters({
-          tessedit_ocr_engine_mode: 1,
-          tessedit_pageseg_mode: 1,// 12
-        });
         if (appSettings.behavior.onImageLoad.detectAllLines && !sample) {
           var response = await handler.generate.initialBoxes(
             includeSuggestions = appSettings.behavior.onImageLoad.includeTextForDetectedLines
@@ -2180,6 +2324,8 @@ app.ready = async function () {
           x2: parseInt($x2Field.val()),
           y2: parseInt($y2Field.val()),
           committed: true,
+          isModelGeneratedText: false,
+          modelConfidenceScore: null,
         }),
         modified = handler.update.boxData(polyid, newData);
       handler.update.rectangle(polyid, newData);
@@ -2230,6 +2376,9 @@ app.ready = async function () {
       },
       getMapPosition: function () {
         return map.getBounds();
+      },
+      invalidateSize: function () {
+        setTimeout(function () { map.invalidateSize({ pan: true }) }, 500);
       },
       fitImage: function () {
         map.flyToBounds(image.getBounds(), {
@@ -2475,6 +2624,8 @@ app.ready = async function () {
             text = includeSuggestions ? line.text : '',
             box = new Box({
               text: text,
+              isModelGeneratedText: true,
+              modelConfidenceScore: line.confidence,
               x1: shape.x0, // right
               y1: imageHeight - shape.y1, // bottom
               x2: shape.x1, // left
@@ -2513,6 +2664,8 @@ app.ready = async function () {
             },
             result = await worker.recognize(image._image, { rectangle });
           box.text = result.data.text.replace(/(\r\n|\n|\r)/gm, '');
+          box.isModelGeneratedText = true;
+          box.modelConfidenceScore = result.data.confidence;
           box.committed = false;
           box.visited = false;
           handler.style.remove(layer);
@@ -2605,6 +2758,11 @@ app.ready = async function () {
           handler.saveHighlightsToSettings();
         }
       });
+      $modelConfidenceScoreEnabledCheckbox.checkbox({
+        onChange: async function () {
+          await handler.update.confidenceScoreField(selectedBox);
+        }
+      });
       $groundTruthInputField.bind('mouseup', handler.showCharInfoPopup)
       $coordinateFields.on('input', handler.update.boxCoordinates);
       $boxFileInput.on('change', handler.load.boxFile);
@@ -2640,7 +2798,7 @@ app.ready = async function () {
       $regenerateTextSuggestionsButton.on('click', handler.generate.textSuggestions);
       $settingsButton.on('click', handler.open.settingsModal);
       $settingsButtonForHelpPane.on('click', handler.open.settingsModal.bind(handler.open, 'help-section'));
-      $resetButton.on('click', handler.resetAppSettingsAndCookies);
+      $resetButton.on('click', handler.resetAppSettings);
       $useSampleImageButton.on('click', handler.load.sampleImageAndBox);
       $addNewHighligherButton.on('click', handler.addNewHighlighterPattern);
     },
@@ -2661,15 +2819,17 @@ app.ready = async function () {
       // handler.set.loadingState({ buttons: false });
       await handler.load.unicodeData();
       handler.load.dropzone();
+      handler.load.dropdowns();
       handler.load.popups();
+      handler.load.settings();
       handler.create.defaultHighlighterTable();
       handler.create.defaultKeyboardShortcutsTable();
-      handler.load.settings();
       handler.load.eventListeners();
 
       handler.saveHighlightsToSettings();
       handler.saveKeyboardShortcutsToSettings();
 
+      handler.delete.expiredNotifications();
     },
   };
 
