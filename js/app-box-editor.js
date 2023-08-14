@@ -108,7 +108,7 @@ app.ready = async function () {
     $highlighterTextPreview = $('#previewText'),
     $useSampleImageButton = $('#useSampleImage'),
     $useSamplePopup = $('.ui.useSampleImage.popup'),
-    $resetButton = $('#resetAppSettingsAndCookies'),
+    $resetButton = $('#resetAppSettings'),
     $addNewHighligherButton = $('#addNewHighlighterPattern'),
     $dropzone = $('div.my-dropzone'),
     $textHighlightingEnabledCheckbox = $(`input[name='highlighter.textHighlighting.textHighlightingEnabled']`),
@@ -193,8 +193,8 @@ app.ready = async function () {
     worker,
 
     appSettings = {
-      // cookieName: 'appSettings-boxEditor',
       localStorageKey: 'appSettings-boxEditor',
+      appVersion: null,
       interface: {
         appearance: 'match-device',
         toolbarActions: {
@@ -286,6 +286,9 @@ app.ready = async function () {
       }).responseText);
       appInfo.appName = appInfo.name.replace(/[^\w\s]/gi, '');
       return appInfo;
+    },
+    compareVersions: function (a, b) {
+      return compareVersions.compareVersions(a, b);
     },
     bindColorizerOnInput: function () {
       $colorizedOutputForms.each(function () {
@@ -457,7 +460,7 @@ app.ready = async function () {
       }
       handler.update.colorizedBackground();
       handler.update.patternLabels();
-      handler.update.cookie();
+      handler.update.localStorage();
     },
     saveKeyboardShortcutsToSettings: function () {
       if (appSettings.behavior.keyboardShortcuts.keyboardShortcutsEnabled) {
@@ -500,7 +503,7 @@ app.ready = async function () {
         // add listener for keyboard shortcuts
         handler.load.keyboardShortcuts();
       }
-      handler.update.cookie();
+      handler.update.localStorage();
     },
     highlightCell: function (elem) {
       $(elem).addClass('red colored');
@@ -566,14 +569,11 @@ app.ready = async function () {
         }).modal('show');
       });
     },
-    clearCookies: function () {
-      const cookies = Cookies.get();
-      for (const cookie in cookies) {
-        Cookies.remove(cookie);
-      }
+    clearLocalStorage: function () {
+      localStorage.removeItem(appSettings.localStorageKey);
       location.reload();
     },
-    resetAppSettingsAndCookies: async function () {
+    resetAppSettings: async function () {
       var
         response = await handler.askUser({
           title: 'Reset App',
@@ -588,7 +588,7 @@ app.ready = async function () {
           }]
         });
       if (response) {
-        handler.clearCookies();
+        handler.clearLocalStorage();
       }
     },
     keyboardShortcuts: {
@@ -698,7 +698,6 @@ app.ready = async function () {
           theadRow = document.createElement('tr'),
           headers = ['', 'Action', 'Key Combo', ''],
           tbody = document.createElement('tbody'),
-          // cookie = Cookies.get(appSettings.cookieName),
           localStorageValue = localStorage.getItem(appSettings.localStorageKey);
         table.className = 'ui unstackable celled table';
         thead.appendChild(theadRow);
@@ -756,7 +755,6 @@ app.ready = async function () {
           theadRow = document.createElement('tr'),
           headers = ['', 'Name', 'Color', 'Pattern', ''],
           tbody = document.createElement('tbody'),
-          // cookie = Cookies.get(appSettings.cookieName),
           localStorageValue = localStorage.getItem(appSettings.localStorageKey);
         table.className = 'ui unstackable celled table';
         thead.appendChild(theadRow);
@@ -1623,13 +1621,25 @@ app.ready = async function () {
 
         });
       },
-      cookie: function () {
-        // Cookies.set(appSettings.cookieName, JSON.stringify(appSettings));
+      localStorage: function () {
         localStorage.setItem(appSettings.localStorageKey, JSON.stringify(appSettings));
       },
-      appSettings: function ({ path, value, cookie }) {
-        if (cookie) {
-          appSettings = { ...appSettings, ...cookie };
+      appSettings: function ({ path, value, localStorage }) {
+        if (localStorage) {
+          if (localStorage.appVersion == undefined) {
+            localStorage.appVersion = '0';
+          }
+          switch (handler.compareVersions(appSettings.appVersion, localStorage.appVersion)) {
+            case -1:
+              handler.migrateSettings(localStorage.appVersion, true);
+              break;
+            case 1:
+              handler.migrateSettings(localStorage.appVersion);
+              break;
+            default:
+              break;
+          }
+          appSettings = { ...appSettings, ...localStorage };
         } else {
           var
             pathElements = path.split('.'),
@@ -1645,7 +1655,7 @@ app.ready = async function () {
               }
               return obj[key];
             }, appSettings);
-          handler.update.cookie();
+          handler.update.localStorage();
           button.className = 'ui button ok';
           button.tabIndex = '0';
           button.innerText = 'OK';
@@ -1689,6 +1699,19 @@ app.ready = async function () {
           }
         }
       },
+    },
+    migrateSettings: function (oldSettings, downgrade = false) {
+      if (downgrade) {
+        console.log('Downgrading settings');
+      } else {
+        console.log('Upgrading settings');
+
+        // clear cookies set by versions prior to 1.6.0
+        const cookies = Cookies.get();
+        for (const cookie in cookies) {
+          Cookies.remove(cookie);
+        }
+      }
     },
     receiveDroppedFiles: async function (event) {
       if (event.length > 2) {
@@ -1984,6 +2007,7 @@ app.ready = async function () {
       settings: function () {
         handler.getAppInfo();
         $appInfoVersion.text(appInfo.version);
+        appSettings.appVersion = appInfo.version;
         // format date to month date, year
         const date = new Date(appInfo.updated);
         $appInfoUpdated.text(handler.formatDate(date));
@@ -2018,11 +2042,10 @@ app.ready = async function () {
             }
           }
         });
-        // const cookieValue = Cookies.get(appSettings.cookieName);
         const localStorageValue = localStorage.getItem(appSettings.localStorageKey);
         if (localStorageValue) {
           localStorageSettings = JSON.parse(localStorageValue);
-          handler.update.appSettings({ cookie: localStorageSettings });
+          handler.update.appSettings({ localStorage: localStorageSettings });
         } else {
           handler.update.settingsModal();
         }
@@ -2755,7 +2778,7 @@ app.ready = async function () {
       $regenerateTextSuggestionsButton.on('click', handler.generate.textSuggestions);
       $settingsButton.on('click', handler.open.settingsModal);
       $settingsButtonForHelpPane.on('click', handler.open.settingsModal.bind(handler.open, 'help-section'));
-      $resetButton.on('click', handler.resetAppSettingsAndCookies);
+      $resetButton.on('click', handler.resetAppSettings);
       $useSampleImageButton.on('click', handler.load.sampleImageAndBox);
       $addNewHighligherButton.on('click', handler.addNewHighlighterPattern);
     },

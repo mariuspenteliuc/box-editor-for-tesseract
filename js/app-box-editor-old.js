@@ -348,7 +348,7 @@ async function useSampleImage(e) {
   closeSettingsPopup();
 }
 
-// async function resetAppSettingsAndCookies() {
+// async function resetAppSettings() {
 //   response = await askUser({
 //     title: 'Reset App',
 //     message: 'The app will reset it\'s settings and reload. Are you sure you want to continue?',
@@ -2513,7 +2513,7 @@ $(document).ready(async function () {
   // $('#regenerateTextSuggestionForSelectedBox').on("click", regenerateTextSuggestionForSelectedBox);
   // $('#settingsButton').on("click", settingsPopup);
   // $('.helpSettingsPopup').on("click", helpSettingsPopup);
-  // $('#resetAppSettingsAndCookies').on("click", resetAppSettingsAndCookies);
+  // $('#resetAppSettings').on("click", resetAppSettings);
   // $('#useSampleImage').on("click", useSampleImage);
   // $('#addNewHighlighterPattern').on("click", addNewHighlighterPattern);
 
