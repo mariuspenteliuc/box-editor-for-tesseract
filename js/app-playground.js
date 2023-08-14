@@ -140,7 +140,8 @@ app.ready = async function () {
     transliteratedOutput = "",
 
     appSettings = {
-      cookieName: 'appSettings-playground',
+      localStorageKey: 'appSettings-playground',
+      appVersion: null,
       interface: {
         appearance: 'match-device',
         imageView: 'medium',
@@ -205,13 +206,45 @@ app.ready = async function () {
       appInfo.appName = appInfo.name.replace(/[^\w\s]/gi, '');
       return appInfo;
     },
+    compareVersions: function (a, b) {
+      return compareVersions.compareVersions(a, b);
+    },
+    migrateSettings: function (oldSettings, downgrade = false) {
+      if (downgrade) {
+        // Downgrading settings
+
+        // ignore newer settings
+      } else {
+        // Upgrading settings
+
+        // clear cookies set by versions prior to 1.6.0
+        // also remove html script tag for JS Cookie
+        const cookies = Cookies.get();
+        for (const cookie in cookies) {
+          Cookies.remove(cookie);
+        }
+      }
+    },
     update: {
-      cookie: function () {
-        Cookies.set(appSettings.cookieName, JSON.stringify(appSettings));
+      localStorage: function () {
+        localStorage.setItem(appSettings.localStorageKey, JSON.stringify(appSettings));
       },
-      appSettings: function ({ path, value, cookie }) {
-        if (cookie) {
-          appSettings = { ...appSettings, ...cookie };
+      appSettings: function ({ path, value, localStorage }) {
+        if (localStorage) {
+          if (localStorage.appVersion == undefined) {
+            localStorage.appVersion = '0';
+          }
+          switch (handler.compareVersions(appSettings.appVersion, localStorage.appVersion)) {
+            case -1:
+              handler.migrateSettings(localStorage.appVersion, true);
+              break;
+            case 1:
+              handler.migrateSettings(localStorage.appVersion);
+              break;
+            default:
+              break;
+          }
+          handler.update.localStorage();
         } else {
           var
             pathElements = path.split('.'),
@@ -227,7 +260,7 @@ app.ready = async function () {
               }
               return obj[key];
             }, appSettings);
-          handler.update.cookie();
+          handler.update.localStorage();
           button.className = 'ui button ok';
           button.tabIndex = '0';
           button.innerText = 'OK';
@@ -297,6 +330,7 @@ app.ready = async function () {
       settings: function () {
         handler.getAppInfo();
         $appInfoVersion.text(appInfo.version);
+        appSettings.appVersion = appInfo.version;
         // format date to month date, year
         const date = new Date(appInfo.updated);
         $appInfoUpdated.text(handler.formatDate(date));
@@ -309,11 +343,12 @@ app.ready = async function () {
             if ($settingsModalStatusMessage[0]) $settingsModalStatusMessage[0].innerHTML = '';
           }
         });
-        const cookieValue = Cookies.get(appSettings.cookieName);
-        if (cookieValue) {
-          cookieSettings = JSON.parse(cookieValue);
-          handler.update.appSettings({ cookie: cookieSettings });
+        const localStorageValue = localStorage.getItem(appSettings.localStorageKey);
+        if (localStorageValue) {
+          localStorageSettings = JSON.parse(localStorageValue);
+          handler.update.appSettings({ localStorage: localStorageSettings });
         } else {
+          handler.update.appSettings({ localStorage: { appVersion: undefined } });
           handler.update.settingsModal();
         }
       },
@@ -821,7 +856,7 @@ app.ready = async function () {
           }]
         });
       if (response) {
-        handler.clearCookies();
+        handler.clearLocalStorage();
       }
     },
     askUser: async function (object) {
@@ -857,11 +892,8 @@ app.ready = async function () {
         }).modal('show');
       });
     },
-    clearCookies: function () {
-      const cookies = Cookies.get();
-      for (const cookie in cookies) {
-        Cookies.remove(cookie);
-      }
+    clearLocalStorage: function () {
+      localStorage.removeItem(appSettings.localStorageKey);
       location.reload();
     },
     getBoxFileType: function (content) {
@@ -957,6 +989,22 @@ app.ready = async function () {
           recognizedLinesOfText.splice(newIndex, 1);
         }
         return boxIndex;
+      },
+      expiredNotifications: function () {
+        const currentDate = new Date();
+
+        $('.updateNotification').each(function () {
+          const
+            releaseDate = new Date($(this).attr('data-release-date')),
+            removeDays = parseInt($(this).attr('data-expire-notification')),
+            timeDifference = currentDate - releaseDate,
+            daysDifference = timeDifference / (1000 * 60 * 60 * 24);
+
+          if (daysDifference >= removeDays) {
+            $(this).remove();
+            console.info(`Notification removed: ${$(this).attr('data-release-date')}`);
+          }
+        });
       },
     },
     map: {
@@ -1228,7 +1276,7 @@ app.ready = async function () {
       scripts = ['transliteration', 'rts'];
       // if 'transliteration' then switch to 'rts' and vice versa
       appSettings.interface.displayText = scripts.find(v => v !== appSettings.interface.displayText);
-      handler.update.cookie();
+      handler.update.localStorage();
       await handler.pasteOutput();
       if (appSettings.interface.displayText == 'rts') {
         $toggleOutputScriptButton.find('span').text('Transliteration' );
@@ -1307,6 +1355,8 @@ app.ready = async function () {
       handler.load.popups();
       handler.load.settings();
       handler.load.eventListeners();
+
+      handler.delete.expiredNotifications();
     },
   };
   app.handler = handler;
