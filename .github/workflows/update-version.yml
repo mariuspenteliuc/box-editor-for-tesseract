@@ -7,9 +7,9 @@ on:
   pull_request:
     types:
       - closed
-  release:
-    types:
-      - published
+  # release:
+  #   types:
+  #     - published
 
 jobs:
   update:
@@ -61,7 +61,7 @@ jobs:
             echo ${{ steps.octokit.outputs.tag }}
             git checkout -b "update/version"
           fi
-          sed -i 's/"version": "[^"]*"/"version": "'"$release_version"'"/' app-version.json
+          # sed -i 's/"version": "[^"]*"/"version": "'"$release_version"'"/' app-version.json
           # echo ${GITHUB_REF#refs/tags/}
           # echo ${GITHUB_REF}
 
