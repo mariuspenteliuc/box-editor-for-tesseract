@@ -1444,7 +1444,8 @@ app.ready = async function () {
           }
         }
         // Language Models
-        // $ocrModelDropdownInSettings.dropdown('set value', appSettings.language.recognitionModel, true);
+        $ocrModelDropdownInSettings.dropdown('set selected', appSettings.language.recognitionModel, true);
+        $ocrModelDropdown.dropdown('set selected', appSettings.language.recognitionModel, true);
         // Highlighter
         for (const [key, value] of Object.entries(appSettings.highlighter.textHighlighting)) {
           if (key != 'highlightsPatterns') {
@@ -1949,6 +1950,7 @@ app.ready = async function () {
             $ocrModelDropdownInSettings.dropdown('set selected', appSettings.language.recognitionModel, true);
             $ocrModelDropdown.removeClass('loading');
             handler.set.loadingState({ buttons: false });
+            handler.update.localStorage();
           }
         });
         $ocrModelDropdownInSettings.dropdown({
@@ -1970,6 +1972,7 @@ app.ready = async function () {
             $ocrModelDropdown.dropdown('set selected', appSettings.language.recognitionModel, true);
             $ocrModelDropdownInSettings.removeClass('loading');
             handler.set.loadingState({ buttons: false });
+            handler.update.localStorage();
           }
         });
       },
