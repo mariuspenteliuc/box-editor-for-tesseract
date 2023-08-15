@@ -419,6 +419,10 @@ app.ready = async function () {
           patterns = [],
           errorMessages = [];
         $highlighterTableRows.each(function (index, elem) {
+          $(elem.querySelector('td:nth-child(1) .checkbox')).checkbox('set enabled');
+          $(elem.querySelector('td:nth-child(2)'))[0].classList.remove('disabled');
+          $(elem.querySelector('td:nth-child(3) .dropdown'))[0].classList.remove('disabled');
+          $(elem.querySelector('td:nth-child(4)'))[0].classList.remove('disabled');
           handler.unhighlightCell(elem.querySelector('td:nth-child(4)'));
           var
             enabled = elem.querySelector('td:nth-child(1) .checkbox input').checked,
@@ -457,6 +461,13 @@ app.ready = async function () {
           identicalPatternNames = true;
         }
         appSettings.highlighter.textHighlighting.highlightsPatterns = patterns;
+      } else {
+        $highlighterTableRows.each(function (index, elem) {
+          $(elem.querySelector('td:nth-child(1) .checkbox')).checkbox('set disabled');
+          $(elem.querySelector('td:nth-child(2)'))[0].classList.add('disabled');
+          $(elem.querySelector('td:nth-child(3) .dropdown'))[0].classList.add('disabled');
+          $(elem.querySelector('td:nth-child(4)'))[0].classList.add('disabled');
+        });
       }
       handler.update.colorizedBackground();
       handler.update.patternLabels();
