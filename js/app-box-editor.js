@@ -1647,14 +1647,16 @@ app.ready = async function () {
           }
           switch (handler.compareVersions(appSettings.appVersion, localStorage.appVersion)) {
             case -1:
-              handler.migrateSettings(localStorage.appVersion, true);
+              appSettings = handler.migrateSettings(localStorage.appVersion, true);
               break;
             case 1:
-              handler.migrateSettings(localStorage.appVersion);
+              appSettings = handler.migrateSettings(localStorage.appVersion);
               break;
             default:
+              appSettings = localStorage;
               break;
           }
+
           handler.update.localStorage();
         } else {
           var
@@ -1731,6 +1733,7 @@ app.ready = async function () {
           Cookies.remove(cookie);
         }
       }
+      return oldSettings;
     },
     receiveDroppedFiles: async function (event) {
       if (event.length > 2) {
