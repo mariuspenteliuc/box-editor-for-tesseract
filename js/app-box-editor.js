@@ -419,6 +419,10 @@ app.ready = async function () {
           patterns = [],
           errorMessages = [];
         $highlighterTableRows.each(function (index, elem) {
+          $(elem.querySelector('td:nth-child(1) .checkbox')).checkbox('set enabled');
+          $(elem.querySelector('td:nth-child(2)'))[0].classList.remove('disabled');
+          $(elem.querySelector('td:nth-child(3) .dropdown'))[0].classList.remove('disabled');
+          $(elem.querySelector('td:nth-child(4)'))[0].classList.remove('disabled');
           handler.unhighlightCell(elem.querySelector('td:nth-child(4)'));
           var
             enabled = elem.querySelector('td:nth-child(1) .checkbox input').checked,
@@ -457,6 +461,13 @@ app.ready = async function () {
           identicalPatternNames = true;
         }
         appSettings.highlighter.textHighlighting.highlightsPatterns = patterns;
+      } else {
+        $highlighterTableRows.each(function (index, elem) {
+          $(elem.querySelector('td:nth-child(1) .checkbox')).checkbox('set disabled');
+          $(elem.querySelector('td:nth-child(2)'))[0].classList.add('disabled');
+          $(elem.querySelector('td:nth-child(3) .dropdown'))[0].classList.add('disabled');
+          $(elem.querySelector('td:nth-child(4)'))[0].classList.add('disabled');
+        });
       }
       handler.update.colorizedBackground();
       handler.update.patternLabels();
@@ -1444,7 +1455,8 @@ app.ready = async function () {
           }
         }
         // Language Models
-        // $ocrModelDropdownInSettings.dropdown('set value', appSettings.language.recognitionModel, true);
+        $ocrModelDropdownInSettings.dropdown('set selected', appSettings.language.recognitionModel, true);
+        $ocrModelDropdown.dropdown('set selected', appSettings.language.recognitionModel, true);
         // Highlighter
         for (const [key, value] of Object.entries(appSettings.highlighter.textHighlighting)) {
           if (key != 'highlightsPatterns') {
@@ -1647,14 +1659,16 @@ app.ready = async function () {
           }
           switch (handler.compareVersions(appSettings.appVersion, localStorage.appVersion)) {
             case -1:
-              handler.migrateSettings(localStorage.appVersion, true);
+              appSettings = handler.migrateSettings(localStorage, true);
               break;
             case 1:
-              handler.migrateSettings(localStorage.appVersion);
+              appSettings = handler.migrateSettings(localStorage);
               break;
             default:
+              appSettings = localStorage;
               break;
           }
+
           handler.update.localStorage();
         } else {
           var
@@ -1731,6 +1745,7 @@ app.ready = async function () {
           Cookies.remove(cookie);
         }
       }
+      return oldSettings;
     },
     receiveDroppedFiles: async function (event) {
       if (event.length > 2) {
@@ -1946,6 +1961,7 @@ app.ready = async function () {
             $ocrModelDropdownInSettings.dropdown('set selected', appSettings.language.recognitionModel, true);
             $ocrModelDropdown.removeClass('loading');
             handler.set.loadingState({ buttons: false });
+            handler.update.localStorage();
           }
         });
         $ocrModelDropdownInSettings.dropdown({
@@ -1967,6 +1983,7 @@ app.ready = async function () {
             $ocrModelDropdown.dropdown('set selected', appSettings.language.recognitionModel, true);
             $ocrModelDropdownInSettings.removeClass('loading');
             handler.set.loadingState({ buttons: false });
+            handler.update.localStorage();
           }
         });
       },
