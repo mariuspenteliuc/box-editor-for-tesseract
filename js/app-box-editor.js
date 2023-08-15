@@ -1647,10 +1647,10 @@ app.ready = async function () {
           }
           switch (handler.compareVersions(appSettings.appVersion, localStorage.appVersion)) {
             case -1:
-              appSettings = handler.migrateSettings(localStorage.appVersion, true);
+              appSettings = handler.migrateSettings(localStorage, true);
               break;
             case 1:
-              appSettings = handler.migrateSettings(localStorage.appVersion);
+              appSettings = handler.migrateSettings(localStorage);
               break;
             default:
               appSettings = localStorage;
