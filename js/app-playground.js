@@ -993,7 +993,7 @@ app.ready = async function () {
       },
       remove: function (poly, isUpdated = false) {
         if (poly) {
-          if (boxData.find(x => x.polyid != poly._leaflet_id).committed) {
+          if (boxData.find(x => x.polyid == poly._leaflet_id).committed) {
             poly.setStyle(boxState.boxComitted);
           } else {
             poly.setStyle(boxState.boxInactive);
