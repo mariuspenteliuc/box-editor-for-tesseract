@@ -84,6 +84,7 @@ app.ready = async function () {
     $useSampleImagePopupTrigger = $('#uploadNewImage'),
     $useSamplePopup = $('.ui.useSampleImage.popup'),
     $dropzone = $('div.my-dropzone'),
+    $dropzoneParentSegment = $('.dropzoneSegment'),
     $appInfoVersion = $('#appInfoVersion'),
     $appInfoUpdated = $('#appInfoUpdated'),
     $toggleOutputScriptButton = $('#toggleOutputScript'),
@@ -443,37 +444,71 @@ app.ready = async function () {
         })
       },
       dropzone: function () {
-        $html.dropzone({
+        $dropzone.dropzone({
           url: handler.receiveDroppedFiles,
           uploadMultiple: true,
           parallelUploads: 3,
           disablePreviews: true,
           clickable: false,
-          acceptedFiles: "image/*,.box",
+          acceptedFiles: "image/*",
+          createImageThumbnails: false,
         });
         $html.on('drag dragenter dragover', function (event) {
           event.preventDefault();
           event.stopPropagation();
 
           if ($html.hasClass('dz-drag-hover')) {
-            $dropzone
-              .dimmer('show')
-              .addClass('raised');
+            // $dropzone
+              // .dimmer('show')
+              // .addClass('raised');
           }
           window.setTimeout(function () {
             if (!$html.hasClass('dz-drag-hover')) {
-              $dropzone
-                .dimmer('hide')
-                .removeClass('raised');
+              // $dropzone
+              //   .dimmer('hide')
+              //   .removeClass('raised');
             }
           }, 1500);
+        });
+        $dropzone.on('drag dragenter dragover', function (event) {
+          event.preventDefault();
+          event.stopPropagation();
+          $dropzone
+            .dimmer('show');
+          $dropzoneParentSegment
+            .addClass('raised');
+        });
+        $dropzone.on('dragleave dragend', function (event) {
+          event.preventDefault();
+          event.stopPropagation();
+          // $dropzone
+          //   .dimmer('hide')
+          $dropzoneParentSegment
+            .removeClass('raised');
         });
         $html.on('drop', function (event) {
           event.preventDefault();
           event.stopPropagation();
-
+        });
+        $dropzone.on('drop', function (event) {
+          event.preventDefault();
+          event.stopPropagation();
+          var fileCount = $dropzone[0].dropzone.getAcceptedFiles().length;
+          if (fileCount == 0) {
+            handler.notifyUser({
+              title: 'Invalid File Type',
+              message: 'You can only upload an image.',
+              type: 'error',
+            });
+          }
+          if (fileCount != 1) {
+            $dropzone
+              .transition('shake');
+            return;
+          }
           if (!$html.hasClass('dz-drag-hover')) {
             $dropzone
+              .dimmer('hide')
               .transition('pulse');
           }
         });
@@ -1306,13 +1341,6 @@ app.ready = async function () {
       files.forEach(function (file) {
         if (file.type.includes('image')) {
           imageFile = file;
-        } else {
-          handler.notifyUser({
-            title: 'Invalid File Type',
-            message: 'You can only upload an image.',
-            type: 'error',
-          });
-          return;
         }
       });
 
