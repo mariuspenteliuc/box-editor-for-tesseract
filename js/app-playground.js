@@ -89,6 +89,7 @@ app.ready = async function () {
     $appInfoUpdated = $('#appInfoUpdated'),
     $toggleOutputScriptButton = $('#toggleOutputScript'),
     $copyToClipboardButton = $('#copyOutputToClipboard'),
+    $detectAllLinesCheckbox = $(`input[name='behavior.onImageLoad.detectAllLines']`),
 
     // variables
     pressedModifiers = {},
@@ -426,10 +427,8 @@ app.ready = async function () {
           tessedit_ocr_engine_mode: 1,
           tessedit_pageseg_mode: 1,// 12
         });
-        if (appSettings.behavior.onImageLoad.detectAllLines) {
-          var response = await handler.generate.initialBoxes(
-            includeSuggestions = appSettings.behavior.onImageLoad.includeTextForDetectedLines
-          );
+        if ($detectAllLinesCheckbox[0].checked) {
+          var response = await handler.generate.initialBoxes();
         }
         handler.set.loadingState({ main: false, buttons: false });
         $(image._image).animate({ opacity: 1 }, 500);
@@ -817,7 +816,7 @@ app.ready = async function () {
               height: box.y2 - box.y1,
             },
             result = await worker.recognize(image._image, { rectangle });
-          box.text = result.data.text.replace(/(\r\n|\n|\r)/gm, '');
+          box.text = result.data.text;//.replace(/(\r\n|\n|\r)/gm, '');
           box.committed = true;
           // box.visited = false;
           // if (selectedPoly._leaflet_id == layer._leaflet_id) {
@@ -1134,7 +1133,7 @@ app.ready = async function () {
 
         if (boxLayer.getLayers().length > 0) {
           var results = await handler.ocr.detect(boxData);
-          ocrOutput = results.map(x => x.text).join('\n\n');
+          ocrOutput = results.map(x => x.text).join('\n');
           await handler.pasteOutput();
         }
         // handler.map.fitBounds(mapPosition);
