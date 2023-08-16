@@ -98,30 +98,34 @@
               class="ui button" title="Upload a new image" tabindex="0">
               <input type="file" disabled id="imageFile" name="imageFile" accept="image/*"
                 class="ui invisible file input">
-              <i class="upload icon"></i>
+              <i class="file upload icon"></i>
             </label>
-            <button id="redetectAllBoxes" disabled name="interface.toolbarActions.detectAllLines" class="ui disabled button"
-              title="Find all text in image" tabindex="0">
-              <span data-tooltip="Find all text" data-position="top left"><i class="magic icon"></i></span>
+            <button id="redetectAllBoxes" disabled name="interface.toolbarActions.detectAllLines"
+              class="ui disabled button" title="Find all text in image" tabindex="0" data-tooltip="Find all text"
+              data-position="top left">
+              <i class="magic icon"></i>
             </button>
-            <button id="regenerateTextSuggestions" disabled name="interface.toolbarActions.detectAllBoxes" class="ui disabled button"
-              title="Regenerate Text Suggestions" tabindex="0">
-              <span data-tooltip="Recognize all boxes" data-position="top left"><i class="sync icon"></i></span>
+            <button id="regenerateTextSuggestions" disabled name="interface.toolbarActions.detectAllBoxes"
+              class="ui disabled button" title="Regenerate Text Suggestions" tabindex="0"
+              data-tooltip="Recognize all boxes" data-position="top left">
+              <i class="sync icon"></i>
             </button>
-            <button id="regenerateTextSuggestionForSelectedBox" disabled name="interface.toolbarActions.detectSelectedBox"
-              class="ui disabled button" title="Regenerate Text Suggestion for Selected Box" tabindex="0">
-              <span data-tooltip="Recognize current box" data-position="top left"><i class="redo icon"></i></span>
+            <button id="regenerateTextSuggestionForSelectedBox" disabled
+              name="interface.toolbarActions.detectSelectedBox" class="ui disabled button"
+              title="Regenerate Text Suggestion for Selected Box" tabindex="0" data-tooltip="Recognize current box"
+              data-position="top left">
+              <i class="redo icon"></i>
             </button>
           </div>
           <div class="ui right floated icon buttons">
-            <button id="toggleOutputScript" class="ui icon right labeled button"><i class="globe icon"></i>
-              <span data-tooltip="Switch between scripts" data-position="top right"></span>
+            <button id="toggleOutputScript" class="ui icon right labeled button" data-tooltip="Switch between scripts"
+              data-position="top right">
+              <i class="globe icon"></i>
+              <span></span>
             </button>
-            <button id="copyOutputToClipboard" class="ui button">
-              <span data-tooltip="Copy output" data-position="top right"><i class="copy icon"></i></span>
+            <button id="copyOutputToClipboard" class="ui button" data-tooltip="Copy output" data-position="top right">
+              <i class="copy icon"></i>
             </button>
-          </div>
-          <div class="ui right floated spaced icon buttons">
           </div>
         </div>
       </div>
@@ -368,7 +372,8 @@
         <div class="ui very relaxed list">
           <div class="item">
             <h3 class="ui header">About</h3>
-            <p>This is a Playground for recognizing and transliterating Romanian Transitional Script text. It tool uses a custom trained model for the Tesseract OCR engine and a set of rules for transliteration.
+            <p>This is a Playground for recognizing and transliterating Romanian Transitional Script text. It tool uses
+              a custom trained model for the Tesseract OCR engine and a set of rules for transliteration.
             </p>
             <div class="ui basic label">
               Version: <div id="appInfoVersion" class="detail"></div>
@@ -401,15 +406,13 @@
                 </tr>
                 <tr>
                   <td>Tesseract Model:</td>
-                  <td class="right aligned"><a class=""
-                      href="../../assets/RTS_from_Cyrillic.traineddata"
+                  <td class="right aligned"><a class="" href="../../assets/RTS_from_Cyrillic.traineddata"
                       title="Tesseract Model">RTS</a></td>
                 </tr>
                 <tr>
                   <td>Training Dataset:</td>
-                  <td class="right aligned"><a class=""
-                      href="https://www.kaggle.com/datasets/mariuspenteliuc/rts-ocr" target="_blank"
-                      title="Training Dataset">Kaggle</a></td>
+                  <td class="right aligned"><a class="" href="https://www.kaggle.com/datasets/mariuspenteliuc/rts-ocr"
+                      target="_blank" title="Training Dataset">Kaggle</a></td>
                 </tr>
               </tbody>
             </table>
