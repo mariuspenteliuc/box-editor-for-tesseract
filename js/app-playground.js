@@ -89,6 +89,7 @@ app.ready = async function () {
     $appInfoUpdated = $('#appInfoUpdated'),
     $toggleOutputScriptButton = $('#toggleOutputScript'),
     $copyToClipboardButton = $('#copyOutputToClipboard'),
+    $saveOutputToDisk = $('#saveOutputToDisk'),
     $detectAllLinesCheckbox = $(`input[name='behavior.onImageLoad.detectAllLines']`),
 
     // variables
@@ -463,8 +464,8 @@ app.ready = async function () {
 
           if ($html.hasClass('dz-drag-hover')) {
             // $dropzone
-              // .dimmer('show')
-              // .addClass('raised');
+            // .dimmer('show')
+            // .addClass('raised');
           }
           window.setTimeout(function () {
             if (!$html.hasClass('dz-drag-hover')) {
@@ -790,7 +791,7 @@ app.ready = async function () {
           );
           selectedPoly = boxLayer.getLayer(selectedBox.polyid);
           handler.focusBoxID(selectedBox.polyid);
-          }
+        }
         handler.set.loadingState({ main: false, buttons: false });
       },
     },
@@ -966,6 +967,43 @@ app.ready = async function () {
         box = handler.getBoxContent(previous = true);
       handler.focusBoxID(box.polyid, { isUpdated });
 
+    },
+    download: {
+      file: async function (type, event) {
+        event.preventDefault() && event.stopPropagation();
+        if ($output.text().length == 0) {
+          handler.notifyUser({
+            message: 'There is nothing to download!',
+            type: 'warning',
+          });
+          return false;
+        }
+        handler.sortAllBoxes();
+        for (var box of boxData) {
+          box.text = box.text.replace(/(\r\n|\n|\r)/gm, '');
+        }
+        var
+          content = '',
+          fileExtension = '';
+        if (type == 'txt') {
+          content = await $output.text();
+          fileExtension = appSettings.interface.displayText == 'rts' ? 'transliterated.txt' : 'ocr.txt';
+        }
+        downloadAnchor = document.createElement('a');
+        downloadAnchor.href = 'data:application/text;charset=utf-8,' + encodeURIComponent(content);
+        downloadAnchor.download = imageFileName + '.' + fileExtension;
+        downloadAnchor.target = '_blank';
+        downloadAnchor.style.display = 'none';
+
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        document.body.removeChild(downloadAnchor);
+        handler.notifyUser({
+          message: 'Downloaded file ' + imageFileName + '.' + fileExtension,
+          type: 'success',
+        });
+        boxDataInfo.setDirty(false);
+      },
     },
     focusBoxID: function (id, options = { isUpdated: false, zoom: true }) {
       if (options.isUpdated == undefined) options.isUpdated = false;
@@ -1300,12 +1338,12 @@ app.ready = async function () {
       var output = document.getElementById('text-output').value;
       if (output.length > 0) {
         navigator.clipboard.writeText(output).then(function () {
-          handler.notifyUser({ message: 'Copied ' + output.length + ' characters.', type: 'info'});
+          handler.notifyUser({ message: 'Copied ' + output.length + ' characters.', type: 'info' });
         }, function (err) {
-          handler.notifyUser({ message: 'Could not copy output. ' + err, type: 'info'});
+          handler.notifyUser({ message: 'Could not copy output. ' + err, type: 'info' });
         });
       } else {
-        handler.notifyUser({ message: 'No text to copy.', type: 'info'});
+        handler.notifyUser({ message: 'No text to copy.', type: 'info' });
       }
       setTimeout(() => {
         $copyToClipboardButton.removeClass('double loading disabled');
@@ -1318,7 +1356,7 @@ app.ready = async function () {
       handler.update.localStorage();
       await handler.pasteOutput();
       if (appSettings.interface.displayText == 'rts') {
-        $toggleOutputScriptButton.find('span').text('Transliteration' );
+        $toggleOutputScriptButton.find('span').text('Transliteration');
         // $toggleOutputScriptButton.setAttribute('data-tooltip', 'Switch to recognized RTS text');
       } else {
         $toggleOutputScriptButton.find('span').text('RTS');
@@ -1375,6 +1413,7 @@ app.ready = async function () {
       $settingsButtonForHelpPane.on('click', handler.open.settingsModal.bind(handler.open, 'help-section'));
       $resetButton.on('click', handler.resetAppSettings);
       $useSampleImageButton.on('click', handler.load.sampleImageAndBox);
+      $saveOutputToDisk.on('click', handler.download.file.bind(handler.download, 'txt'));
     },
     addBehaviors: function () {
       $('.guideMessage').dimmer('show');

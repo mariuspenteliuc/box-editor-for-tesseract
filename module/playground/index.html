@@ -70,7 +70,8 @@
           <a href="../../module/words-pairing" class="item">
             Words Pairing
           </a>
-          <a id="settingsButton" class="settingsPopup item">
+          <a id="settingsButton" class="item" data-tooltip="Open Settings"
+              data-position="bottom center">
             <i class="fitted icons">
               <i class="large fitted cog circle icon"></i>
               <!-- <i class="top right corner orange circle icon"></i> -->
@@ -125,6 +126,9 @@
             </button>
             <button id="copyOutputToClipboard" class="ui button" data-tooltip="Copy output" data-position="top right">
               <i class="copy icon"></i>
+            </button>
+            <button id="saveOutputToDisk" class="ui button" data-tooltip="Download text document" data-position="top right">
+              <i class="file download icon"></i>
             </button>
           </div>
         </div>
@@ -317,6 +321,7 @@
                   Redetect text for selected box and regenerate output.
                 </div>
               </div>
+              <div class="ui hidden divider"></div>
               <div class="item">
                 <i class="globe icon"></i>
                 <div class="content">
@@ -327,6 +332,12 @@
                 <i class="copy icon"></i>
                 <div class="content">
                   Copy the current output to clipboard.
+                </div>
+              </div>
+              <div class="item">
+                <i class="file download icon"></i>
+                <div class="content">
+                  Save the current output to disk.
                 </div>
               </div>
             </div>
