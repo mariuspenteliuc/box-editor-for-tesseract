@@ -380,13 +380,16 @@ app.ready = async function () {
           filename = file.name;
         }
         img.onload = async function () {
-          handler.create.map('mapid');
+          if (!map) {
+            handler.create.map('mapid');
+          }
           map.eachLayer(function (layer) {
             map.removeLayer(layer);
           });
 
           imageHeight = this.height;
           imageWidth = this.width;
+          handler.clearOutput();
 
           bounds = [[0, 0], [parseInt(imageHeight), parseInt(imageWidth)]];
           var bounds2 = [[imageHeight - 300, 0], [imageHeight, imageWidth]];
@@ -1356,6 +1359,7 @@ app.ready = async function () {
       if (imageFile) {
         await handler.load.imageFile(imageFile);
       }
+      $dropzone[0].dropzone.removeAllFiles();
     },
     bindInputs: function () {
       $imageFileInput.on('change', handler.load.imageFile);
