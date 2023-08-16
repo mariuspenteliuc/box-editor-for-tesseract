@@ -1187,6 +1187,7 @@ app.ready = async function () {
           .forEach(function (box) {
             var layer = boxLayer.getLayer(box.polyid);
             boxLayer.removeLayer(layer);
+            boxData.splice(boxData.indexOf(box), 1);
             handler.delete.box(box);
           });
 
@@ -1206,8 +1207,9 @@ app.ready = async function () {
 
         await handler.ocr.detect(newBoxes);
         handler.sortAllBoxes();
+        handler.set.loadingState({ main: false, buttons: false });
         handler.update.progressBar({ type: 'tagging' });
-        handler.update.slider({ max: boxData.length });
+        handler.update.slider({ max: true });
         if (newSelectedPoly) {
           handler.focusBoxID(boxData.find(x =>
             x.x1 == newSelectedPoly.x1 &&
@@ -1216,7 +1218,6 @@ app.ready = async function () {
             x.y2 == newSelectedPoly.y2
           ).polyid);
         }
-        handler.set.loadingState({ main: false, buttons: false });
       },
     },
     addNewHighlighterPattern: function () {
@@ -1798,6 +1799,7 @@ app.ready = async function () {
     },
     init: {
       slider: function () {
+        $positionSlider.slider('destroy');
         $positionSlider.slider({
           min: 1,
           max: boxData.length,
