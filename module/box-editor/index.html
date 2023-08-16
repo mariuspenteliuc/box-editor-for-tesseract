@@ -70,7 +70,8 @@
           <a href="../../module/words-pairing" class="item">
             Words Pairing
           </a>
-          <a id="settingsButton" class="item">
+          <a id="settingsButton" class="item" data-tooltip="Open Settings"
+              data-position="bottom center">
             <i class="fitted icons">
               <i class="large fitted cog icon"></i>
               <i class="top right corner orange circle icon updateNotification" data-release-date="2023-08-14" data-expire-notification="14"></i>
@@ -119,22 +120,21 @@
         <div class="eight wide column">
           <h4 class="ui dividing header">
             Download Documents
-            <div id="unsavedChanges" class="ui hidden mini red empty circular label" title="You have unsaved changes.">
-            </div>
+            <span data-tooltip="You have unsaved changes" data-position="right center"><i id="unsavedChanges" class="ui tiny red asterisk icon"></i></span>
           </h4>
           <form class="ui equal width form">
             <div class="two fields">
               <div class="field">
                 <label for="download">Box File</label>
                 <button id="downloadBoxFileButton" name="download" tabindex="0" class="disabled fluid ui button">
-                  <i class="download icon"></i>
+                  <i class="file download icon"></i>
                   Download
                 </button>
               </div>
               <div class="field">
                 <label for="download">Ground Truth</label>
                 <button id="downloadGroundTruthButton" name="download" tabindex="0" class="disabled fluid ui button">
-                  <i class="download icon"></i>
+                  <i class="file download icon"></i>
                   Download
                 </button>
               </div>
