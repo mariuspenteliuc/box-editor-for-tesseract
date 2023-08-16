@@ -121,6 +121,7 @@ app.ready = async function () {
     $keyboardShortcutsTableRows = $keyboardShortcutsTableBody.find('tr'),
     $modelConfidenceScoreDetail = $('#modelConfidenceScore'),
     $modelConfidenceScoreEnabledCheckbox = $(`input[name='behavior.workflow.confidenceScoreEnabled']`),
+    $unsavedChangesBadge = $('#unsavedChanges'),
     $appInfoVersion = $('#appInfoVersion'),
     $appInfoUpdated = $('#appInfoUpdated'),
 
@@ -151,6 +152,7 @@ app.ready = async function () {
       },
       setDirty: function (value = true) {
         this.dirty = value;
+        $unsavedChangesBadge.toggle(value);
       }
     },
     lineDataInfo = {
@@ -2834,6 +2836,8 @@ app.ready = async function () {
       handler.bindButtons();
       handler.addBehaviors();
       $imageFileInput.prop('disabled', false);
+      boxDataInfo.setDirty(false);
+      lineDataInfo.setDirty(false);
       handler.setKeyboardControl('form');
       // handler.set.loadingState({ buttons: false });
       await handler.load.unicodeData();
