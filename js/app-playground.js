@@ -774,23 +774,23 @@ app.ready = async function () {
             var newPoly = L.rectangle([[newBox.y1, newBox.x1], [newBox.y2, newBox.x2]]);
             newPoly.on('edit', handler.editRectangle);
             newPoly.on('click', handler.selectRectangle);
-            handler.style.remove(newPoly);
             boxLayer.addLayer(newPoly);
             var polyid = boxLayer.getLayerId(newPoly);
             newBox.polyid = polyid;
             boxData.push(newBox);
           });
 
-        await handler.ocr.detect(newBoxes);
         handler.sortAllBoxes();
         if (newSelectedPoly) {
-          handler.focusBoxID(boxData.find(x =>
+          selectedBox = boxData.find(x =>
             x.x1 == newSelectedPoly.x1 &&
             x.x2 == newSelectedPoly.x2 &&
             x.y1 == newSelectedPoly.y1 &&
             x.y2 == newSelectedPoly.y2
-          ).polyid);
-        }
+          );
+          selectedPoly = boxLayer.getLayer(selectedBox.polyid);
+          handler.focusBoxID(selectedBox.polyid);
+          }
         handler.set.loadingState({ main: false, buttons: false });
       },
     },
