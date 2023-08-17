@@ -711,11 +711,12 @@ app.ready = async function () {
             releaseDate = new Date($(this).attr('data-release-date')),
             removeDays = parseInt($(this).attr('data-expire-notification')),
             timeDifference = currentDate - releaseDate,
-            daysDifference = timeDifference / (1000 * 60 * 60 * 24);
+            daysDifference = timeDifference / (1000 * 60 * 60 * 24),
+            parent = $(this)[0].parentElement;
 
           if (daysDifference >= removeDays) {
+            console.info(`Notification badge removed from: ${parent}`);
             $(this).remove();
-            console.info(`Notification removed: ${$(this).attr('data-release-date')}`);
           }
         });
       },
