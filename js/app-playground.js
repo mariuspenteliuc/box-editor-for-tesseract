@@ -690,6 +690,8 @@ app.ready = async function () {
                 }),
                 delindex = handler.delete.box(delbox);
             });
+          selectedBox = boxData[0];
+          selectedPoly = boxLayer.getLayer(selectedBox.polyid);
         });
         map.on('draw:deletestart', async function (event) {
           mapState = 'deleting';
