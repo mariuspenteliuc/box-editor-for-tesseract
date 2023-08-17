@@ -95,7 +95,7 @@ app.ready = async function () {
     $groundTruthColorizedOutput = $('#myInputBackground'),
     $previewColorizedOutput = $('#myPreviewBackground'),
     $taggingSegment = $('#taggingSegment'),
-    $positionSlider = $('.ui.slider'),
+    $positionSlider = $('#positionSlider'),
     $progressSlider = $('#progressIndicator'),
     $progressLabel = $progressSlider.find('.label'),
     $popups = $('.popup'),
@@ -124,6 +124,7 @@ app.ready = async function () {
     $unsavedChangesBadge = $('#unsavedChanges'),
     $appInfoVersion = $('#appInfoVersion'),
     $appInfoUpdated = $('#appInfoUpdated'),
+    $imageViewHeightSlider = $('#imageViewHeightSlider'),
 
     // variables
     pressedModifiers = {},
@@ -1337,17 +1338,7 @@ app.ready = async function () {
         await handler.map.invalidateSize();
       },
       mapSize: async function (options, animate = true) {
-        var
-          heightMap = {
-            'short': 300,
-            'medium': 500,
-            'tall': 700
-          },
-          bounds = new L.LatLngBounds();
-
-        var newHeight = heightMap[options.height];
-
-        await handler.set.mapResize(newHeight, animate);
+        await handler.set.mapResize(options.height, animate);
 
         if (selectedPoly != undefined) {
           selectedPoly
@@ -1424,7 +1415,16 @@ app.ready = async function () {
         handler.set.appAppearance(appSettings.interface.appearance);
         // Image View
         const imageViewPath = 'interface.imageView';
-        document.querySelector(`input[name='${imageViewPath}'][value='${appSettings.interface.imageView}']`).checked = true;
+        $imageViewHeightSlider.slider('set value', appSettings.interface.imageView, fireChange = false);
+        if (appSettings.interface.imageView < 300) {
+          // find item with text 'Tiny'
+          $imageViewHeightSlider.find('.label').each(function () {
+            if (this.innerText == 'Tiny') {
+              // append span element with additional text
+              this.innerHTML += '<span class="ui italic grey text">&nbsp;– Some editor buttons will be clipped.</span>';
+            }
+          });
+        }
         handler.set.mapSize({ height: appSettings.interface.imageView });
         // On Image Load
         for (const [key, value] of Object.entries(appSettings.behavior.onImageLoad)) {
@@ -1488,7 +1488,7 @@ app.ready = async function () {
           if ($positionSlider.slider('get max') != boxData.length) {
             handler.update.slider({
               value: currentPosition + 1,
-              max: boxData.length
+              max: boxData.length,
             });
           } else {
             handler.update.slider({ value: currentPosition + 1 });
@@ -1744,6 +1744,14 @@ app.ready = async function () {
       } else {
         // Upgrading settings
 
+        // migrate map height labels to numbers
+        var oldHeightLabels = {
+          'short': 300,
+          'medium': 500,
+          'tall': 700
+        };
+        appSettings.interface.imageView = oldHeightLabels[oldSettings.interface.imageView]
+
         oldSettings.behavior.alerting.enableWarrningMessagesForOverwritingDirtyData = true;
 
         // clear cookies set by versions prior to 1.6.0
@@ -1753,7 +1761,7 @@ app.ready = async function () {
           Cookies.remove(cookie);
         }
       }
-      return oldSettings.appVersion == 0 ? appSettings : oldSettings;
+      return appSettings;
     },
     receiveDroppedFiles: async function (event) {
       if (event.length > 2) {
@@ -2047,6 +2055,39 @@ app.ready = async function () {
             path = event.target.name,
             value = event.target.type === 'checkbox' ? event.target.checked : event.target.value;
           handler.update.appSettings({ path: path, value: value });
+        });
+      },
+      sliders: function () {
+        var labels = ["Tiny", "Short", "Normal", "Tall", "Huge"];
+        $imageViewHeightSlider.slider({
+          min: 100,
+          max: 900,
+          step: 200,
+          autoAdjustLabels: false,
+          interpretLabel: function (value) {
+            return labels[value];
+          },
+          onChange: function (value) {
+            if (value < 300) {
+              // find item with text 'Tiny'
+              $imageViewHeightSlider.find('.label').each(function () {
+                if (this.innerText == 'Tiny') {
+                  // append span element with additional text
+                  this.innerHTML += '<span class="ui italic grey text">&nbsp;– Some editor buttons will be clipped.</span>';
+                }
+              });
+            } else {
+              // remove span element from label
+              $imageViewHeightSlider.find('.label').each(function () {
+                if (this.innerText.includes('Tiny')) {
+                  this.innerHTML = 'Tiny';
+                }
+              });
+            }
+
+            handler.set.mapSize({ height: value });
+            handler.update.appSettings({ path: 'interface.imageView', value: value });
+          },
         });
       },
       settings: function () {
@@ -2855,6 +2896,7 @@ app.ready = async function () {
       handler.load.dropzone();
       handler.load.dropdowns();
       handler.load.popups();
+      handler.load.sliders();
       handler.load.settings();
       handler.create.defaultHighlighterTable();
       handler.create.defaultKeyboardShortcutsTable();

@@ -172,6 +172,38 @@ span.space.multiple {
   /* background: #65656533; */
 }
 
+#imageViewHeightSlider {
+  height: 10rem;
+  width: 4rem;
+  padding-left: 0;
+}
+
+div.ui.right.aligned.labeled.ticked.vertical.slider>.labels .label {
+  transform: translateY(50%);
+  padding-left: 2rem;
+}
+
+div.ui.right.aligned.labeled.ticked.vertical.slider>.labels .label::before {
+  content: " ";
+  /* height: 1.5em; */
+  width: 1px;
+  background: #ccc;
+  position: absolute;
+  /* top: 100%; */
+  /* left: 50%; */
+  width: 1.5em;
+  height: 1px;
+  left: 0%;
+  top: 50%;
+}
+
+div.ui.right.aligned.labeled.ticked.vertical.slider>.labels .label::after {
+  content: "";
+  height: 0;
+  width: 0;
+  position: absolute;
+}
+
 .no-kerning {
   font-kerning: none;
 }
@@ -7521,7 +7553,7 @@ div.ui.blue.empty.circular.label.text-highlighter {
   z-index: 500;
 }
 
-#ocrModelDropdown > .menu {
+#ocrModelDropdown>.menu {
   min-width: 20rem;
 }
 
