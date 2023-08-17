@@ -706,16 +706,18 @@ app.ready = async function () {
       expiredNotifications: function () {
         const currentDate = new Date();
 
+        console.info(`Notification badge removed from: `);
         $('.updateNotification').each(function () {
           const
             releaseDate = new Date($(this).attr('data-release-date')),
             removeDays = parseInt($(this).attr('data-expire-notification')),
             timeDifference = currentDate - releaseDate,
-            daysDifference = timeDifference / (1000 * 60 * 60 * 24);
+            daysDifference = timeDifference / (1000 * 60 * 60 * 24),
+            parent = $(this)[0].parentElement;
 
           if (daysDifference >= removeDays) {
+            console.info(parent);
             $(this).remove();
-            console.info(`Notification removed: ${$(this).attr('data-release-date')}`);
           }
         });
       },
