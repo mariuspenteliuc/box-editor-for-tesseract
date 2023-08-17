@@ -2197,7 +2197,7 @@ app.ready = async function () {
           });
           $boxFileInput.val(boxFileName);
           return false;
-        } else if (imageFileName != file.name.split('.').slice(0, -1).join('.') && imageFileName != undefined) {
+        } else if (appSettings.behavior.alerting.enableWarrningMessagesForDifferentFileNames && imageFileName != file.name.split('.').slice(0, -1).join('.') && imageFileName != undefined) {
           var
             response = await handler.askUser({
               title: 'File Names Mismatch',
