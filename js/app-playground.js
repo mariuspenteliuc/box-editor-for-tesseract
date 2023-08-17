@@ -227,7 +227,7 @@ app.ready = async function () {
           Cookies.remove(cookie);
         }
       }
-      return oldSettings;
+      return oldSettings.appVersion == 0 ? appSettings : oldSettings;
     },
     update: {
       localStorage: function () {
@@ -240,10 +240,10 @@ app.ready = async function () {
           }
           switch (handler.compareVersions(appSettings.appVersion, localStorage.appVersion)) {
             case -1:
-              appSettings = handler.migrateSettings(localStorage.appVersion, true);
+              appSettings = handler.migrateSettings(localStorage, true);
               break;
             case 1:
-              appSettings = handler.migrateSettings(localStorage.appVersion);
+              appSettings = handler.migrateSettings(localStorage);
               break;
             default:
               appSettings = localStorage;
