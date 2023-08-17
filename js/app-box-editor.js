@@ -1742,6 +1742,8 @@ app.ready = async function () {
       } else {
         // Upgrading settings
 
+        oldSettings.behavior.alerting.enableWarrningMessagesForOverwritingDirtyData = true;
+
         // clear cookies set by versions prior to 1.6.0
         // also remove html script tag for JS Cookie
         const cookies = Cookies.get();
