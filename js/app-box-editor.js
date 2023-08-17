@@ -1750,7 +1750,12 @@ app.ready = async function () {
           'medium': 500,
           'tall': 700
         };
+        // if oldSettings.interface.imageView is not undefined
+        if (oldSettings.interface?.imageView) {
         appSettings.interface.imageView = oldHeightLabels[oldSettings.interface.imageView]
+        } else {
+          appSettings.interface.imageView = 500;
+        }
 
         oldSettings.behavior.alerting.enableWarrningMessagesForOverwritingDirtyData = true;
 
