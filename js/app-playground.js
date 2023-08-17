@@ -1257,14 +1257,16 @@ app.ready = async function () {
     clearOutput: function () {
       $output.text('');
     },
-    pasteOutput: function () {
+    pasteOutput: async function () {
       if (appSettings.interface.displayText == 'rts') {
         if (transliteratedOutput == "" || transliteratedOutput == undefined) {
-          handler.process.text(ocrOutput, (transliteratedText) => {
+          $toggleOutputScriptButton.addClass('disabled double loading');
+          await handler.process.text(ocrOutput, (transliteratedText) => {
             $output.text(transliteratedText);
           });
         }
         $output.text(transliteratedOutput);
+        $toggleOutputScriptButton.removeClass('disabled double loading');
       } else {
         $output.text(ocrOutput);
       }
@@ -1481,7 +1483,7 @@ app.ready = async function () {
 
   // Start the Magic
   await app.handler.initialize();
-  app.handler.open.settingsModal('interface-settings');
+  // app.handler.open.settingsModal('interface-settings');
 };
 
 // attach ready event
