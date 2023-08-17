@@ -70,8 +70,9 @@
           <a href="../../module/words-pairing" class="item">
             Words Pairing
           </a>
-          <a id="settingsButton" class="item">
-            <i class="icons">
+          <a id="settingsButton" class="item" data-tooltip="Open Settings"
+              data-position="bottom center">
+            <i class="fitted icons">
               <i class="large fitted cog icon"></i>
               <i class="top right corner orange circle icon updateNotification" data-release-date="2023-08-14" data-expire-notification="14"></i>
             </i>
@@ -119,22 +120,21 @@
         <div class="eight wide column">
           <h4 class="ui dividing header">
             Download Documents
-            <div id="unsavedChanges" class="ui hidden mini red empty circular label" title="You have unsaved changes.">
-            </div>
+            <span data-tooltip="You have unsaved changes" data-position="right center"><i id="unsavedChanges" class="ui tiny red asterisk icon"></i></span>
           </h4>
           <form class="ui equal width form">
             <div class="two fields">
               <div class="field">
                 <label for="download">Box File</label>
                 <button id="downloadBoxFileButton" name="download" tabindex="0" class="disabled fluid ui button">
-                  <i class="download icon"></i>
+                  <i class="file download icon"></i>
                   Download
                 </button>
               </div>
               <div class="field">
                 <label for="download">Ground Truth</label>
                 <button id="downloadGroundTruthButton" name="download" tabindex="0" class="disabled fluid ui button">
-                  <i class="download icon"></i>
+                  <i class="file download icon"></i>
                   Download
                 </button>
               </div>
@@ -144,35 +144,30 @@
       </div>
     </div>
     <div id="taggingSegment" class="ui disable secondary segment">
-      <div id="custom-controls" class="ui form">
-        <div class="inline fields">
-          <div class="field">
+      <div id="custom-controls" class="ui basic fitted vertical segment">
+        <div class="ui wrapping spaced buttons">
             <button id="invisiblesToggle" name="interface.toolbarActions.invisiblesToggle"
-              class="ui compact icon button" title="Toggle Invisibles" tabindex="0">
+              class="ui compact icon button" title="Toggle Invisibles" tabindex="0" data-tooltip="Toggle invisibles"
+              data-position="top left">
               <i class="paragraph icon"></i>
             </button>
-          </div>
-          <div class="field">
             <button id="redetectAllBoxes" name="interface.toolbarActions.detectAllLines"
-              class="ui compact icon disabled button" title="Find all text in image" tabindex="0">
+              class="ui compact icon disabled button" title="Find all text in image" tabindex="0" data-tooltip="Find all text"
+              data-position="top left">
               <i class="magic icon"></i>
             </button>
-          </div>
-          <div class="field">
             <button id="regenerateTextSuggestions" name="interface.toolbarActions.detectAllBoxes"
-              class="ui compact icon disabled button" title="Regenerate Text Suggestions" tabindex="0">
+              class="ui compact icon disabled button" title="Regenerate Text Suggestions" tabindex="0" data-tooltip="Recognize all boxes" data-position="top left">
               <i class="sync icon"></i>
             </button>
-          </div>
-          <div class="field">
             <button id="regenerateTextSuggestionForSelectedBox" name="interface.toolbarActions.detectSelectedBox"
-              class="ui compact icon disabled button" title="Regenerate Text Suggestion for Selected Box" tabindex="0">
+              class="ui compact icon disabled button" title="Regenerate Text Suggestion for Selected Box" tabindex="0" data-tooltip="Recognize current box"
+              data-position="top left">
               <i class="redo icon"></i>
             </button>
-          </div>
-          <div class="field">
             <div id="ocrModelDropdown" name="interface.toolbarActions.languageModelDropdown"
-              class="ui floating compact dropdown labeled search icon button" spellcheck="false">
+              class="ui floating compact dropdown labeled search icon button" spellcheck="false" data-tooltip="Choose a language model"
+              data-position="top left">
               <i class="world icon"></i>
               <span class="text">Romanian Transitional Script</span>
               <div class="menu">
@@ -288,10 +283,9 @@
                 <div class="item" data-value="yid">Yiddish</div>
               </div>
             </div>
-          </div>
         </div>
       </div>
-      <div id="main-edit-area" class="ui basic fitted segment">
+      <div id="main-edit-area" class="ui basic fitted vertical segment">
         <div class="ui maprow fitted disabled segment" id="mapid"></div>
         <div class="ui tiny disabled indicating progress" id="progressIndicator">
           <div class="bar"></div>
@@ -302,7 +296,6 @@
           <div id="myInputContainer" class="disabled field">
             <label class="col-sm-2 control-label" for="formtxt" id="txtlabel">&nbsp;</label>
             <div id="myInputBackground" class="no-kerning colorized-output-field">&nbsp;</div>
-            <!-- <input type="text" id="forsmtxt" boxid="" name="txt" value="" onkeyup="updateBackground()"> -->
           </div>
           <div class="field">
             <label class="col-sm-2 control-label" for="formtxt" id="txtlabel">Text
@@ -497,22 +490,8 @@
             </div>
             <div class="list">
               <div class="item">
-                <div class="ui radio checkbox">
-                  <input type="radio" name="interface.imageView" value="short">
-                  <label>Short</label>
-                </div>
-              </div>
-              <div class="item">
-                <div class="ui radio checkbox">
-                  <input type="radio" name="interface.imageView" value="medium">
-                  <label>Medium</label>
-                </div>
-              </div>
-              <div class="item">
-                <div class="ui radio checkbox">
-                  <input type="radio" name="interface.imageView" value="tall">
-                  <label>Tall</label>
-                </div>
+                <div id="imageViewHeightSlider" name="interface.imageView"
+                  class="ui right aligned labeled ticked reversed vertical slider"></div>
               </div>
             </div>
           </div>
@@ -556,6 +535,15 @@
                 <div class="ui checkbox">
                   <input type="checkbox" name="behavior.alerting.enableWarrningMessagesForUncommittedChanges">
                   <label>Leaving or loading an image without first downloading</label>
+                </div>
+              </div>
+              <div class="item">
+                <div class="ui checkbox">
+                  <input type="checkbox" name="behavior.alerting.enableWarrningMessagesForOverwritingDirtyData">
+                  <label>Overwriting unsaved (not downloaded) data
+                    <span class="ui small italic orange text updateNotification" data-release-date="2023-08-18"
+                      data-expire-notification="14">new</span>
+                  </label>
                 </div>
               </div>
               <!-- <div class="item">

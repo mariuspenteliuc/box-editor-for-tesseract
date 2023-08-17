@@ -84,10 +84,14 @@ app.ready = async function () {
     $useSampleImagePopupTrigger = $('#uploadNewImage'),
     $useSamplePopup = $('.ui.useSampleImage.popup'),
     $dropzone = $('div.my-dropzone'),
+    $dropzoneParentSegment = $('.dropzoneSegment'),
     $appInfoVersion = $('#appInfoVersion'),
     $appInfoUpdated = $('#appInfoUpdated'),
     $toggleOutputScriptButton = $('#toggleOutputScript'),
     $copyToClipboardButton = $('#copyOutputToClipboard'),
+    $saveOutputToDisk = $('#saveOutputToDisk'),
+    $detectAllLinesCheckbox = $(`input[name='behavior.onImageLoad.detectAllLines']`),
+    $imageViewHeightSlider = $('#imageViewHeightSlider'),
 
     // variables
     pressedModifiers = {},
@@ -217,6 +221,15 @@ app.ready = async function () {
       } else {
         // Upgrading settings
 
+
+        // migrate map height labels to numbers
+        var oldHeightLabels = {
+          'short': 300,
+          'medium': 500,
+          'tall': 700
+        };
+        appSettings.interface.imageView = oldHeightLabels[oldSettings.interface.imageView]
+
         // clear cookies set by versions prior to 1.6.0
         // also remove html script tag for JS Cookie
         const cookies = Cookies.get();
@@ -224,6 +237,8 @@ app.ready = async function () {
           Cookies.remove(cookie);
         }
       }
+      return appSettings;
+      // return oldSettings.appVersion == 0 ? appSettings : oldSettings;
     },
     update: {
       localStorage: function () {
@@ -236,12 +251,13 @@ app.ready = async function () {
           }
           switch (handler.compareVersions(appSettings.appVersion, localStorage.appVersion)) {
             case -1:
-              handler.migrateSettings(localStorage.appVersion, true);
+              appSettings = handler.migrateSettings(localStorage, true);
               break;
             case 1:
-              handler.migrateSettings(localStorage.appVersion);
+              appSettings = handler.migrateSettings(localStorage);
               break;
             default:
+              appSettings = localStorage;
               break;
           }
           handler.update.localStorage();
@@ -289,7 +305,16 @@ app.ready = async function () {
         handler.set.appAppearance(appSettings.interface.appearance);
         // Image View
         const imageViewPath = 'interface.imageView';
-        document.querySelector(`input[name='${imageViewPath}'][value='${appSettings.interface.imageView}']`).checked = true;
+        $imageViewHeightSlider.slider('set value', appSettings.interface.imageView, fireChange = false);
+        if (appSettings.interface.imageView < 300) {
+          // find item with text 'Tiny'
+          $imageViewHeightSlider.find('.label').each(function () {
+            if (this.innerText == 'Tiny') {
+              // append span element with additional text
+              this.innerHTML += '<span class="ui italic grey text">&nbsp;– Some editor buttons will be clipped.</span>';
+            }
+          });
+        }
         handler.set.mapSize({ height: appSettings.interface.imageView });
         // Output Script
         if (appSettings.interface.displayText == 'rts') {
@@ -325,6 +350,40 @@ app.ready = async function () {
             path = event.target.name,
             value = event.target.type === 'checkbox' ? event.target.checked : event.target.value;
           handler.update.appSettings({ path: path, value: value });
+        });
+      },
+      sliders: function () {
+        var labels = ["Tiny", "Short", "Normal", "Tall", "Huge"];
+        $imageViewHeightSlider.slider({
+          min: 100,
+          max: 900,
+          step: 200,
+          autoAdjustLabels: false,
+          interpretLabel: function (value) {
+            return labels[value];
+          },
+          onChange: function (value) {
+            if (value < 300) {
+              // find item with text 'Tiny'
+              $imageViewHeightSlider.find('.label').each(function () {
+                if (this.innerText == 'Tiny') {
+                  // append span element with additional text
+                  this.innerHTML += '<span class="ui italic grey text">&nbsp;– Some editor buttons will be clipped.</span>';
+                }
+              });
+            } else {
+              // remove span element from label
+              $imageViewHeightSlider.find('.label').each(function () {
+                if (this.innerText.includes('Tiny')) {
+                  this.innerHTML = 'Tiny';
+                }
+              });
+            }
+
+            handler.set.mapSize({ height: value });
+            // appSettings.interface.imageView = value;
+            handler.update.appSettings({ path: 'interface.imageView', value: value });
+          },
         });
       },
       settings: function () {
@@ -376,13 +435,16 @@ app.ready = async function () {
           filename = file.name;
         }
         img.onload = async function () {
-          handler.create.map('mapid');
+          if (!map) {
+            handler.create.map('mapid');
+          }
           map.eachLayer(function (layer) {
             map.removeLayer(layer);
           });
 
           imageHeight = this.height;
           imageWidth = this.width;
+          handler.clearOutput();
 
           bounds = [[0, 0], [parseInt(imageHeight), parseInt(imageWidth)]];
           var bounds2 = [[imageHeight - 300, 0], [imageHeight, imageWidth]];
@@ -423,10 +485,8 @@ app.ready = async function () {
           tessedit_ocr_engine_mode: 1,
           tessedit_pageseg_mode: 1,// 12
         });
-        if (appSettings.behavior.onImageLoad.detectAllLines) {
-          var response = await handler.generate.initialBoxes(
-            includeSuggestions = appSettings.behavior.onImageLoad.includeTextForDetectedLines
-          );
+        if ($detectAllLinesCheckbox[0].checked) {
+          var response = await handler.generate.initialBoxes();
         }
         handler.set.loadingState({ main: false, buttons: false });
         $(image._image).animate({ opacity: 1 }, 500);
@@ -443,37 +503,71 @@ app.ready = async function () {
         })
       },
       dropzone: function () {
-        $html.dropzone({
+        $dropzone.dropzone({
           url: handler.receiveDroppedFiles,
           uploadMultiple: true,
           parallelUploads: 3,
           disablePreviews: true,
           clickable: false,
-          acceptedFiles: "image/*,.box",
+          acceptedFiles: "image/*",
+          createImageThumbnails: false,
         });
         $html.on('drag dragenter dragover', function (event) {
           event.preventDefault();
           event.stopPropagation();
 
           if ($html.hasClass('dz-drag-hover')) {
-            $dropzone
-              .dimmer('show')
-              .addClass('raised');
+            // $dropzone
+            // .dimmer('show')
+            // .addClass('raised');
           }
           window.setTimeout(function () {
             if (!$html.hasClass('dz-drag-hover')) {
-              $dropzone
-                .dimmer('hide')
-                .removeClass('raised');
+              // $dropzone
+              //   .dimmer('hide')
+              //   .removeClass('raised');
             }
           }, 1500);
+        });
+        $dropzone.on('drag dragenter dragover', function (event) {
+          event.preventDefault();
+          event.stopPropagation();
+          $dropzone
+            .dimmer('show');
+          $dropzoneParentSegment
+            .addClass('raised');
+        });
+        $dropzone.on('dragleave dragend', function (event) {
+          event.preventDefault();
+          event.stopPropagation();
+          // $dropzone
+          //   .dimmer('hide')
+          $dropzoneParentSegment
+            .removeClass('raised');
         });
         $html.on('drop', function (event) {
           event.preventDefault();
           event.stopPropagation();
-
+        });
+        $dropzone.on('drop', function (event) {
+          event.preventDefault();
+          event.stopPropagation();
+          var fileCount = $dropzone[0].dropzone.getAcceptedFiles().length;
+          if (fileCount == 0) {
+            handler.notifyUser({
+              title: 'Invalid File Type',
+              message: 'You can only upload an image.',
+              type: 'error',
+            });
+          }
+          if (fileCount != 1) {
+            $dropzone
+              .transition('shake');
+            return;
+          }
           if (!$html.hasClass('dz-drag-hover')) {
             $dropzone
+              .dimmer('hide')
               .transition('pulse');
           }
         });
@@ -491,24 +585,13 @@ app.ready = async function () {
         $('#mapid').animate({ height: height }, animate ? 500 : 0);
       },
       mapSize: async function (options, animate = true) {
-        var
-          heightMap = {
-            'short': 300,
-            'medium': 500,
-            'tall': 700
-          },
-          bounds = new L.LatLngBounds();
-
-        var newHeight = heightMap[options.height];
-
-        await handler.set.mapResize(newHeight, animate);
+        await handler.set.mapResize(options.height, animate);
 
         if (selectedPoly != undefined) {
           selectedPoly
             .getBounds()
             .extend(selectedPoly.getBounds());
         }
-        // setTimeout(function () { map.invalidateSize({ pan: true }) }, 500);
       },
       loadingState: function (object) {
         if (object.main != undefined) {
@@ -650,6 +733,8 @@ app.ready = async function () {
                 }),
                 delindex = handler.delete.box(delbox);
             });
+          selectedBox = boxData[0];
+          selectedPoly = boxLayer.getLayer(selectedBox.polyid);
         });
         map.on('draw:deletestart', async function (event) {
           mapState = 'deleting';
@@ -735,22 +820,22 @@ app.ready = async function () {
             var newPoly = L.rectangle([[newBox.y1, newBox.x1], [newBox.y2, newBox.x2]]);
             newPoly.on('edit', handler.editRectangle);
             newPoly.on('click', handler.selectRectangle);
-            handler.style.remove(newPoly);
             boxLayer.addLayer(newPoly);
             var polyid = boxLayer.getLayerId(newPoly);
             newBox.polyid = polyid;
             boxData.push(newBox);
           });
 
-        await handler.ocr.detect(newBoxes);
         handler.sortAllBoxes();
         if (newSelectedPoly) {
-          handler.focusBoxID(boxData.find(x =>
+          selectedBox = boxData.find(x =>
             x.x1 == newSelectedPoly.x1 &&
             x.x2 == newSelectedPoly.x2 &&
             x.y1 == newSelectedPoly.y1 &&
             x.y2 == newSelectedPoly.y2
-          ).polyid);
+          );
+          selectedPoly = boxLayer.getLayer(selectedBox.polyid);
+          handler.focusBoxID(selectedBox.polyid);
         }
         handler.set.loadingState({ main: false, buttons: false });
       },
@@ -780,7 +865,7 @@ app.ready = async function () {
               height: box.y2 - box.y1,
             },
             result = await worker.recognize(image._image, { rectangle });
-          box.text = result.data.text.replace(/(\r\n|\n|\r)/gm, '');
+          box.text = result.data.text;//.replace(/(\r\n|\n|\r)/gm, '');
           box.committed = true;
           // box.visited = false;
           // if (selectedPoly._leaflet_id == layer._leaflet_id) {
@@ -928,6 +1013,43 @@ app.ready = async function () {
       handler.focusBoxID(box.polyid, { isUpdated });
 
     },
+    download: {
+      file: async function (type, event) {
+        event.preventDefault() && event.stopPropagation();
+        if ($output.text().length == 0) {
+          handler.notifyUser({
+            message: 'There is nothing to download!',
+            type: 'warning',
+          });
+          return false;
+        }
+        handler.sortAllBoxes();
+        for (var box of boxData) {
+          box.text = box.text.replace(/(\r\n|\n|\r)/gm, '');
+        }
+        var
+          content = '',
+          fileExtension = '';
+        if (type == 'txt') {
+          content = await $output.text();
+          fileExtension = appSettings.interface.displayText == 'rts' ? 'transliterated.txt' : 'ocr.txt';
+        }
+        downloadAnchor = document.createElement('a');
+        downloadAnchor.href = 'data:application/text;charset=utf-8,' + encodeURIComponent(content);
+        downloadAnchor.download = imageFileName + '.' + fileExtension;
+        downloadAnchor.target = '_blank';
+        downloadAnchor.style.display = 'none';
+
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        document.body.removeChild(downloadAnchor);
+        handler.notifyUser({
+          message: 'Downloaded file ' + imageFileName + '.' + fileExtension,
+          type: 'success',
+        });
+        boxDataInfo.setDirty(false);
+      },
+    },
     focusBoxID: function (id, options = { isUpdated: false, zoom: true }) {
       if (options.isUpdated == undefined) options.isUpdated = false;
       if (options.zoom == undefined) options.zoom = true;
@@ -956,7 +1078,7 @@ app.ready = async function () {
       },
       remove: function (poly, isUpdated = false) {
         if (poly) {
-          if (boxData.find(x => x.polyid != poly._leaflet_id).committed) {
+          if (boxData.find(x => x.polyid == poly._leaflet_id).committed) {
             poly.setStyle(boxState.boxComitted);
           } else {
             poly.setStyle(boxState.boxInactive);
@@ -1097,7 +1219,7 @@ app.ready = async function () {
 
         if (boxLayer.getLayers().length > 0) {
           var results = await handler.ocr.detect(boxData);
-          ocrOutput = results.map(x => x.text).join('\n\n');
+          ocrOutput = results.map(x => x.text).join('\n');
           await handler.pasteOutput();
         }
         // handler.map.fitBounds(mapPosition);
@@ -1135,14 +1257,16 @@ app.ready = async function () {
     clearOutput: function () {
       $output.text('');
     },
-    pasteOutput: function () {
+    pasteOutput: async function () {
       if (appSettings.interface.displayText == 'rts') {
         if (transliteratedOutput == "" || transliteratedOutput == undefined) {
-          handler.process.text(ocrOutput, (transliteratedText) => {
+          $toggleOutputScriptButton.addClass('disabled double loading');
+          await handler.process.text(ocrOutput, (transliteratedText) => {
             $output.text(transliteratedText);
           });
         }
         $output.text(transliteratedOutput);
+        $toggleOutputScriptButton.removeClass('disabled double loading');
       } else {
         $output.text(ocrOutput);
       }
@@ -1261,12 +1385,12 @@ app.ready = async function () {
       var output = document.getElementById('text-output').value;
       if (output.length > 0) {
         navigator.clipboard.writeText(output).then(function () {
-          handler.notifyUser({ message: 'Copied ' + output.length + ' characters.', type: 'info'});
+          handler.notifyUser({ message: 'Copied ' + output.length + ' characters.', type: 'info' });
         }, function (err) {
-          handler.notifyUser({ message: 'Could not copy output. ' + err, type: 'info'});
+          handler.notifyUser({ message: 'Could not copy output. ' + err, type: 'info' });
         });
       } else {
-        handler.notifyUser({ message: 'No text to copy.', type: 'info'});
+        handler.notifyUser({ message: 'No text to copy.', type: 'info' });
       }
       setTimeout(() => {
         $copyToClipboardButton.removeClass('double loading disabled');
@@ -1279,7 +1403,7 @@ app.ready = async function () {
       handler.update.localStorage();
       await handler.pasteOutput();
       if (appSettings.interface.displayText == 'rts') {
-        $toggleOutputScriptButton.find('span').text('Transliteration' );
+        $toggleOutputScriptButton.find('span').text('Transliteration');
         // $toggleOutputScriptButton.setAttribute('data-tooltip', 'Switch to recognized RTS text');
       } else {
         $toggleOutputScriptButton.find('span').text('RTS');
@@ -1306,13 +1430,6 @@ app.ready = async function () {
       files.forEach(function (file) {
         if (file.type.includes('image')) {
           imageFile = file;
-        } else {
-          handler.notifyUser({
-            title: 'Invalid File Type',
-            message: 'You can only upload an image.',
-            type: 'error',
-          });
-          return;
         }
       });
 
@@ -1327,6 +1444,7 @@ app.ready = async function () {
       if (imageFile) {
         await handler.load.imageFile(imageFile);
       }
+      $dropzone[0].dropzone.removeAllFiles();
     },
     bindInputs: function () {
       $imageFileInput.on('change', handler.load.imageFile);
@@ -1342,6 +1460,7 @@ app.ready = async function () {
       $settingsButtonForHelpPane.on('click', handler.open.settingsModal.bind(handler.open, 'help-section'));
       $resetButton.on('click', handler.resetAppSettings);
       $useSampleImageButton.on('click', handler.load.sampleImageAndBox);
+      $saveOutputToDisk.on('click', handler.download.file.bind(handler.download, 'txt'));
     },
     addBehaviors: function () {
       $('.guideMessage').dimmer('show');
@@ -1353,6 +1472,7 @@ app.ready = async function () {
       $imageFileInput.prop('disabled', false);
       handler.load.dropzone();
       handler.load.popups();
+      handler.load.sliders();
       handler.load.settings();
       handler.load.eventListeners();
 
@@ -1363,7 +1483,7 @@ app.ready = async function () {
 
   // Start the Magic
   await app.handler.initialize();
-
+  // app.handler.open.settingsModal('interface-settings');
 };
 
 // attach ready event

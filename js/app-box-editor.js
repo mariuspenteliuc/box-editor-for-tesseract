@@ -95,7 +95,7 @@ app.ready = async function () {
     $groundTruthColorizedOutput = $('#myInputBackground'),
     $previewColorizedOutput = $('#myPreviewBackground'),
     $taggingSegment = $('#taggingSegment'),
-    $positionSlider = $('.ui.slider'),
+    $positionSlider = $('#positionSlider'),
     $progressSlider = $('#progressIndicator'),
     $progressLabel = $progressSlider.find('.label'),
     $popups = $('.popup'),
@@ -121,8 +121,10 @@ app.ready = async function () {
     $keyboardShortcutsTableRows = $keyboardShortcutsTableBody.find('tr'),
     $modelConfidenceScoreDetail = $('#modelConfidenceScore'),
     $modelConfidenceScoreEnabledCheckbox = $(`input[name='behavior.workflow.confidenceScoreEnabled']`),
+    $unsavedChangesBadge = $('#unsavedChanges'),
     $appInfoVersion = $('#appInfoVersion'),
     $appInfoUpdated = $('#appInfoUpdated'),
+    $imageViewHeightSlider = $('#imageViewHeightSlider'),
 
     // variables
     pressedModifiers = {},
@@ -151,6 +153,7 @@ app.ready = async function () {
       },
       setDirty: function (value = true) {
         this.dirty = value;
+        $unsavedChangesBadge.toggle(value);
       }
     },
     lineDataInfo = {
@@ -215,6 +218,7 @@ app.ready = async function () {
         alerting: {
           enableWarrningMessagesForDifferentFileNames: true,
           enableWarrningMessagesForUncommittedChanges: true,
+          enableWarrningMessagesForOverwritingDirtyData: true,
         },
         workflow: {
           progressIndicator: true,
@@ -708,11 +712,12 @@ app.ready = async function () {
             releaseDate = new Date($(this).attr('data-release-date')),
             removeDays = parseInt($(this).attr('data-expire-notification')),
             timeDifference = currentDate - releaseDate,
-            daysDifference = timeDifference / (1000 * 60 * 60 * 24);
+            daysDifference = timeDifference / (1000 * 60 * 60 * 24),
+            parent = $(this)[0].parentElement;
 
           if (daysDifference >= removeDays) {
+            console.info(`Notification badge removed from: ${parent}`);
             $(this).remove();
-            console.info(`Notification removed: ${$(this).attr('data-release-date')}`);
           }
         });
       },
@@ -1187,6 +1192,7 @@ app.ready = async function () {
           .forEach(function (box) {
             var layer = boxLayer.getLayer(box.polyid);
             boxLayer.removeLayer(layer);
+            boxData.splice(boxData.indexOf(box), 1);
             handler.delete.box(box);
           });
 
@@ -1206,8 +1212,9 @@ app.ready = async function () {
 
         await handler.ocr.detect(newBoxes);
         handler.sortAllBoxes();
+        handler.set.loadingState({ main: false, buttons: false });
         handler.update.progressBar({ type: 'tagging' });
-        handler.update.slider({ max: boxData.length });
+        handler.update.slider({ max: true });
         if (newSelectedPoly) {
           handler.focusBoxID(boxData.find(x =>
             x.x1 == newSelectedPoly.x1 &&
@@ -1216,7 +1223,6 @@ app.ready = async function () {
             x.y2 == newSelectedPoly.y2
           ).polyid);
         }
-        handler.set.loadingState({ main: false, buttons: false });
       },
     },
     addNewHighlighterPattern: function () {
@@ -1329,19 +1335,10 @@ app.ready = async function () {
         // TODO: refresh jquery selector. It does not work even though it shoud.
         // $map[0].animate({ height: height }, animate ? 500 : 0);
         $('#mapid').animate({ height: height }, animate ? 500 : 0);
+        await handler.map.invalidateSize();
       },
       mapSize: async function (options, animate = true) {
-        var
-          heightMap = {
-            'short': 300,
-            'medium': 500,
-            'tall': 700
-          },
-          bounds = new L.LatLngBounds();
-
-        var newHeight = heightMap[options.height];
-
-        await handler.set.mapResize(newHeight, animate);
+        await handler.set.mapResize(options.height, animate);
 
         if (selectedPoly != undefined) {
           selectedPoly
@@ -1418,7 +1415,16 @@ app.ready = async function () {
         handler.set.appAppearance(appSettings.interface.appearance);
         // Image View
         const imageViewPath = 'interface.imageView';
-        document.querySelector(`input[name='${imageViewPath}'][value='${appSettings.interface.imageView}']`).checked = true;
+        $imageViewHeightSlider.slider('set value', appSettings.interface.imageView, fireChange = false);
+        if (appSettings.interface.imageView < 300) {
+          // find item with text 'Tiny'
+          $imageViewHeightSlider.find('.label').each(function () {
+            if (this.innerText == 'Tiny') {
+              // append span element with additional text
+              this.innerHTML += '<span class="ui italic grey text">&nbsp;– Some editor buttons will be clipped.</span>';
+            }
+          });
+        }
         handler.set.mapSize({ height: appSettings.interface.imageView });
         // On Image Load
         for (const [key, value] of Object.entries(appSettings.behavior.onImageLoad)) {
@@ -1482,7 +1488,7 @@ app.ready = async function () {
           if ($positionSlider.slider('get max') != boxData.length) {
             handler.update.slider({
               value: currentPosition + 1,
-              max: boxData.length
+              max: boxData.length,
             });
           } else {
             handler.update.slider({ value: currentPosition + 1 });
@@ -1738,6 +1744,16 @@ app.ready = async function () {
       } else {
         // Upgrading settings
 
+        // migrate map height labels to numbers
+        var oldHeightLabels = {
+          'short': 300,
+          'medium': 500,
+          'tall': 700
+        };
+        appSettings.interface.imageView = oldHeightLabels[oldSettings.interface.imageView]
+
+        oldSettings.behavior.alerting.enableWarrningMessagesForOverwritingDirtyData = true;
+
         // clear cookies set by versions prior to 1.6.0
         // also remove html script tag for JS Cookie
         const cookies = Cookies.get();
@@ -1745,7 +1761,7 @@ app.ready = async function () {
           Cookies.remove(cookie);
         }
       }
-      return oldSettings;
+      return appSettings;
     },
     receiveDroppedFiles: async function (event) {
       if (event.length > 2) {
@@ -1798,6 +1814,7 @@ app.ready = async function () {
     },
     init: {
       slider: function () {
+        $positionSlider.slider('destroy');
         $positionSlider.slider({
           min: 1,
           max: boxData.length,
@@ -2040,6 +2057,39 @@ app.ready = async function () {
           handler.update.appSettings({ path: path, value: value });
         });
       },
+      sliders: function () {
+        var labels = ["Tiny", "Short", "Normal", "Tall", "Huge"];
+        $imageViewHeightSlider.slider({
+          min: 100,
+          max: 900,
+          step: 200,
+          autoAdjustLabels: false,
+          interpretLabel: function (value) {
+            return labels[value];
+          },
+          onChange: function (value) {
+            if (value < 300) {
+              // find item with text 'Tiny'
+              $imageViewHeightSlider.find('.label').each(function () {
+                if (this.innerText == 'Tiny') {
+                  // append span element with additional text
+                  this.innerHTML += '<span class="ui italic grey text">&nbsp;– Some editor buttons will be clipped.</span>';
+                }
+              });
+            } else {
+              // remove span element from label
+              $imageViewHeightSlider.find('.label').each(function () {
+                if (this.innerText.includes('Tiny')) {
+                  this.innerHTML = 'Tiny';
+                }
+              });
+            }
+
+            handler.set.mapSize({ height: value });
+            handler.update.appSettings({ path: 'interface.imageView', value: value });
+          },
+        });
+      },
       settings: function () {
         handler.getAppInfo();
         $appInfoVersion.text(appInfo.version);
@@ -2154,7 +2204,7 @@ app.ready = async function () {
         handler.close.settingsModal();
       },
       boxFile: async function (e, sample = false) {
-        if (boxDataInfo.isDirty()) {
+        if (appSettings.behavior.alerting.enableWarrningMessagesForOverwritingDirtyData && boxDataInfo.isDirty()) {
           var
             response = await handler.askUser({
               title: 'Unsaved Changes',
@@ -2192,7 +2242,7 @@ app.ready = async function () {
           });
           $boxFileInput.val(boxFileName);
           return false;
-        } else if (imageFileName != file.name.split('.').slice(0, -1).join('.') && imageFileName != undefined) {
+        } else if (appSettings.behavior.alerting.enableWarrningMessagesForDifferentFileNames && imageFileName != file.name.split('.').slice(0, -1).join('.') && imageFileName != undefined) {
           var
             response = await handler.askUser({
               title: 'File Names Mismatch',
@@ -2218,7 +2268,7 @@ app.ready = async function () {
         handler.set.loadingState({ main: false, buttons: false });
       },
       imageFile: async function (e, sample = false) {
-        if (boxDataInfo.isDirty() || lineDataInfo.isDirty()) {
+        if (appSettings.behavior.alerting.enableWarrningMessagesForOverwritingDirtyData && boxDataInfo.isDirty() || lineDataInfo.isDirty()) {
           var response = await handler.askUser({
             title: 'Unsaved Changes',
             message: 'You did not download current progress. Do you want to overwrite existing data?',
@@ -2395,7 +2445,9 @@ app.ready = async function () {
         return map.getBounds();
       },
       invalidateSize: function () {
-        setTimeout(function () { map.invalidateSize({ pan: true }) }, 500);
+        if (map) {
+          setTimeout(function () { map.invalidateSize() }, 500);
+        }
       },
       fitImage: function () {
         map.flyToBounds(image.getBounds(), {
@@ -2536,7 +2588,7 @@ app.ready = async function () {
       },
       textSuggestions: async function () {
         $regenerateTextSuggestionsButton.addClass('disabled double loading');
-        if (boxDataInfo.isDirty()) {
+        if (appSettings.behavior.alerting.enableWarrningMessagesForOverwritingDirtyData && boxDataInfo.isDirty()) {
           var response = await handler.askUser({
             title: 'Warning',
             message: 'Suggestions will be generated from the current lines. Do you want to continue?',
@@ -2581,7 +2633,7 @@ app.ready = async function () {
       initialBoxes: async function (includeSuggestions = true) {
         $redetectAllBoxesButton.addClass('disabled double loading');
 
-        if (boxDataInfo.isDirty()) {
+        if (appSettings.behavior.alerting.enableWarrningMessagesForOverwritingDirtyData && boxDataInfo.isDirty()) {
           var response = await handler.askUser({
             title: 'Warning',
             message: 'Suggestions will be generated from the current lines. Do you want to continue?',
@@ -2621,7 +2673,7 @@ app.ready = async function () {
           handler.focusBoxID(handler.getBoxContent().polyid);
           handler.set.loadingState({ buttons: false, main: false });
           handler.init.slider()
-          boxDataInfo.setDirty(false);
+          // boxDataInfo.setDirty(false);
           handler.update.progressBar({ type: 'tagging' });
         } catch (error) {
           console.log(error);
@@ -2655,6 +2707,8 @@ app.ready = async function () {
           boxLayer.addLayer(rectangle);
           box.polyid = boxLayer.getLayerId(rectangle);
           boxData.push(box);
+          lineDataInfo.setDirty(true);
+          boxDataInfo.setDirty(true);
         }
         map.addLayer(boxLayer);
       },
@@ -2683,6 +2737,8 @@ app.ready = async function () {
           box.text = result.data.text.replace(/(\r\n|\n|\r)/gm, '');
           box.isModelGeneratedText = true;
           box.modelConfidenceScore = result.data.confidence;
+          lineDataInfo.setDirty(true);
+          boxDataInfo.setDirty(true);
           box.committed = false;
           box.visited = false;
           handler.style.remove(layer);
@@ -2832,12 +2888,15 @@ app.ready = async function () {
       handler.bindButtons();
       handler.addBehaviors();
       $imageFileInput.prop('disabled', false);
+      boxDataInfo.setDirty(false);
+      lineDataInfo.setDirty(false);
       handler.setKeyboardControl('form');
       // handler.set.loadingState({ buttons: false });
       await handler.load.unicodeData();
       handler.load.dropzone();
       handler.load.dropdowns();
       handler.load.popups();
+      handler.load.sliders();
       handler.load.settings();
       handler.create.defaultHighlighterTable();
       handler.create.defaultKeyboardShortcutsTable();
