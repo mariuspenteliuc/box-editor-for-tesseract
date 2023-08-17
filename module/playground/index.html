@@ -70,8 +70,7 @@
           <a href="../../module/words-pairing" class="item">
             Words Pairing
           </a>
-          <a id="settingsButton" class="item" data-tooltip="Open Settings"
-              data-position="bottom center">
+          <a id="settingsButton" class="item" data-tooltip="Open Settings" data-position="bottom center">
             <i class="fitted icons">
               <i class="large fitted cog circle icon"></i>
               <!-- <i class="top right corner orange circle icon"></i> -->
@@ -83,7 +82,7 @@
     <div class="ui borderless secondary segment dropzoneSegment">
       <div class="ui row">
         <div id="custom-controls">
-          <div class="ui icon buttons">
+          <div class="ui wrapping spaced icon buttons">
             <div class="ui useSampleImage flowing center aligned popup">
               <h4 class="ui header">Use Sample Image</h4>
               <div>
@@ -118,22 +117,22 @@
               <i class="redo icon"></i>
             </button>
           </div>
-          <div class="ui right floated icon buttons">
+          <button id="saveOutputToDisk" class="ui right floated icon button" data-tooltip="Download text document"
+            data-position="top right">
+            <i class="file download icon"></i>
+          </button>
+          <div class="ui right floated wrapping spaced icon buttons">
             <button id="toggleOutputScript" class="ui icon right labeled button" data-tooltip="Switch between scripts"
               data-position="top right">
               <i class="globe icon"></i>
-              <span></span>
+              <span>RTS</span>
             </button>
             <button id="copyOutputToClipboard" class="ui button" data-tooltip="Copy output" data-position="top right">
               <i class="copy icon"></i>
             </button>
-            <button id="saveOutputToDisk" class="ui button" data-tooltip="Download text document" data-position="top right">
-              <i class="file download icon"></i>
-            </button>
           </div>
         </div>
       </div>
-      <div class="ui hidden divider"></div>
       <div class="ui blurring row guideMessage my-dropzone">
         <div class="ui inverted dimmer">
           <div class="content">
