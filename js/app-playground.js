@@ -227,7 +227,7 @@ app.ready = async function () {
           Cookies.remove(cookie);
         }
       }
-      return oldSettings;
+      return oldSettings.appVersion == 0 ? appSettings : oldSettings;
     },
     update: {
       localStorage: function () {

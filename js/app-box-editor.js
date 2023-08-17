@@ -1748,7 +1748,7 @@ app.ready = async function () {
           Cookies.remove(cookie);
         }
       }
-      return oldSettings;
+      return oldSettings.appVersion == 0 ? appSettings : oldSettings;
     },
     receiveDroppedFiles: async function (event) {
       if (event.length > 2) {
