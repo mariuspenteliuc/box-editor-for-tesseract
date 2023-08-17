@@ -217,6 +217,7 @@ app.ready = async function () {
         alerting: {
           enableWarrningMessagesForDifferentFileNames: true,
           enableWarrningMessagesForUncommittedChanges: true,
+          enableWarrningMessagesForOverwritingDirtyData: true,
         },
         workflow: {
           progressIndicator: true,
@@ -2158,7 +2159,7 @@ app.ready = async function () {
         handler.close.settingsModal();
       },
       boxFile: async function (e, sample = false) {
-        if (boxDataInfo.isDirty()) {
+        if (appSettings.behavior.alerting.enableWarrningMessagesForOverwritingDirtyData && boxDataInfo.isDirty()) {
           var
             response = await handler.askUser({
               title: 'Unsaved Changes',
@@ -2222,7 +2223,7 @@ app.ready = async function () {
         handler.set.loadingState({ main: false, buttons: false });
       },
       imageFile: async function (e, sample = false) {
-        if (boxDataInfo.isDirty() || lineDataInfo.isDirty()) {
+        if (appSettings.behavior.alerting.enableWarrningMessagesForOverwritingDirtyData && boxDataInfo.isDirty() || lineDataInfo.isDirty()) {
           var response = await handler.askUser({
             title: 'Unsaved Changes',
             message: 'You did not download current progress. Do you want to overwrite existing data?',
@@ -2540,7 +2541,7 @@ app.ready = async function () {
       },
       textSuggestions: async function () {
         $regenerateTextSuggestionsButton.addClass('disabled double loading');
-        if (boxDataInfo.isDirty()) {
+        if (appSettings.behavior.alerting.enableWarrningMessagesForOverwritingDirtyData && boxDataInfo.isDirty()) {
           var response = await handler.askUser({
             title: 'Warning',
             message: 'Suggestions will be generated from the current lines. Do you want to continue?',
@@ -2585,7 +2586,7 @@ app.ready = async function () {
       initialBoxes: async function (includeSuggestions = true) {
         $redetectAllBoxesButton.addClass('disabled double loading');
 
-        if (boxDataInfo.isDirty()) {
+        if (appSettings.behavior.alerting.enableWarrningMessagesForOverwritingDirtyData && boxDataInfo.isDirty()) {
           var response = await handler.askUser({
             title: 'Warning',
             message: 'Suggestions will be generated from the current lines. Do you want to continue?',
