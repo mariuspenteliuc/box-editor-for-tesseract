@@ -1750,9 +1750,14 @@ app.ready = async function () {
           'medium': 500,
           'tall': 700
         };
-        appSettings.interface.imageView = oldHeightLabels[oldSettings.interface.imageView]
+        // if oldSettings.interface.imageView is not undefined
+        if (oldSettings.interface?.imageView) {
+          appSettings.interface.imageView = oldHeightLabels[oldSettings.interface.imageView]
+        } else {
+          appSettings.interface.imageView = 500;
+        }
 
-        oldSettings.behavior.alerting.enableWarrningMessagesForOverwritingDirtyData = true;
+        appSettings.behavior.alerting.enableWarrningMessagesForOverwritingDirtyData = true;
 
         // clear cookies set by versions prior to 1.6.0
         // also remove html script tag for JS Cookie
