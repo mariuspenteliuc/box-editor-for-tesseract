@@ -2625,7 +2625,7 @@ app.ready = async function () {
           handler.focusBoxID(handler.getBoxContent().polyid);
           handler.set.loadingState({ buttons: false, main: false });
           handler.init.slider()
-          boxDataInfo.setDirty(false);
+          // boxDataInfo.setDirty(false);
           handler.update.progressBar({ type: 'tagging' });
         } catch (error) {
           console.log(error);
@@ -2659,6 +2659,8 @@ app.ready = async function () {
           boxLayer.addLayer(rectangle);
           box.polyid = boxLayer.getLayerId(rectangle);
           boxData.push(box);
+          lineDataInfo.setDirty(true);
+          boxDataInfo.setDirty(true);
         }
         map.addLayer(boxLayer);
       },
@@ -2687,6 +2689,8 @@ app.ready = async function () {
           box.text = result.data.text.replace(/(\r\n|\n|\r)/gm, '');
           box.isModelGeneratedText = true;
           box.modelConfidenceScore = result.data.confidence;
+          lineDataInfo.setDirty(true);
+          boxDataInfo.setDirty(true);
           box.committed = false;
           box.visited = false;
           handler.style.remove(layer);
