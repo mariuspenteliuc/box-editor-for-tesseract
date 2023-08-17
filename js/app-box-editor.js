@@ -1334,6 +1334,7 @@ app.ready = async function () {
         // TODO: refresh jquery selector. It does not work even though it shoud.
         // $map[0].animate({ height: height }, animate ? 500 : 0);
         $('#mapid').animate({ height: height }, animate ? 500 : 0);
+        await handler.map.invalidateSize();
       },
       mapSize: async function (options, animate = true) {
         var
@@ -2403,7 +2404,7 @@ app.ready = async function () {
         return map.getBounds();
       },
       invalidateSize: function () {
-        setTimeout(function () { map.invalidateSize({ pan: true }) }, 500);
+        setTimeout(function () { map.invalidateSize() }, 500);
       },
       fitImage: function () {
         map.flyToBounds(image.getBounds(), {
