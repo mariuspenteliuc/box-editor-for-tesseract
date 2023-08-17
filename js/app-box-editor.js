@@ -2404,13 +2404,9 @@ app.ready = async function () {
         return map.getBounds();
       },
       invalidateSize: function () {
-<<<<<<< HEAD
         if (map) {
           setTimeout(function () { map.invalidateSize() }, 500);
         }
-=======
-        setTimeout(function () { map.invalidateSize() }, 500);
->>>>>>> 501ba31289c248318b46af7cb6141c27dfbabf59
       },
       fitImage: function () {
         map.flyToBounds(image.getBounds(), {
