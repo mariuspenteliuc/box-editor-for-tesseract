@@ -2777,6 +2777,7 @@ app.ready = async function () {
           $settingsMenuPaneTabs.removeClass('active');
           $settingsMenuItems.filter('[data-tab="' + location + '"]').addClass('active');
           $settingsMenuPaneTabs.filter('[data-tab="' + location + '"]').addClass('active');
+          balanceText.updateWatched();
         }
         balanceText.updateWatched();
       },
@@ -2917,7 +2918,11 @@ app.ready = async function () {
       handler.saveKeyboardShortcutsToSettings();
 
       handler.delete.expiredNotifications();
+<<<<<<< HEAD
       balanceText($balancedText, {watch: true});
+=======
+      balanceText($('.balance-text, p, .header'), {watch: true});
+>>>>>>> f14f60f71c31c9ccc22dec6fd5375dd327237625
     },
   };
 
