@@ -6266,14 +6266,17 @@ div.ui.blue.empty.circular.label.text-highlighter {
   background-color: #0d71bb;
 }
 
+.dark-theme .blurring.dimmable>.inverted.dimmer {
+  background: rgba(0, 0, 0, .6);
+}
 
-.dark-theme .blurring.dimmable>.dimmer {
+/* .dark-theme .blurring.dimmable>.dimmer {
   background: rgba(255, 255, 255, 0.6);
-}
+} */
 
-.dark-theme .ui.dimmer {
+/* .dark-theme .ui.dimmer {
   background: rgba(255, 255, 255, 0.85);
-}
+} */
 
 .dark-theme .ui.dimmer>.content,
 .dark-theme .ui.dimmer>.content>* {
@@ -10344,9 +10347,9 @@ div.ui.blue.empty.circular.label.text-highlighter {
     color: #545454;
   }
 
-  .match-device .ui.dimmer>.ui.elastic.loader {
+  /* .match-device .ui.dimmer>.ui.elastic.loader {
     color: #767676;
-  }
+  } */
 
   .match-device .ui.placeholder {
     background-image: linear-gradient(to right, rgba(255, 255, 255, 0.08) 0, rgba(255, 255, 255, 0.14) 15%, rgba(255, 255, 255, 0.08) 30%);
@@ -13385,14 +13388,17 @@ div.ui.blue.empty.circular.label.text-highlighter {
     background-color: #0d71bb;
   }
 
+  .match-device .blurring.dimmable>.inverted.dimmer {
+    background: rgba(0, 0, 0, .6);
+  }
 
-  .match-device .blurring.dimmable>.dimmer {
+  /* .match-device .blurring.dimmable>.dimmer {
     background: rgba(255, 255, 255, 0.6);
-  }
+  } */
 
-  .match-device .ui.dimmer {
+  /* .match-device .ui.dimmer {
     background: rgba(255, 255, 255, 0.85);
-  }
+  } */
 
   .match-device .ui.dimmer>.content,
   .match-device .ui.dimmer>.content>* {

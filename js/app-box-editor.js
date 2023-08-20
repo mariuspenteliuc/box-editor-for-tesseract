@@ -564,12 +564,12 @@ app.ready = async function () {
       }
       return new Promise((resolve, reject) => {
         $.modal({
-          inverted: false,
+          // inverted: true,
+          // blurring: true,
           title: object.title,
-          blurring: true,
-          closeIcon: true,
-          autofocus: true,
-          restoreFocus: true,
+          // closeIcon: true,
+          // autofocus: true,
+          // restoreFocus: true,
           onApprove: function () {
             resolve(true);
           },
@@ -2109,7 +2109,7 @@ app.ready = async function () {
           }
         });
         $settingsModal.modal({
-          inverted: false,
+          // inverted: true,
           blurring: true,
           onHidden: function () {
             // hide status if still visible
