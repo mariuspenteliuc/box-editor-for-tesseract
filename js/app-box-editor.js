@@ -125,6 +125,7 @@ app.ready = async function () {
     $appInfoVersion = $('#appInfoVersion'),
     $appInfoUpdated = $('#appInfoUpdated'),
     $imageViewHeightSlider = $('#imageViewHeightSlider'),
+    $balancedText = $('.balance-text, p, .header'),
 
     // variables
     pressedModifiers = {},
@@ -2102,7 +2103,11 @@ app.ready = async function () {
         // format date to month date, year
         const date = new Date(appInfo.updated);
         $appInfoUpdated.text(handler.formatDate(date));
-        $settingsMenuItems.tab();
+        $settingsMenuItems.tab({
+          onLoad: function () {
+            balanceText.updateWatched();
+          }
+        });
         $settingsModal.modal({
           inverted: false,
           blurring: true,
@@ -2773,6 +2778,7 @@ app.ready = async function () {
           $settingsMenuItems.filter('[data-tab="' + location + '"]').addClass('active');
           $settingsMenuPaneTabs.filter('[data-tab="' + location + '"]').addClass('active');
         }
+        balanceText.updateWatched();
       },
 
     },
@@ -2911,6 +2917,7 @@ app.ready = async function () {
       handler.saveKeyboardShortcutsToSettings();
 
       handler.delete.expiredNotifications();
+      balanceText($balancedText, {watch: true});
     },
   };
 

@@ -92,6 +92,7 @@ app.ready = async function () {
     $saveOutputToDisk = $('#saveOutputToDisk'),
     $detectAllLinesCheckbox = $(`input[name='behavior.onImageLoad.detectAllLines']`),
     $imageViewHeightSlider = $('#imageViewHeightSlider'),
+    $balancedText = $('.balance-text, p, .header'),
 
     // variables
     pressedModifiers = {},
@@ -393,7 +394,11 @@ app.ready = async function () {
         // format date to month date, year
         const date = new Date(appInfo.updated);
         $appInfoUpdated.text(handler.formatDate(date));
-        $settingsMenuItems.tab();
+        $settingsMenuItems.tab({
+          onload: function () {
+            balanceText.updateWatched();
+          }
+        });
         $settingsModal.modal({
           inverted: false,
           blurring: true,
@@ -1377,6 +1382,7 @@ app.ready = async function () {
           $settingsMenuItems.filter('[data-tab="' + location + '"]').addClass('active');
           $settingsMenuPaneTabs.filter('[data-tab="' + location + '"]').addClass('active');
         }
+        balanceText.updateWatched();
       },
 
     },
@@ -1477,6 +1483,7 @@ app.ready = async function () {
       handler.load.eventListeners();
 
       handler.delete.expiredNotifications();
+      balanceText($balancedText, { watch: true });
     },
   };
   app.handler = handler;
