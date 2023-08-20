@@ -383,23 +383,25 @@
     <div id="navSettingsPane" class="four wide column scrolling content">
       <div id="settingsMenu" class="ui fluid secondary vertical menu">
         <a class="item active" data-tab="interface-settings">
-          <i class="icons">
+          <i class="fitted icons">
             <i class="grey adjust icon"></i>
-            <i class="top right corner orange circle icon updateNotification" data-release-date="2023-08-14"
-              data-expire-notification="7"></i>
+            <!-- <i class="top right corner orange circle icon updateNotification" data-release-date="2023-08-14"
+              data-expire-notification="7"></i> -->
           </i>
           Interface
         </a>
         <a class="item" data-tab="behavior-settings">
-          <i class="icons">
+          <i class="fitted icons">
             <i class="grey toggle on icon"></i>
-            <i class="top right corner orange circle icon updateNotification" data-release-date="2023-08-14" data-expire-notification="7"></i>
           </i>
           Behavior
         </a>
         <a class="item" data-tab="language-settings">
-          <i class="grey globe icon"></i>
-          <i class="orange certificate icon updateNotification" data-release-date="2023-08-14" data-expire-notification="14"></i>
+          <i class="fitted icons">
+            <i class="grey globe icon"></i>
+            <i class="top right corner orange circle icon updateNotification" data-release-date="2023-08-14" data-expire-notification="7"></i>
+          </i>
+          <!-- <i class="orange certificate icon updateNotification" data-release-date="2023-08-14" data-expire-notification="14"></i> -->
           Language Models
         </a>
         <a id="highlighterTab" class="item" data-tab="highlighter-settings">
@@ -790,7 +792,9 @@
             </div>
           </div>
           <div class="item">
-            <div class="header">RTS Keyboard Layout</div>
+            <div class="header">RTS Keyboard Layout
+              <span class="ui small italic orange text updateNotification" data-release-date="2023-08-14" data-expire-notification="14">new</span>
+            </div>
             <div class="description">
               <p>
                 We've made a custom keyboard layout for macOS to allow for easier typing of Cyrillic characters.

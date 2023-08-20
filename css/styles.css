@@ -2090,6 +2090,10 @@ div.ui.blue.empty.circular.label.text-highlighter {
   color: #dcddde;
 }
 
+.dark-theme .item.active i.grey.icon.icon.icon.icon.icon {
+  color: #ffffff;
+}
+
 .dark-theme i.bordered.grey.icon.icon.icon.icon.icon,
 .dark-theme i.circular.grey.icon.icon.icon.icon.icon,
 .dark-theme i.bordered.grey.icons,
@@ -9210,6 +9214,10 @@ div.ui.blue.empty.circular.label.text-highlighter {
 
   .match-device i.grey.icon.icon.icon.icon.icon {
     color: #dcddde;
+  }
+
+  .match-device .item.active i.grey.icon.icon.icon.icon.icon {
+    color: #ffffff;
   }
 
   .match-device i.bordered.grey.icon.icon.icon.icon.icon,
