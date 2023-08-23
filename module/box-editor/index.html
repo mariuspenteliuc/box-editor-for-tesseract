@@ -939,6 +939,12 @@
               </div>
             </div>
           </div>
+          <div class="ui divider"></div>
+          <div class="item">
+            <h3 class="ui header">Reset</h3>
+            <p>In case of unexpected behavior, you can reset all settings to their default values.</p>
+            <button id="resetAppSettings" class="ui left floating negative button">Reset App...</button>
+          </div>
         </div>
       </div>
       <div class="ui tab" data-tab="about-section">
@@ -1014,11 +1020,11 @@
               <p>Description.</p>
             </div>
           </div> -->
-          <div class="ui divider"></div>
-          <div class="item">
-            <h3 class="ui header">Reset</h3>
-            <p>In case of unexpected behavior, you can reset all settings to their default values.</p>
-            <div id="resetAppSettings" class="ui left floating negative button">Reset App...</div>
+          <div class="ui divider updateNotification" data-release-date="2023-08-23" data-expire-notification="7"></div>
+          <div class="item updateNotification" data-release-date="2023-08-23" data-expire-notification="7">
+            <p><span class="ui grey text">Reset button has moved to the
+              <a onclick="app.handler.open.settingsModal('help-section')" class="more">Help pane.</a>
+            </span></p>
           </div>
         </div>
       </div>
