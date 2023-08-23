@@ -402,6 +402,7 @@ div.ui.blue.empty.circular.label.text-highlighter {
 #updatePreview #myPreviewContainer #myPreviewBackground,
 #updateTxt #myInputContainer #myInputBackground {
   /* position: absolute; */
+  height: 3.5rem;
   top: 0;
   left: 0;
   z-index: 0;
@@ -426,6 +427,7 @@ div.ui.blue.empty.circular.label.text-highlighter {
 
 #previewText,
 #formtxt {
+  height: 3.5rem;
   position: relative;
   /* opacity: 0; */
   z-index: 2;
