@@ -842,6 +842,8 @@ app.ready = async function () {
           rightHeader = document.createElement('b');
 
         grid.classList.add('ui', 'compact', 'grid');
+        grid.style.maxHeight = '30rem';
+        grid.style.overflowY = 'auto';
         row.classList.add('two', 'column', 'stretched', 'row');
         leftColumn.classList.add('twelve', 'wide', 'left', 'floated', 'column');
         rightColumn.classList.add('four', 'wide', 'right', 'floated', 'column', 'text', 'right', 'aligned');
@@ -860,6 +862,7 @@ app.ready = async function () {
             leftContent = document.createElement('div'),
             rightContent = document.createElement('div');
           newRow.classList.add('two', 'column', 'stretched', 'row');
+          newRow.style.zIndex = 1903;
           leftContent.classList.add('twelve', 'wide', 'left', 'floated', 'column');
           rightContent.classList.add('four', 'wide', 'right', 'floated', 'column', 'text', 'right', 'aligned');
 
@@ -2027,9 +2030,14 @@ app.ready = async function () {
             pressedModifiers[event.key] = true;
             return;
           }
-          if (handler.keyboardShortcuts.isNavigationKey(event.key)) {
-            handler.showCharInfoPopup(event);
-            return;
+          if (event.target == $groundTruthInputField[0]) {
+            if (handler.keyboardShortcuts.isNavigationKey(event.key) || event.key == 'a') {
+              // allow event to select text, propagate
+              setTimeout(function () {
+                handler.showCharInfoPopup(event);
+              }, 0);
+              return;
+            }
           }
 
           // Combine modifiers with the pressed key to form the complete shortcut
@@ -2764,7 +2772,7 @@ app.ready = async function () {
         $settingsModal.modal('hide');
       },
       popups: function () {
-        $popups.popup('hide');
+        $popups.popup('hide all');
       },
     },
     open: {
@@ -2796,9 +2804,17 @@ app.ready = async function () {
       // $invisiblesToggleButton.toggleClass('active');
       handler.focusGroundTruthField();
     },
+    showCharInfoPopupFromMouseClick: function (event) {
+      if (event.type == 'mouseup') {
+        setTimeout(function () {
+          handler.showCharInfoPopup(event);
+        }, 0);
+      }
+    },
     showCharInfoPopup: function (event) {
       if (!appSettings.behavior.workflow.unicodeInfoPopup) return;
-      if (event.ctrlKey || event.altKey || event.metaKey || event.keyCode == 13) return false;
+      // if (event.ctrlKey || event.altKey || event.metaKey || event.keyCode == 13) return false;
+      // if mouse up timeout to allow for selection to complete
       var selection = null;
       if (window.getSelection) {
         selection = window.getSelection();
@@ -2806,12 +2822,17 @@ app.ready = async function () {
         selection = document.selection.createRange();
       }
 
+      // if cmd/ctrl + a then select all text field
+      if ((event.ctrlKey || event.metaKey) && event.keyCode == 65) {
+        $groundTruthInputField.select();
+      }
+
       // Firefox bug workaround
       if (selection.toString().length == 0) {
         var
-          startPosition = $groundTruthInputField[0].selectionStart,
-          endPosition = $groundTruthInputField[0].selectionEnd,
-          selection = $groundTruthInputField[0].value.substring(startPosition, endPosition);
+        startPosition = $groundTruthInputField[0].selectionStart,
+        endPosition = $groundTruthInputField[0].selectionEnd,
+        selection = $groundTruthInputField[0].value.substring(startPosition, endPosition);
       }
       var results = handler.getUnicodeInfo(selection.toString());
       // TODO: replace max length with a programmatic solution
@@ -2820,20 +2841,20 @@ app.ready = async function () {
         return false;
       } else {
         var content = handler.create.infoPopupContent(results);
-        $groundTruthForm.popup('get popup').css('max-height', '20em');
-        $groundTruthForm.popup('get popup').css('overflow', 'visible');
-        $groundTruthForm.popup('get popup').css('scrollbar-width', 'none');
-        $groundTruthForm.popup('get popup').css('scrollbar-width', 'none');
-        $groundTruthForm.popup('get popup').css('-ms-overflow-style', 'none');
-        $groundTruthForm.popup('get popup').css('scrollbar-width', 'none');
 
         if ($groundTruthForm.popup('is visible')) {
           $groundTruthForm.popup('change content (html)', content);
         } else if ($groundTruthForm.popup('is hidden')) {
-          $groundTruthForm.popup({ on: 'manual', 'html': content }).popup('show')
+          $groundTruthForm.popup({ on: 'manual', 'html': content }).popup('show');
         } else {
           console.error('Unknown Char Info popup state');
         }
+        // $groundTruthForm.popup('get popup').css('max-height', '20rem');
+        // $groundTruthForm.popup('get popup').css('overflow-y', 'auto');
+        $groundTruthForm.popup('get popup').css('scrollbar-width', 'none');
+        $groundTruthForm.popup('get popup').css('scrollbar-width', 'none');
+        $groundTruthForm.popup('get popup').css('-ms-overflow-style', 'none');
+        $groundTruthForm.popup('get popup').css('scrollbar-width', 'none');
       }
     },
     bindInputs: function () {
@@ -2851,7 +2872,7 @@ app.ready = async function () {
           await handler.update.confidenceScoreField(selectedBox);
         }
       });
-      $groundTruthInputField.bind('mouseup', handler.showCharInfoPopup)
+      $groundTruthInputField.bind('mouseup', handler.showCharInfoPopupFromMouseClick)
       $coordinateFields.on('input', handler.update.boxCoordinates);
       $boxFileInput.on('change', handler.load.boxFile);
       $imageFileInput.on('change', handler.load.imageFile);
