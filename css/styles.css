@@ -14679,7 +14679,7 @@ div.ui.blue.empty.circular.label.text-highlighter {
 
   #updatePreview #myPreviewContainer #myPreviewBackground.focused,
   #updateTxt #myInputContainer #myInputBackground.focused {
-    color: rgba(0, 0, 0, .95);
+    color: rgba(255, 255, 255, .95);
     border-color: #85b7d9;
     border-radius: .28571429rem;
     /* background: #fff; */
