@@ -2822,6 +2822,12 @@ app.ready = async function () {
         selection = document.selection.createRange();
       }
 
+      // if selection outside of ground truth field then close char info popup
+      if (!selection.anchorNode || $.contains($groundTruthForm[0], selection.anchorNode) == false) {
+        handler.close.popups();
+        return false;
+      }
+
       // if cmd/ctrl + a then select all text field
       if ((event.ctrlKey || event.metaKey) && event.keyCode == 65) {
         $groundTruthInputField.select();
@@ -2872,7 +2878,7 @@ app.ready = async function () {
           await handler.update.confidenceScoreField(selectedBox);
         }
       });
-      $groundTruthInputField.bind('mouseup', handler.showCharInfoPopupFromMouseClick)
+      $window.bind('mouseup', handler.showCharInfoPopupFromMouseClick)
       $coordinateFields.on('input', handler.update.boxCoordinates);
       $boxFileInput.on('change', handler.load.boxFile);
       $imageFileInput.on('change', handler.load.imageFile);
