@@ -222,24 +222,27 @@ app.ready = async function () {
       } else {
         // Upgrading settings
 
-
-        // migrate map height labels to numbers
-        var oldHeightLabels = {
-          'short': 300,
-          'medium': 500,
-          'tall': 700
-        };
-        if (oldSettings.interface?.imageView) {
-          appSettings.interface.imageView = oldHeightLabels[oldSettings.interface.imageView]
-        } else {
-          appSettings.interface.imageView = 500;
+        if (handler.compareVersions(oldSettings.appVersion, '1.6.2') < 0) {
+          // migrate map height labels to numbers
+          var oldHeightLabels = {
+            'short': 300,
+            'medium': 500,
+            'tall': 700
+          };
+          if (oldSettings.interface?.imageView) {
+            appSettings.interface.imageView = oldHeightLabels[oldSettings.interface.imageView]
+          } else {
+            appSettings.interface.imageView = 500;
+          }
         }
 
-        // clear cookies set by versions prior to 1.6.0
-        // also remove html script tag for JS Cookie
-        const cookies = Cookies.get();
-        for (const cookie in cookies) {
-          Cookies.remove(cookie);
+        if (handler.compareVersions(oldSettings.appVersion, '1.6.0') < 0) {
+          // clear cookies set by versions prior to 1.6.0
+          // also remove html script tag for JS Cookie
+          const cookies = Cookies.get();
+          for (const cookie in cookies) {
+            Cookies.remove(cookie);
+          }
         }
       }
       return appSettings;
