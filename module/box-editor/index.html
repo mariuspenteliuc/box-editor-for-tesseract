@@ -15,6 +15,9 @@
   <!-- Semver -->
   <script src="https://cdn.jsdelivr.net/npm/compare-versions@6.1.0/lib/umd/index.js"></script>
 
+  <!-- Adobe Balance Text -->
+  <script src="https://cdn.jsdelivr.net/npm/balance-text@3.3.1/balancetext.min.js"></script>
+
   <!-- Leaftlet -->
   <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"
     integrity="sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM=" crossorigin=""></script>
@@ -380,23 +383,25 @@
     <div id="navSettingsPane" class="four wide column scrolling content">
       <div id="settingsMenu" class="ui fluid secondary vertical menu">
         <a class="item active" data-tab="interface-settings">
-          <i class="icons">
+          <i class="fitted icons">
             <i class="grey adjust icon"></i>
-            <i class="top right corner orange circle icon updateNotification" data-release-date="2023-08-14"
-              data-expire-notification="7"></i>
+            <!-- <i class="top right corner orange circle icon updateNotification" data-release-date="2023-08-14"
+              data-expire-notification="7"></i> -->
           </i>
           Interface
         </a>
         <a class="item" data-tab="behavior-settings">
-          <i class="icons">
+          <i class="fitted icons">
             <i class="grey toggle on icon"></i>
-            <i class="top right corner orange circle icon updateNotification" data-release-date="2023-08-14" data-expire-notification="7"></i>
           </i>
           Behavior
         </a>
         <a class="item" data-tab="language-settings">
-          <i class="grey globe icon"></i>
-          <i class="orange certificate icon updateNotification" data-release-date="2023-08-14" data-expire-notification="14"></i>
+          <i class="fitted icons">
+            <i class="grey globe icon"></i>
+            <i class="top right corner orange circle icon updateNotification" data-release-date="2023-08-14" data-expire-notification="7"></i>
+          </i>
+          <!-- <i class="orange certificate icon updateNotification" data-release-date="2023-08-14" data-expire-notification="14"></i> -->
           Language Models
         </a>
         <a id="highlighterTab" class="item" data-tab="highlighter-settings">
@@ -786,6 +791,20 @@
               </div>
             </div>
           </div>
+          <div class="item">
+            <div class="header">RTS Keyboard Layout
+              <span class="ui small italic orange text updateNotification" data-release-date="2023-08-14" data-expire-notification="14">new</span>
+            </div>
+            <div class="description">
+              <p>
+                We've made a custom keyboard layout for macOS to allow for easier typing of Cyrillic characters.
+              </p>
+              <a class="ui icon labeled button" href="https://github.com/mariuspenteliuc/RTS-Keyboard-Layout/releases/latest/download/RTS.bundle.zip" title="Download RTS Keyboard Layout Bundle">
+                <i class="file download icon"></i>
+                Download RTS Keyboard Layout
+              </a>
+            </div>
+          </div>
         </div>
       </div>
       <div id="highlighterTab" class="ui tab" data-tab="highlighter-settings">
@@ -840,6 +859,7 @@
               When the document is complete, download the <code>.box</code> file and <code>.gt.txt</code> files and use
               them to train your OCR model.
             </p>
+            <p>
             The progress bar shows the progress of the tagging. When done, download the <code>.box</code> file and
             the
             <code>.gt.txt</code> file to use in Tesseract.
@@ -919,6 +939,17 @@
               </div>
             </div>
           </div>
+          <div class="ui divider"></div>
+          <div class="item">
+            <h3 class="ui header">Reset</h3>
+            <p>In case of unexpected behavior, you can reset all settings to their default values.</p>
+            <button id="resetAppSettings" class="ui left floating negative button">Reset App...</button>
+            <a class="ui right labeled icon button" target="_blank"
+              href="https://github.com/mariuspenteliuc/box-editor-for-tesseract/issues/new/choose">
+              <i class="github icon"></i>
+              Report Issue
+            </a>
+          </div>
         </div>
       </div>
       <div class="ui tab" data-tab="about-section">
@@ -959,9 +990,9 @@
                       title="ROTLA Website">ROTLA Team</a></td>
                 </tr>
                 <tr>
-                  <td>Custom Model:</td>
+                  <td>Custom OCR Model:</td>
                   <td class="right aligned"><a class="" href="../../assets/RTS_from_Cyrillic.traineddata"
-                      title="Tesseract Model">RTS</a></td>
+                      title="Tesseract Model">Download RTS </a></td>
                 </tr>
                 <tr>
                   <td>Training Dataset:</td>
@@ -994,11 +1025,11 @@
               <p>Description.</p>
             </div>
           </div> -->
-          <div class="ui divider"></div>
-          <div class="item">
-            <h3 class="ui header">Reset</h3>
-            <p>In case of unexpected behavior, you can reset all settings to their default values.</p>
-            <div id="resetAppSettings" class="ui left floating negative button">Reset App...</div>
+          <div class="ui divider updateNotification" data-release-date="2023-08-23" data-expire-notification="7"></div>
+          <div class="item updateNotification" data-release-date="2023-08-23" data-expire-notification="7">
+            <p><span class="ui grey text">Reset button has moved to the
+              <a onclick="app.handler.open.settingsModal('help-section')" class="more">Help pane.</a>
+            </span></p>
           </div>
         </div>
       </div>

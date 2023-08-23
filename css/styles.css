@@ -398,6 +398,11 @@ div.ui.blue.empty.circular.label.text-highlighter {
   /* display: inline-block; */
 }
 
+#formtxt,
+#updateTxt #myInputContainer #myInputBackground {
+  height: 3.5rem;
+}
+
 /* TODO: fix issue with special characters not being displayed with proper font */
 #updatePreview #myPreviewContainer #myPreviewBackground,
 #updateTxt #myInputContainer #myInputBackground {
@@ -2088,6 +2093,10 @@ div.ui.blue.empty.circular.label.text-highlighter {
 
 .dark-theme i.grey.icon.icon.icon.icon.icon {
   color: #dcddde;
+}
+
+.dark-theme .item.active i.grey.icon.icon.icon.icon.icon {
+  color: #ffffff;
 }
 
 .dark-theme i.bordered.grey.icon.icon.icon.icon.icon,
@@ -6266,14 +6275,17 @@ div.ui.blue.empty.circular.label.text-highlighter {
   background-color: #0d71bb;
 }
 
+.dark-theme .blurring.dimmable>.inverted.dimmer {
+  background: rgba(0, 0, 0, .6);
+}
 
-.dark-theme .blurring.dimmable>.dimmer {
+/* .dark-theme .blurring.dimmable>.dimmer {
   background: rgba(255, 255, 255, 0.6);
-}
+} */
 
-.dark-theme .ui.dimmer {
+/* .dark-theme .ui.dimmer {
   background: rgba(255, 255, 255, 0.85);
-}
+} */
 
 .dark-theme .ui.dimmer>.content,
 .dark-theme .ui.dimmer>.content>* {
@@ -6619,6 +6631,32 @@ div.ui.blue.empty.circular.label.text-highlighter {
   color: #fff;
 }
 
+.dark-theme [data-tooltip]::after {
+  pointer-events: none;
+  content: attr(data-tooltip);
+  position: absolute;
+  text-transform: none;
+  text-align: left;
+  text-shadow: none;
+  white-space: nowrap;
+  font-size: 1rem;
+  border: 1px solid #d4d4d5;
+  line-height: 1.4285em;
+  max-width: none;
+  background: #222;
+  padding: .833em 1em;
+  font-weight: 400;
+  font-style: normal;
+  color: rgba(255, 255, 255, .87);
+  border-radius: .28571429rem;
+  box-shadow: 0 2px 4px 0 rgba(34, 36, 38, .12), 0 2px 10px 0 rgba(34, 36, 38, .15);
+  z-index: 1900;
+}
+
+.dark-theme [data-position~=top][data-tooltip]::before {
+  background: #222;
+}
+
 [data-tooltip][data-inverted]::before {
   box-shadow: none !important;
 }
@@ -6651,6 +6689,17 @@ div.ui.blue.empty.circular.label.text-highlighter {
 
 [data-inverted][data-position~="top"][data-tooltip]::before {
   background: #1b1c1d;
+}
+
+.dark-theme .ui.useSampleImage.popup {
+  background: #222;
+  border: 1px solid #d4d4d5;
+}
+
+.dark-theme .ui.useSampleImage.top.popup::before {
+  background: #222;
+  border-right: 1px solid #d4d4d5;
+  border-bottom: 1px solid #d4d4d5;
 }
 
 .dark-theme .ui.bottom.popup::before {
@@ -9209,6 +9258,10 @@ div.ui.blue.empty.circular.label.text-highlighter {
     color: #dcddde;
   }
 
+  .match-device .item.active i.grey.icon.icon.icon.icon.icon {
+    color: #ffffff;
+  }
+
   .match-device i.bordered.grey.icon.icon.icon.icon.icon,
   .match-device i.circular.grey.icon.icon.icon.icon.icon,
   .match-device i.bordered.grey.icons,
@@ -10344,9 +10397,9 @@ div.ui.blue.empty.circular.label.text-highlighter {
     color: #545454;
   }
 
-  .match-device .ui.dimmer>.ui.elastic.loader {
+  /* .match-device .ui.dimmer>.ui.elastic.loader {
     color: #767676;
-  }
+  } */
 
   .match-device .ui.placeholder {
     background-image: linear-gradient(to right, rgba(255, 255, 255, 0.08) 0, rgba(255, 255, 255, 0.14) 15%, rgba(255, 255, 255, 0.08) 30%);
@@ -13385,14 +13438,17 @@ div.ui.blue.empty.circular.label.text-highlighter {
     background-color: #0d71bb;
   }
 
+  .match-device .blurring.dimmable>.inverted.dimmer {
+    background: rgba(0, 0, 0, .6);
+  }
 
-  .match-device .blurring.dimmable>.dimmer {
+  /* .match-device .blurring.dimmable>.dimmer {
     background: rgba(255, 255, 255, 0.6);
-  }
+  } */
 
-  .match-device .ui.dimmer {
+  /* .match-device .ui.dimmer {
     background: rgba(255, 255, 255, 0.85);
-  }
+  } */
 
   .match-device .ui.dimmer>.content,
   .match-device .ui.dimmer>.content>* {
@@ -13738,6 +13794,31 @@ div.ui.blue.empty.circular.label.text-highlighter {
     color: #fff;
   }
 
+  .match-device [data-tooltip]::after {
+    pointer-events: none;
+    content: attr(data-tooltip);
+    position: absolute;
+    text-transform: none;
+    text-align: left;
+    text-shadow: none;
+    white-space: nowrap;
+    font-size: 1rem;
+    border: 1px solid #d4d4d5;
+    line-height: 1.4285em;
+    max-width: none;
+    background: #222;
+    padding: .833em 1em;
+    font-weight: 400;
+    font-style: normal;
+    color: rgba(255, 255, 255, .87);
+    border-radius: .28571429rem;
+    box-shadow: 0 2px 4px 0 rgba(34, 36, 38, .12), 0 2px 10px 0 rgba(34, 36, 38, .15);
+    z-index: 1900;
+  }
+  .match-device [data-position~=top][data-tooltip]::before {
+    background: #222;
+  }
+
   [data-tooltip][data-inverted]::before {
     box-shadow: none !important;
   }
@@ -13770,6 +13851,16 @@ div.ui.blue.empty.circular.label.text-highlighter {
 
   [data-inverted][data-position~="top"][data-tooltip]::before {
     background: #1b1c1d;
+  }
+
+  .match-device .ui.useSampleImage.popup {
+    border: 1px solid #d4d4d5;
+    background: #222;
+  }
+  .match-device .ui.useSampleImage.top.popup::before {
+    background: #222;
+    border-right: 1px solid #d4d4d5;
+    border-bottom: 1px solid #d4d4d5;
   }
 
   .match-device .ui.bottom.popup::before {
@@ -14593,7 +14684,7 @@ div.ui.blue.empty.circular.label.text-highlighter {
 
   #updatePreview #myPreviewContainer #myPreviewBackground.focused,
   #updateTxt #myInputContainer #myInputBackground.focused {
-    color: rgba(0, 0, 0, .95);
+    color: rgba(255, 255, 255, .95);
     border-color: #85b7d9;
     border-radius: .28571429rem;
     /* background: #fff; */

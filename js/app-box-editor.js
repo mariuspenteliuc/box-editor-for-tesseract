@@ -125,6 +125,7 @@ app.ready = async function () {
     $appInfoVersion = $('#appInfoVersion'),
     $appInfoUpdated = $('#appInfoUpdated'),
     $imageViewHeightSlider = $('#imageViewHeightSlider'),
+    $balancedText = $('.balance-text, p, .header'),
 
     // variables
     pressedModifiers = {},
@@ -563,12 +564,12 @@ app.ready = async function () {
       }
       return new Promise((resolve, reject) => {
         $.modal({
-          inverted: false,
+          // inverted: true,
+          // blurring: true,
           title: object.title,
-          blurring: true,
-          closeIcon: true,
-          autofocus: true,
-          restoreFocus: true,
+          // closeIcon: true,
+          // autofocus: true,
+          // restoreFocus: true,
           onApprove: function () {
             resolve(true);
           },
@@ -716,7 +717,7 @@ app.ready = async function () {
             parent = $(this)[0].parentElement;
 
           if (daysDifference >= removeDays) {
-            console.info(`Notification badge removed from: ${parent}`);
+            console.info(`Notification badge removed from: ${parent.attributes['id']}, ${parent.attributes['class'].textContent}, ${parent.outerHTML}`)
             $(this).remove();
           }
         });
@@ -841,6 +842,8 @@ app.ready = async function () {
           rightHeader = document.createElement('b');
 
         grid.classList.add('ui', 'compact', 'grid');
+        grid.style.maxHeight = '30rem';
+        grid.style.overflowY = 'auto';
         row.classList.add('two', 'column', 'stretched', 'row');
         leftColumn.classList.add('twelve', 'wide', 'left', 'floated', 'column');
         rightColumn.classList.add('four', 'wide', 'right', 'floated', 'column', 'text', 'right', 'aligned');
@@ -859,6 +862,7 @@ app.ready = async function () {
             leftContent = document.createElement('div'),
             rightContent = document.createElement('div');
           newRow.classList.add('two', 'column', 'stretched', 'row');
+          newRow.style.zIndex = 1903;
           leftContent.classList.add('twelve', 'wide', 'left', 'floated', 'column');
           rightContent.classList.add('four', 'wide', 'right', 'floated', 'column', 'text', 'right', 'aligned');
 
@@ -887,7 +891,7 @@ app.ready = async function () {
             onChange: handler.saveHighlightsToSettings
           }),
           actionsCell = handler.create.actionsCell({
-            onChange: handler.saveHighlightsToSettings
+            onClick: handler.saveHighlightsToSettings
           });
         row.appendChild(checkboxCell);
         row.appendChild(nameCell);
@@ -1052,7 +1056,7 @@ app.ready = async function () {
           $(this).parent().parent().remove();
           $highlighterTableBody = $highlighterTableContainer.find('.ui.celled.table tbody'),
             $highlighterTableRows = $highlighterTableBody.find('tr');
-          params.onChange;
+          params.onClick();
         });
         actionCell.appendChild(deleteButton);
         return actionCell;
@@ -1744,26 +1748,29 @@ app.ready = async function () {
       } else {
         // Upgrading settings
 
-        // migrate map height labels to numbers
-        var oldHeightLabels = {
-          'short': 300,
-          'medium': 500,
-          'tall': 700
-        };
-        // if oldSettings.interface.imageView is not undefined
-        if (oldSettings.interface?.imageView) {
-          appSettings.interface.imageView = oldHeightLabels[oldSettings.interface.imageView]
-        } else {
-          appSettings.interface.imageView = 500;
+        if (handler.compareVersions(oldSettings.appVersion, '1.6.2') < 0) {
+          // migrate map height labels to numbers
+          var oldHeightLabels = {
+            'short': 300,
+            'medium': 500,
+            'tall': 700
+          };
+          // if oldSettings.interface.imageView is not undefined
+          if (oldSettings.interface?.imageView) {
+            appSettings.interface.imageView = oldHeightLabels[oldSettings.interface.imageView]
+          } else {
+            appSettings.interface.imageView = 500;
+          }
+          appSettings.behavior.alerting.enableWarrningMessagesForOverwritingDirtyData = true;
         }
 
-        appSettings.behavior.alerting.enableWarrningMessagesForOverwritingDirtyData = true;
-
-        // clear cookies set by versions prior to 1.6.0
-        // also remove html script tag for JS Cookie
-        const cookies = Cookies.get();
-        for (const cookie in cookies) {
-          Cookies.remove(cookie);
+        if (handler.compareVersions(oldSettings.appVersion, '1.6.0') < 0) {
+          // clear cookies set by versions prior to 1.6.0
+          // also remove html script tag for JS Cookie
+          const cookies = Cookies.get();
+          for (const cookie in cookies) {
+            Cookies.remove(cookie);
+          }
         }
       }
       return appSettings;
@@ -2023,9 +2030,14 @@ app.ready = async function () {
             pressedModifiers[event.key] = true;
             return;
           }
-          if (handler.keyboardShortcuts.isNavigationKey(event.key)) {
-            handler.showCharInfoPopup(event);
-            return;
+          if (event.target == $groundTruthInputField[0]) {
+            if (handler.keyboardShortcuts.isNavigationKey(event.key) || event.key == 'a') {
+              // allow event to select text, propagate
+              setTimeout(function () {
+                handler.showCharInfoPopup(event);
+              }, 0);
+              return;
+            }
           }
 
           // Combine modifiers with the pressed key to form the complete shortcut
@@ -2102,9 +2114,13 @@ app.ready = async function () {
         // format date to month date, year
         const date = new Date(appInfo.updated);
         $appInfoUpdated.text(handler.formatDate(date));
-        $settingsMenuItems.tab();
+        $settingsMenuItems.tab({
+          onLoad: function () {
+            balanceText.updateWatched();
+          }
+        });
         $settingsModal.modal({
-          inverted: false,
+          // inverted: true,
           blurring: true,
           onHidden: function () {
             // hide status if still visible
@@ -2756,7 +2772,7 @@ app.ready = async function () {
         $settingsModal.modal('hide');
       },
       popups: function () {
-        $popups.popup('hide');
+        $popups.popup('hide all');
       },
     },
     open: {
@@ -2772,7 +2788,9 @@ app.ready = async function () {
           $settingsMenuPaneTabs.removeClass('active');
           $settingsMenuItems.filter('[data-tab="' + location + '"]').addClass('active');
           $settingsMenuPaneTabs.filter('[data-tab="' + location + '"]').addClass('active');
+          balanceText.updateWatched();
         }
+        balanceText.updateWatched();
       },
 
     },
@@ -2786,9 +2804,17 @@ app.ready = async function () {
       // $invisiblesToggleButton.toggleClass('active');
       handler.focusGroundTruthField();
     },
+    showCharInfoPopupFromMouseClick: function (event) {
+      if (event.type == 'mouseup') {
+        setTimeout(function () {
+          handler.showCharInfoPopup(event);
+        }, 0);
+      }
+    },
     showCharInfoPopup: function (event) {
       if (!appSettings.behavior.workflow.unicodeInfoPopup) return;
-      if (event.ctrlKey || event.altKey || event.metaKey || event.keyCode == 13) return false;
+      // if (event.ctrlKey || event.altKey || event.metaKey || event.keyCode == 13) return false;
+      // if mouse up timeout to allow for selection to complete
       var selection = null;
       if (window.getSelection) {
         selection = window.getSelection();
@@ -2796,12 +2822,23 @@ app.ready = async function () {
         selection = document.selection.createRange();
       }
 
+      // if selection outside of ground truth field then close char info popup
+      if (!selection.anchorNode || $.contains($groundTruthForm[0], selection.anchorNode) == false) {
+        handler.close.popups();
+        return false;
+      }
+
+      // if cmd/ctrl + a then select all text field
+      if ((event.ctrlKey || event.metaKey) && event.keyCode == 65) {
+        $groundTruthInputField.select();
+      }
+
       // Firefox bug workaround
       if (selection.toString().length == 0) {
         var
-          startPosition = $groundTruthInputField[0].selectionStart,
-          endPosition = $groundTruthInputField[0].selectionEnd,
-          selection = $groundTruthInputField[0].value.substring(startPosition, endPosition);
+        startPosition = $groundTruthInputField[0].selectionStart,
+        endPosition = $groundTruthInputField[0].selectionEnd,
+        selection = $groundTruthInputField[0].value.substring(startPosition, endPosition);
       }
       var results = handler.getUnicodeInfo(selection.toString());
       // TODO: replace max length with a programmatic solution
@@ -2810,20 +2847,20 @@ app.ready = async function () {
         return false;
       } else {
         var content = handler.create.infoPopupContent(results);
-        $groundTruthForm.popup('get popup').css('max-height', '20em');
-        $groundTruthForm.popup('get popup').css('overflow', 'visible');
-        $groundTruthForm.popup('get popup').css('scrollbar-width', 'none');
-        $groundTruthForm.popup('get popup').css('scrollbar-width', 'none');
-        $groundTruthForm.popup('get popup').css('-ms-overflow-style', 'none');
-        $groundTruthForm.popup('get popup').css('scrollbar-width', 'none');
 
         if ($groundTruthForm.popup('is visible')) {
           $groundTruthForm.popup('change content (html)', content);
         } else if ($groundTruthForm.popup('is hidden')) {
-          $groundTruthForm.popup({ on: 'manual', 'html': content }).popup('show')
+          $groundTruthForm.popup({ on: 'manual', 'html': content }).popup('show');
         } else {
           console.error('Unknown Char Info popup state');
         }
+        // $groundTruthForm.popup('get popup').css('max-height', '20rem');
+        // $groundTruthForm.popup('get popup').css('overflow-y', 'auto');
+        $groundTruthForm.popup('get popup').css('scrollbar-width', 'none');
+        $groundTruthForm.popup('get popup').css('scrollbar-width', 'none');
+        $groundTruthForm.popup('get popup').css('-ms-overflow-style', 'none');
+        $groundTruthForm.popup('get popup').css('scrollbar-width', 'none');
       }
     },
     bindInputs: function () {
@@ -2841,7 +2878,7 @@ app.ready = async function () {
           await handler.update.confidenceScoreField(selectedBox);
         }
       });
-      $groundTruthInputField.bind('mouseup', handler.showCharInfoPopup)
+      $window.bind('mouseup', handler.showCharInfoPopupFromMouseClick)
       $coordinateFields.on('input', handler.update.boxCoordinates);
       $boxFileInput.on('change', handler.load.boxFile);
       $imageFileInput.on('change', handler.load.imageFile);
@@ -2911,6 +2948,7 @@ app.ready = async function () {
       handler.saveKeyboardShortcutsToSettings();
 
       handler.delete.expiredNotifications();
+      balanceText($balancedText, { watch: true });
     },
   };
 
