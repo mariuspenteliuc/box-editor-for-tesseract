@@ -891,7 +891,7 @@ app.ready = async function () {
             onChange: handler.saveHighlightsToSettings
           }),
           actionsCell = handler.create.actionsCell({
-            onChange: handler.saveHighlightsToSettings
+            onClick: handler.saveHighlightsToSettings
           });
         row.appendChild(checkboxCell);
         row.appendChild(nameCell);
@@ -1056,7 +1056,7 @@ app.ready = async function () {
           $(this).parent().parent().remove();
           $highlighterTableBody = $highlighterTableContainer.find('.ui.celled.table tbody'),
             $highlighterTableRows = $highlighterTableBody.find('tr');
-          params.onChange;
+          params.onClick();
         });
         actionCell.appendChild(deleteButton);
         return actionCell;
