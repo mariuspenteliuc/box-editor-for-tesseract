@@ -58,12 +58,12 @@ jobs:
           # token: ${{ secrets.GITHUB_TOKEN }}
           # branch: 'master'
           author: GitHub Actions  <actions@github.com>
-          base: 'master'
+          # base: 'production'
           # base: ${{ github.ref }}
           # base: ${{ github.head_ref }}
-          # branch: 'master'
+          branch: 'production'
           title: Push to production
-          body: Automatically updated the 'updated' field in app-version.json
+          # body: Automatically updated the 'updated' field in app-version.json
           # delete-branch: true
 
       - name: Enable Pull Request Automerge
