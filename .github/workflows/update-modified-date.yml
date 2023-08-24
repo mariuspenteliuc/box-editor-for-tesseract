@@ -61,7 +61,7 @@ jobs:
           base: 'master'
           # base: ${{ github.ref }}
           # base: ${{ github.head_ref }}
-          branch: 'master'
+          # branch: 'master'
           title: Push to production
           body: Automatically updated the 'updated' field in app-version.json
           # delete-branch: true
