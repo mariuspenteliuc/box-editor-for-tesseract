@@ -1,9 +1,12 @@
 Web-Based Box Editor for Tesseract OCR
 --------------
 
+Web app for editing Tesseract OCR LSTM box files in WordStr format, using [Tesseract OCR js](https://tesseract.projectnaptha.com), [leaflet mapping library](http://leafletjs.com), and [leaflet.draw](https://github.com/Leaflet/Leaflet.draw).
+
+[![pages-build-deployment](https://github.com/mariuspenteliuc/box-editor-for-tesseract/actions/workflows/pages/pages-build-deployment/badge.svg?branch=production)](https://github.com/mariuspenteliuc/box-editor-for-tesseract/actions/workflows/pages/pages-build-deployment)
+
 ![screenshot](img/app-screenshot-4-min.png)
 
-Web app for editing Tesseract OCR LSTM box files in WordStr format, using [Tesseract OCR js](https://tesseract.projectnaptha.com), [leaflet mapping library](http://leafletjs.com), and [leaflet.draw](https://github.com/Leaflet/Leaflet.draw).
 
 ### Features
 * Automatically detects text lines;
