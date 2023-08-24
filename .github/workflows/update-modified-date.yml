@@ -67,6 +67,6 @@ jobs:
           # delete-branch: true
 
       - name: Enable Pull Request Automerge
-        run: gh pr merge 'production' --merge --delete-branch --auto
+        run: gh pr merge 'production' --merge --auto
         env:
           GH_TOKEN: ${{ github.token }}
