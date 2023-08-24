@@ -1,0 +1,72 @@
+name: Update Version
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    types:
+      - closed
+  # release:
+  #   types:
+  #     - published
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set Git Config
+        run: |
+          git config user.email "actions@github.com"
+          git config user.name "GitHub Actions"
+
+      - name: Check Actor
+        id: actor_check
+        run: |
+          if [[ "${GITHUB_ACTOR}" == "github-actions[bot]" ]]; then
+            echo "Workflow initiated by ${GITHUB_ACTOR}. Skipping update."
+            echo "{skip_update}={true}" >> "$GITHUB_OUTPUT"
+          else
+            echo "Workflow initiated by ${GITHUB_ACTOR}. Continuing with update."
+            echo "{skip_update}={false}" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Get Latest Release Tag
+        id: release_tag
+        uses: oprypin/find-latest-tag@v1
+        with:
+          repository: mariuspenteliuc/box-editor-for-tesseract
+          releases-only: true
+
+      - name: Create Branch and Update Version
+        id: create_branch
+        if: steps.actor_check.outputs.skip_update == false
+        run: |
+          # Update the "updated" field with the current date
+          updated=$(date +%F)
+          sed -i 's/"updated": "[^"]*"/"updated": "'"$updated"'"/' app-version.json
+
+          echo "{branch}={$branch_name}" >> "$GITHUB_OUTPUT"
+
+      - name: Create Pull Request
+        if: steps.actor_check.outputs.skip_update == false
+        uses: peter-evans/create-pull-request@v5
+        with:
+          # token: ${{ secrets.GITHUB_TOKEN }}
+          # branch: 'master'
+          author: GitHub Actions  <actions@github.com>
+          base: 'master'
+          # base: ${{ github.ref }}
+          # base: ${{ github.head_ref }}
+          branch: 'update/version'
+          title: Update 'updated' field
+          body: Automatically updated the 'updated' field in app-version.json
+          # delete-branch: true
+
+      - name: Enable Pull Request Automerge
+        run: gh pr merge 'update/version' --merge --delete-branch
+        env:
+          GH_TOKEN: ${{ github.token }}
