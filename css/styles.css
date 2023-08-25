@@ -1,3 +1,22 @@
+body {
+  transition: background-color 0.5s ease-in-out, color 0.5s ease-in-out;
+  opacity: 0;
+}
+
+@media (prefers-color-scheme: light) {
+  body {
+    background-color: white;
+    color: black;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: black;
+    color: white;
+  }
+}
+
 .more::after {
   vertical-align: -8%;
   content: "\f105";

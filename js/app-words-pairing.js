@@ -1140,6 +1140,12 @@ $(document).ready(async function () {
   $('#sourceInputField').bind('mouseup', showCharInfoPopup);
   $('#sourceInputField').bind('keyup', showCharInfoPopup);
   // when selection of readonly text is lost, hide popup
+
+  const body = document.querySelector("body");
+
+  body.style.transition = "opacity 0.5s ease-in-out";
+  body.style.opacity = "1";
+  body.style.backgroundColor = "white";
 });
 
 

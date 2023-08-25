@@ -61,6 +61,7 @@ app.ready = async function () {
     $document = $(document),
     $window = $(window),
     $html = $('html'),
+    $body = $('body'),
     $highlighterLabels = $('#highlighters-labels'),
     $invisiblesToggleButton = $('#invisiblesToggle.ui.button'),
     $redetectAllBoxesButton = $('#redetectAllBoxes'),
@@ -2949,6 +2950,12 @@ app.ready = async function () {
 
       handler.delete.expiredNotifications();
       balanceText($balancedText, { watch: true });
+      handler.hideSplashScreen();
+
+    },
+    hideSplashScreen: function () {
+      $body[0].style.transition = "opacity 0.5s ease-in-out";
+      $body[0].style.opacity = "1";
     },
   };
 
