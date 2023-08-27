@@ -2221,8 +2221,8 @@ app.ready = async function () {
         });
       },
       sampleImageAndBox: async function (event) {
-        handler.load.imageFile(event, true);
-        handler.load.boxFile(event, true);
+        await handler.load.imageFile(event, true);
+        await handler.load.boxFile(event, true);
         handler.close.settingsModal();
       },
       boxFile: async function (e, sample = false) {

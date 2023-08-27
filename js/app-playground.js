@@ -347,7 +347,7 @@ app.ready = async function () {
     },
     load: {
       sampleImageAndBox: async function (event) {
-        handler.load.imageFile(event, true);
+        await handler.load.imageFile(event, true);
         handler.close.settingsModal();
         $dropzone
           .dimmer('hide')
