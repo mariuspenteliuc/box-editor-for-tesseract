@@ -2221,9 +2221,9 @@ app.ready = async function () {
         });
       },
       sampleImageAndBox: async function (event) {
+        handler.close.settingsModal();
         await handler.load.imageFile(event, true);
         await handler.load.boxFile(event, true);
-        handler.close.settingsModal();
       },
       boxFile: async function (e, sample = false) {
         if (appSettings.behavior.alerting.enableWarrningMessagesForOverwritingDirtyData && boxDataInfo.isDirty()) {

@@ -347,11 +347,11 @@ app.ready = async function () {
     },
     load: {
       sampleImageAndBox: async function (event) {
-        await handler.load.imageFile(event, true);
         handler.close.settingsModal();
         $dropzone
           .dimmer('hide')
           .removeClass('raised');
+        await handler.load.imageFile(event, true);
       },
       eventListeners: function () {
         $settingsModal[0].addEventListener('change', function (event) {
