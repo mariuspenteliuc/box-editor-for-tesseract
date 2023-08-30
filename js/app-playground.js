@@ -1136,8 +1136,12 @@ app.ready = async function () {
             daysDifference = timeDifference / (1000 * 60 * 60 * 24);
 
           if (daysDifference >= removeDays) {
-            $(this).remove();
-            console.info(`Notification removed: ${$(this).attr('data-release-date')}`);
+            try {
+              $(this).remove();
+              console.info(`Notification removed: ${$(this).attr('data-release-date')}`);
+            } catch (error) {
+              console.error(error);
+            }
           }
         });
       },

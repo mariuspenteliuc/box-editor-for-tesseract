@@ -718,8 +718,12 @@ app.ready = async function () {
             parent = $(this)[0].parentElement;
 
           if (daysDifference >= removeDays) {
-            console.info(`Notification badge removed from: ${parent.attributes['id']}, ${parent.attributes['class'].textContent}, ${parent.outerHTML}`)
-            $(this).remove();
+            try {
+              console.info(`Notification badge removed from: ${parent.attributes['id']}, ${parent.attributes['class'].textContent}, ${parent.outerHTML}`)
+              $(this).remove();
+            } catch (error) {
+              console.error(error);
+            }
           }
         });
       },
