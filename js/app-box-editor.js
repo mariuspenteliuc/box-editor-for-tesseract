@@ -1751,6 +1751,9 @@ app.ready = async function () {
 
         // ignore newer settings
       } else {
+        if (oldSettings.appVersion == 0) {
+          return appSettings;
+        }
         // Upgrading settings
 
         if (handler.compareVersions(oldSettings.appVersion, '1.6.2') < 0) {
@@ -1777,8 +1780,8 @@ app.ready = async function () {
             Cookies.remove(cookie);
           }
         }
+        return oldSettings;
       }
-      return appSettings;
     },
     receiveDroppedFiles: async function (event) {
       if (event.length > 2) {
@@ -2156,8 +2159,14 @@ app.ready = async function () {
         });
         const localStorageValue = localStorage.getItem(appSettings.localStorageKey);
         if (localStorageValue) {
-          localStorageSettings = JSON.parse(localStorageValue);
-          handler.update.appSettings({ localStorage: localStorageSettings });
+          try {
+            localStorageSettings = JSON.parse(localStorageValue);
+          } catch (error) {
+            console.warn('Cannot parse localStorage', error);
+            localStorageSettings = { 'appVersion': undefined };
+          } finally {
+            handler.update.appSettings({ localStorage: localStorageSettings });
+          }
         } else {
           handler.update.appSettings({ localStorage: { appVersion: undefined } });
           handler.update.settingsModal();
