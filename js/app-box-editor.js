@@ -2344,7 +2344,9 @@ app.ready = async function () {
           filename = file.name;
         }
         img.onload = async function () {
-          handler.create.map('mapid');
+          if (!map) {
+            handler.create.map('mapid');
+          }
           map.eachLayer(function (layer) {
             map.removeLayer(layer);
           });
