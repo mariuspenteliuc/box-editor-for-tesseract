@@ -127,6 +127,7 @@ app.ready = async function () {
     $appInfoUpdated = $('#appInfoUpdated'),
     $imageViewHeightSlider = $('#imageViewHeightSlider'),
     $balancedText = $('.balance-text, p, .header'),
+    $toolbar = $('#custom-controls'),
 
     // variables
     pressedModifiers = {},
@@ -1412,11 +1413,17 @@ app.ready = async function () {
     update: {
       settingsModal: async function () {
         // Toolbar Actions
-        for (const [key, value] of Object.entries(appSettings.interface.toolbarActions)) {
-          const path = 'interface.toolbarActions.' + key;
-          const checkbox = $checkboxes.find(`input[name="${path}"]`);
-          checkbox.prop('checked', value);
-          $('#custom-controls [name="' + path + '"]').parent().toggle(appSettings.interface.toolbarActions[key]);
+        // if all toolbar action items are off
+        if (Object.values(appSettings.interface.toolbarActions).every(function (value) { return !value; })) {
+          $toolbar.toggle(false);
+        } else {
+          $toolbar.toggle(true);
+          for (const [key, value] of Object.entries(appSettings.interface.toolbarActions)) {
+            const path = 'interface.toolbarActions.' + key;
+            const checkbox = $checkboxes.find(`input[name="${path}"]`);
+            checkbox.prop('checked', value);
+            $('#custom-controls [name="' + path + '"]').toggle(appSettings.interface.toolbarActions[key]);
+          }
         }
         // Appearance
         const appearancePath = 'interface.appearance';
