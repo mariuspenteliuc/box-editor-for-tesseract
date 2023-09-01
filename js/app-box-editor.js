@@ -1413,7 +1413,6 @@ app.ready = async function () {
     update: {
       settingsModal: async function () {
         // Toolbar Actions
-        // if all toolbar action items are off
         if (Object.values(appSettings.interface.toolbarActions).every(function (value) { return !value; })) {
           $toolbar.toggle(false);
         } else {
@@ -2351,7 +2350,9 @@ app.ready = async function () {
           filename = file.name;
         }
         img.onload = async function () {
-          handler.create.map('mapid');
+          if (!map) {
+            handler.create.map('mapid');
+          }
           map.eachLayer(function (layer) {
             map.removeLayer(layer);
           });
