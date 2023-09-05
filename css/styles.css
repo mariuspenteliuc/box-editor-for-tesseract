@@ -11,6 +11,9 @@ body {
 }
 
 @media (prefers-color-scheme: dark) {
+  .ui.modal>.content {
+    color: gray;
+  }
   body {
     background-color: black;
     color: white;

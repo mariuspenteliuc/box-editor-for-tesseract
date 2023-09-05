@@ -587,8 +587,11 @@ app.ready = async function () {
         }).modal('show');
       });
     },
-    clearLocalStorage: function () {
+    clearLocalStorage: function (loadingError = true) {
       localStorage.removeItem(appSettings.localStorageKey);
+      if (loadingError) {
+        localStorage.removeItem('loading-error');
+      }
       location.reload();
     },
     resetAppSettings: async function () {
@@ -2858,9 +2861,9 @@ app.ready = async function () {
       // Firefox bug workaround
       if (selection.toString().length == 0) {
         var
-        startPosition = $groundTruthInputField[0].selectionStart,
-        endPosition = $groundTruthInputField[0].selectionEnd,
-        selection = $groundTruthInputField[0].value.substring(startPosition, endPosition);
+          startPosition = $groundTruthInputField[0].selectionStart,
+          endPosition = $groundTruthInputField[0].selectionEnd,
+          selection = $groundTruthInputField[0].value.substring(startPosition, endPosition);
       }
       var results = handler.getUnicodeInfo(selection.toString());
       // TODO: replace max length with a programmatic solution
@@ -2997,8 +3000,52 @@ app.ready = async function () {
 
     app.handler = handler;
 
-  // Start the Magic
-  await app.handler.initialize();
+  try {
+    // Start the Magic
+    await app.handler.initialize();
+    // reset errors count
+    localStorage.removeItem(appSettings.localStorageKey + '-loading-error');
+  } catch (error) {
+    // check if already happened several times
+    const times = localStorage.getItem(appSettings.localStorageKey + '-loading-error');
+    var actions = [];
+    switch (true) {
+      case parseInt(times) >= 4:
+        actions = [{
+          text: 'Try again',
+          class: 'positive',
+        }, {
+          text: 'Report issue...',
+          class: 'red',
+          icon: 'github',
+          click: function () {
+            // open new tab _blank
+            window.open('https://github.com/mariuspenteliuc/box-editor-for-tesseract/issues/new?assignees=&labels=help+wanted&projects=&template=website-loading-error.md&title=App+Loading+Error', '_blank');
+          }
+        }];
+        break;
+      case parseInt(times) >= 3:
+        actions = [{
+          text: 'Try again',
+          class: 'positive',
+        }];
+        break;
+      default:
+        localStorage.setItem(appSettings.localStorageKey + '-loading-error', times ? parseInt(times) + 1 : 1);
+        location.reload();
+        return;
+    }
+    handler.hideSplashScreen();
+    await handler.askUser({
+      title: 'Loading Error!',
+      message: 'App encountered repeated errors while loading. Click "Try again" to delete the local storage and try again. This will reset all the settings and data.',
+      type: 'loadingError',
+      actions: actions,
+    }).then(function (response) {
+      localStorage.setItem(appSettings.localStorageKey + '-loading-error', times ? parseInt(times) + 1 : 1);
+      handler.clearLocalStorage(loadingError = false);
+    });
+  }
 
 };
 
