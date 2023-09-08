@@ -1360,6 +1360,32 @@ app.ready = async function () {
         var docClassesRef = $document[0].documentElement.classList;
         docClassesRef.remove(...docClassesRef);
         docClassesRef.toggle(value);
+        value = value.replaceAll('-theme', '');
+        handler.set.sourceMediaTheme(value);
+      },
+      sourceMediaTheme: function (colorPreference) {
+        const pictures = document.querySelectorAll('picture')
+
+        pictures.forEach((picture) => {
+          const sources =
+            picture.querySelectorAll(`
+        source[media*="prefers-color-scheme"],
+        source[data-media*="prefers-color-scheme"]
+      `)
+
+          sources.forEach((source) => {
+            if (source?.media.includes('prefers-color-scheme')) {
+              source.dataset.media = source.media
+            }
+            if ('match-device' === colorPreference) {
+              source.media = '(prefers-color-scheme: dark)'
+            } else if (source?.dataset.media.includes(colorPreference)) {
+              source.media = 'all'
+            } else if (source) {
+              source.media = 'none'
+            }
+          })
+        })
       },
       loadingState: function (object) {
         if (object.main != undefined) {
@@ -2858,9 +2884,9 @@ app.ready = async function () {
       // Firefox bug workaround
       if (selection.toString().length == 0) {
         var
-        startPosition = $groundTruthInputField[0].selectionStart,
-        endPosition = $groundTruthInputField[0].selectionEnd,
-        selection = $groundTruthInputField[0].value.substring(startPosition, endPosition);
+          startPosition = $groundTruthInputField[0].selectionStart,
+          endPosition = $groundTruthInputField[0].selectionEnd,
+          selection = $groundTruthInputField[0].value.substring(startPosition, endPosition);
       }
       var results = handler.getUnicodeInfo(selection.toString());
       // TODO: replace max length with a programmatic solution
