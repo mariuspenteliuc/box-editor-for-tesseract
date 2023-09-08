@@ -3019,7 +3019,6 @@ app.ready = async function () {
           class: 'red',
           icon: 'github',
           click: function () {
-            // open new tab _blank
             window.open('https://github.com/mariuspenteliuc/box-editor-for-tesseract/issues/new?assignees=&labels=help+wanted&projects=&template=website-loading-error.md&title=App+Loading+Error', '_blank');
           }
         }];
@@ -3041,7 +3040,7 @@ app.ready = async function () {
       message: 'App encountered repeated errors while loading. Click "Try again" to delete the local storage and try again. This will reset all the settings and data.',
       type: 'loadingError',
       actions: actions,
-    }).then(function (response) {
+    }).then(() =>{
       localStorage.setItem(appSettings.localStorageKey + '-loading-error', times ? parseInt(times) + 1 : 1);
       handler.clearLocalStorage(loadingError = false);
     });
