@@ -422,7 +422,7 @@
             <div class="description">
               Adjust the appearance of the interface.
             </div>
-            <div class="list">
+            <div class="ui list">
               <div class="item">
                 <div class="ui radio checkbox">
                   <input type="radio" name="interface.appearance" value="light-theme">
@@ -448,36 +448,60 @@
             <div class="description">
               Choose actions to display in the toolbar.
             </div>
-            <div class="list">
+            <div class="ui list">
               <div class="item">
-                <div class="ui checkbox">
-                  <input type="checkbox" name="interface.toolbarActions.detectAllLines">
-                  <label>Detect all lines of text visible in the image</label>
+                <div class="content">
+                  <div class="ui checkbox">
+                    <input type="checkbox" name="interface.toolbarActions.invisiblesToggle">
+                    <label>
+                      <i class="paragraph icon"></i>
+                      Toggle between showing or hiding invisibles
+                    </label>
+                  </div>
                 </div>
               </div>
               <div class="item">
-                <div class="ui checkbox">
-                  <input type="checkbox" name="interface.toolbarActions.detectAllBoxes">
-                  <label>Identify all characters for all text boxes</label>
+                <div class="content">
+                  <div class="ui checkbox">
+                    <input type="checkbox" name="interface.toolbarActions.detectAllLines">
+                    <label>
+                      <i class="magic icon"></i>
+                      Detect all lines of text visible in the image
+                    </label>
+                  </div>
                 </div>
               </div>
               <div class="item">
-                <div class="ui checkbox">
-                  <input type="checkbox" name="interface.toolbarActions.detectSelectedBox">
-                  <label>Identify all characters for the selected text box</label>
+                <div class="content">
+                  <div class="ui checkbox">
+                    <input type="checkbox" name="interface.toolbarActions.detectAllBoxes">
+                    <label>
+                      <i class="sync icon"></i>
+                      Identify all characters for all text boxes
+                    </label>
+                  </div>
                 </div>
               </div>
               <div class="item">
-                <div class="ui checkbox">
-                  <input type="checkbox" name="interface.toolbarActions.invisiblesToggle">
-                  <label>Toggle between showing or hiding invisibles</label>
+                <div class="content">
+                  <div class="ui checkbox">
+                    <input type="checkbox" name="interface.toolbarActions.detectSelectedBox">
+                    <label>
+                      <i class="redo icon"></i>
+                      Identify all characters for the selected text box
+                    </label>
+                  </div>
                 </div>
               </div>
               <div class="item">
-                <div class="ui checkbox">
-                  <input type="checkbox" name="interface.toolbarActions.languageModelDropdown">
-                  <label>Language model dropdown selector
-                  </label>
+                <div class="content">
+                  <div class="ui checkbox">
+                    <input type="checkbox" name="interface.toolbarActions.languageModelDropdown">
+                    <label>
+                      <i class="world icon"></i>
+                      Language model dropdown selector
+                    </label>
+                  </div>
                 </div>
               </div>
             </div>
@@ -487,7 +511,7 @@
             <div class="description">
               Adjust the size of the image display area.
             </div>
-            <div class="list">
+            <div class="ui list">
               <div class="item">
                 <div id="imageViewHeightSlider" name="interface.imageView"
                   class="ui right aligned labeled ticked reversed vertical slider"></div>
@@ -503,7 +527,7 @@
             <div class="description">
               Perform actions when a new image is loaded.
             </div>
-            <div class="list">
+            <div class="ui list">
               <div class="item">
                 <div class="ui master checkbox">
                   <input type="checkbox" name="behavior.onImageLoad.detectAllLines">
@@ -523,7 +547,7 @@
             <div class="description">
               Enable or surpress the following messages.
             </div>
-            <div class="list">
+            <div class="ui list">
               <div class="item">
                 <div class="ui checkbox">
                   <input type="checkbox" name="behavior.alerting.enableWarrningMessagesForDifferentFileNames">
@@ -562,7 +586,7 @@
             <div class="description">
               Choose what convenience features you would like to use.
             </div>
-            <div class="list">
+            <div class="ui list">
               <div class="item">
                 <div class="ui checkbox">
                   <input type="checkbox" name="behavior.workflow.progressIndicator">
@@ -613,7 +637,7 @@
             <div class="description">
               Customize the keyboard shortcuts for frequently used actions.
             </div>
-            <div class="list">
+            <div class="ui list">
               <div class="item">
                 <div class="ui disabled checkbox">
                   <input disabled type="checkbox" name="behavior.keyboardShortcuts.keyboardShortcutsEnabled">
@@ -805,7 +829,7 @@
             <div class="description">
               Highlight text in the input field based on custom regex patterns.
             </div>
-            <div class="list">
+            <div class="ui list">
               <div class="item">
                 <div class="ui checkbox">
                   <input type="checkbox" name="highlighter.textHighlighting.textHighlightingEnabled">
@@ -1017,10 +1041,9 @@
               <p>Description.</p>
             </div>
           </div> -->
-            <p><span class="ui grey text">Reset button has moved to the
-                <a onclick="app.handler.open.settingsModal('help-section')" class="more">Help pane.</a>
-              </span></p>
-          </div>
+          <p><span class="ui grey text">Reset button has moved to the
+              <a onclick="app.handler.open.settingsModal('help-section')" class="more">Help pane.</a>
+            </span></p>
         </div>
       </div>
     </div>
