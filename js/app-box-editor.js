@@ -54,7 +54,7 @@ class Box {
 }
 
 // ready event
-app.ready = async function () {
+app.ready = async () => {
 
   // selector cache
   var
@@ -135,7 +135,9 @@ app.ready = async function () {
     bounds,
     BoxFileType = Object.freeze({
       'WORDSTR': 1,
+      'WORDSTR_PATTERN': /^WordStr(?:\s+[\d]+?\b){4}\s+[\d]+\s+#[\w\W]+?$\n^\t(?:\s+[\d]+?\b){4}\s+[\d]+\s*\n?/gm,
       'CHAR_OR_LINE': 2,
+      'CHAR_OR_LINE_PATTERN': /^.+?\s+(?:[\d]+?\s+\b){4}[\d]+$\n?/gm,
     }),
     boxFileType = BoxFileType.WORDSTR,
     boxLayer = new L.FeatureGroup(),
@@ -151,37 +153,25 @@ app.ready = async function () {
     boxData = [],
     boxDataInfo = {
       dirty: false,
-      isDirty: function () {
-        return this.dirty;
-      },
-      setDirty: function (value = true) {
-        this.dirty = value;
-        $unsavedChangesBadge.toggle(value);
+      isDirty: () => boxDataInfo.dirty,
+      setDirty: (value = true) => {
+        boxDataInfo.dirty = value;
+        $unsavedChangesBadge.toggle(boxDataInfo.dirty);
       }
     },
     lineDataInfo = {
       dirty: false,
-      isDirty: function () {
-        return this.dirty;
-      },
-      setDirty: function (value = true) {
-        this.dirty = value;
-      }
+      isDirty: () => lineDataInfo.dirty,
+      setDirty: (value = true) => lineDataInfo.dirty = value,
     },
     unicodeData,
     imageFile,
     boxFile,
     imageFileInfo = {
       processed: false,
-      isProcessed: function () {
-        return this.processed;
-      },
-      setProcessed: function () {
-        this.processed = true;
-      },
-      setUnprocessed: function () {
-        this.processed = false;
-      },
+      isProcessed: () => this.processed,
+      setProcessed: () => this.processed = true,
+      setUnprocessed: () => this.processed = false,
     },
     recognizedLinesOfText = [],
     image,
@@ -193,9 +183,7 @@ app.ready = async function () {
     identicalPatternNames = false,
     invalidKeyboardShortcuts = false,
     duplicatedKeyboardShortcuts = false,
-    suppressLogMessages = {
-      'recognizing text': false,
-    },
+    suppressLogMessages = { 'recognizing text': false, },
     worker,
 
     appSettings = {
@@ -249,6 +237,28 @@ app.ready = async function () {
       },
     },
 
+    notificationTypes = {
+      info: {
+        fileDownloadedInfo: { title: 'File Downloaded', type: 'fileDownloadedInfo', class: 'info' },
+        nothingToDownloadInfo: { title: 'Nothing To Download', type: 'nothingToDownloadInfo', class: 'info' },
+      },
+      warning: {
+        resetAppWarning: { title: 'App Reset', type: 'resetAppWarning', class: 'warning' },
+        replacingTextWarning: { title: 'Replacing Text', type: 'replacingTextWarning', class: 'warning' },
+        nameMismatchError: { title: 'File Names Mismatch', type: 'nameMismatchError', class: 'warning' },
+        overridingUnsavedChangesWarning: { title: 'Unsaved Changes', type: 'overridingUnsavedChangesWarning', class: 'warning' },
+        uncommittedChangesWarning: { title: 'Uncommitted Changes Warning', type: 'uncommittedChangesWarning', class: 'warning' },
+        differentFileNameWarning: { title: 'Different File Name Warning', type: 'differentFileNameWarning', class: 'warning' },
+      },
+      error: {
+        identicalPatternNamesError: { title: 'Identical Pattern Names', type: 'identicalPatternNamesError', class: 'error' },
+        invalidPatternsError: { title: 'Invalid Pattern', type: 'invalidPatternsError', class: 'error' },
+        commitLineError: { title: 'Commit Line Error', type: 'commitLineError', class: 'error' },
+        loadingLanguageModelError: { title: 'Language Model Error', type: 'loadingLanguageModelError', class: 'error' },
+        invalidFileTypeError: { title: 'Invalid File Type', type: 'invalidFileTypeError', class: 'error' },
+      },
+    },
+
     boxState = {
       boxProcessing: {
         color: 'white',
@@ -284,7 +294,7 @@ app.ready = async function () {
 
   // event handler
   handler = {
-    getAppInfo: function () {
+    getAppInfo: () => {
       // get details from ../../app-version.json
       appInfo = JSON.parse($.ajax({
         url: "../../app-version.json",
@@ -294,20 +304,21 @@ app.ready = async function () {
       appInfo.appName = appInfo.name.replace(/[^\w\s]/gi, '');
       return appInfo;
     },
-    compareVersions: function (a, b) {
-      return compareVersions.compareVersions(a, b);
+    compareVersions: (a, b) => compareVersions.compareVersions(a, b),
+    bindColorizerOnInput: () => {
+      $colorizedOutputForms
+        .each(function () {
+          $(this)
+            .find('input')
+            .bind('input', handler.update.colorizedBackground);
+        });
     },
-    bindColorizerOnInput: function () {
-      $colorizedOutputForms.each(function () {
-        $(this).find('input').bind('input', handler.update.colorizedBackground);
-      });
-    },
-    colorizeText: async function (text) {
-      if (text == '') return '&nbsp;';
+    colorizeText: async (text) => {
+      if ('' === text) return '&nbsp;';
       text = text.normalize('NFD');
       var
         colorizedText = '',
-        currentScript = null,
+        currentScript = '',
         currentSpan = '',
         spanClass = '',
         charSpace = appSettings.interface.showInvisibles ? '·' : '&nbsp;';
@@ -323,17 +334,15 @@ app.ready = async function () {
         }
       );
       for (var i = 0; i < text.length; i++) {
-        var
-          isCapital = false,
+        const
           char = text.charAt(i),
-          charName = handler.getUnicodeInfo(char)[0].name,
-          foundHighlight = null;
-        if (charName.includes('COMBINING')) {
+          isCapital = char != char.toLowerCase(),
+          charName = handler.getUnicodeInfo(char)[0].name;
+        var
+          foundHighlight = false;
+        if (/COMBINING/.test(charName)) {
           currentSpan += char;
           continue;
-        }
-        if (char != char.toLowerCase()) {
-          isCapital = true;
         }
 
         const keys = Object.keys(highlights).reverse();
@@ -346,22 +355,22 @@ app.ready = async function () {
         }
 
         if (foundHighlight) {
+          // TODO: replace strings with HTML templates
           spanClass = foundHighlight.color.toLowerCase() +
             (isCapital ? ' capital' : '') +
             ' text-highlighter';
-
           if (currentScript != spanClass) {
-            if (currentSpan != '') {
+            if (currentSpan.length) {
               colorizedText += '</span>' + currentSpan;
             }
-            if (spanClass.includes('space')) {
+            if (/space/.test(spanClass)) {
               currentSpan = '<span class="' + spanClass + '">' + charSpace;
             } else {
               currentSpan = '<span class="' + spanClass + '">' + char;
             }
           } else {
-            if (currentScript.includes('space')) {
-              if (!currentSpan.includes('multiple')) {
+            if (/space/.test(currentScript)) {
+              if (!/multiple/.test(currentSpan)) {
                 currentSpan = currentSpan.replace('space', 'space multiple');
               }
               currentSpan += charSpace;
@@ -372,7 +381,7 @@ app.ready = async function () {
           currentScript = spanClass;
         } else {
           spanClass = 'other';
-          if (currentSpan !== '') {
+          if (currentSpan.length) {
             colorizedText += '</span>' + currentSpan;
           }
           currentSpan = '<span class="' + spanClass + '">' + char;
@@ -382,7 +391,7 @@ app.ready = async function () {
       colorizedText += '</span>' + currentSpan;
       return colorizedText;
     },
-    getHighlighters: function () {
+    getHighlighters: () => {
       var patterns = {};
       if ($textHighlightingEnabledCheckbox[0].checked) {
         for (entry of appSettings.highlighter.textHighlighting.highlightsPatterns) {
@@ -393,152 +402,122 @@ app.ready = async function () {
       }
       return patterns;
     },
-    getUnicodeInfo: function (string) {
+    getUnicodeInfo: (string) => {
       var unicodeInfo = [];
       string = string.normalize('NFD');
 
       for (var i = 0; i < string.length; i++) {
-        var
+        const
           char = string.charAt(i),
           code = char.charCodeAt(0),
           hex = code.toString(16).toUpperCase(),
           unicode = '0000'.substring(hex.length) + hex,
           result = handler.getUnicodeData(unicode);
-        if (unicodeInfo.find(function (x) {
-          return x['code'] == result.code;
-        }) == undefined) {
+        if (!unicodeInfo.find(x => x['code'] == result.code)) {
           unicodeInfo.push(result);
         }
       }
       return unicodeInfo;
     },
-    getUnicodeData: function (unicode) {
-      // TODO: declare unicodeData and other variables elsewhere
-      var result = unicodeData.find(function (x) {
-        return x['code'] == unicode;
-      });
+    getUnicodeData: (unicode) => {
+      const result = unicodeData.find(x => x['code'] == unicode);
       result.char = String.fromCharCode(parseInt(unicode, 16));
       return result;
     },
-    saveHighlightsToSettings: function () {
+    saveHighlightsToSettings: () => {
       if ($textHighlightingEnabledCheckbox[0].checked) {
         var
           patterns = [],
           errorMessages = [];
-        $highlighterTableRows.each(function (index, elem) {
-          $(elem.querySelector('td:nth-child(1) .checkbox')).checkbox('set enabled');
-          $(elem.querySelector('td:nth-child(2)'))[0].classList.remove('disabled');
-          $(elem.querySelector('td:nth-child(3) .dropdown'))[0].classList.remove('disabled');
-          $(elem.querySelector('td:nth-child(4)'))[0].classList.remove('disabled');
-          handler.unhighlightCell(elem.querySelector('td:nth-child(4)'));
-          var
-            enabled = elem.querySelector('td:nth-child(1) .checkbox input').checked,
-            name = elem.querySelector('td:nth-child(2)').innerText,
-            color = elem.querySelector('td:nth-child(3) input[name=color]').value,
-            pattern = elem.querySelector('td:nth-child(4)').innerText;
-          try {
-            var validation = new RegExp(pattern, 'i');
-            patterns.push({
-              enabled: enabled,
-              name: name,
-              color: color,
-              pattern: pattern,
-            });
-          } catch (error) {
-            handler.highlightCell(elem.querySelector('td:nth-child(4)'));
-            errorMessages.push({ name, enabled, error });
-          }
-        });
         invalidPatterns = false;
-        if (errorMessages.length > 0) {
-          console.error('Regex pattern errors:');
-          errorMessages.forEach(function (object) {
-            console.error(object.errorMessage);
-            if (object.enabled) {
-              invalidPatterns = true;
+        $highlighterTableRows
+          .each((_, elem) => {
+            const
+              enabled = elem.querySelector('td:nth-child(1) .checkbox input').checked,
+              name = elem.querySelector('td:nth-child(2)').innerText,
+              color = elem.querySelector('td:nth-child(3) input[name=color]').value,
+              pattern = elem.querySelector('td:nth-child(4)').innerText;
+            try {
+              new RegExp(pattern, 'i');
+              patterns.push({
+                enabled: enabled,
+                name: name,
+                color: color,
+                pattern: pattern,
+              });
+            } catch (error) {
+              if (error instanceof SyntaxError) {
+                handler.highlightCell(elem.querySelector('td:nth-child(4)'));
+                errorMessages.push({ name, enabled, error });
+              } else { throw error; }
             }
           });
+        if (errorMessages.length) {
+          errorMessages
+            .forEach(object => {
+              if (object.enabled) {
+                console.warn(object.error.message + `: ${object.name}`);
+                invalidPatterns = true;
+              }
+            });
         }
-        identicalPatternNames = false;
-        patternNames = patterns.map(function (pattern) {
-          return pattern.name;
-        });
-        patternNamesSet = [...new Set(patternNames)];
-        if (patternNames.length != patternNamesSet.length) {
-          identicalPatternNames = true;
-        }
+        const
+          patternNames = patterns.map(pattern => pattern.name),
+          patternNamesSet = [...new Set(patternNames)];
+        identicalPatternNames = patternNames.length != patternNamesSet.length;
         appSettings.highlighter.textHighlighting.highlightsPatterns = patterns;
-      } else {
-        $highlighterTableRows.each(function (index, elem) {
-          $(elem.querySelector('td:nth-child(1) .checkbox')).checkbox('set disabled');
-          $(elem.querySelector('td:nth-child(2)'))[0].classList.add('disabled');
-          $(elem.querySelector('td:nth-child(3) .dropdown'))[0].classList.add('disabled');
-          $(elem.querySelector('td:nth-child(4)'))[0].classList.add('disabled');
-        });
       }
       handler.update.colorizedBackground();
       handler.update.patternLabels();
       handler.update.localStorage();
     },
-    saveKeyboardShortcutsToSettings: function () {
+    saveKeyboardShortcutsToSettings: () => {
       if (appSettings.behavior.keyboardShortcuts.keyboardShortcutsEnabled) {
         var
           shortcuts = [],
           errorMessages = [];
-        $keyboardShortcutsTableRows.each(function (index, elem) {
-          handler.unhighlightCell(elem.querySelector('td:nth-child(2)'));
-          var
-            enabled = elem.querySelector('td:nth-child(1) .checkbox input').checked,
-            name = elem.querySelector('td:nth-child(2) input[name=action]').value,
-            keyCombo = elem.querySelector('td:nth-child(3)').innerText,
-            action = availableShortcutActions.find(action => action.name === name).action;
-          // target = availableShortcutActions.find(action => action.name === name).target;
-          try {
-            shortcuts.push({
-              enabled: enabled,
-              keyCombo: keyCombo,
-              name: name,
-              action: action,
-              // target: target,
-            });
-          } catch (error) {
-            handler.highlightCell(elem.querySelector('td:nth-child(2)'));
-            errorMessages.push({ keyCombo, enabled, error });
-          }
-        });
+        $keyboardShortcutsTableRows
+          .each((_, elem) => {
+            handler.unhighlightCell(elem.querySelector('td:nth-child(2)'));
+            const
+              enabled = elem.querySelector('td:nth-child(1) .checkbox input').checked,
+              name = elem.querySelector('td:nth-child(2) input[name=action]').value,
+              keyCombo = elem.querySelector('td:nth-child(3)').innerText,
+              action = availableShortcutActions.find(action => action.name === name).action;
+            try {
+              shortcuts.push({
+                enabled: enabled,
+                keyCombo: keyCombo,
+                name: name,
+                action: action,
+                // target: target,
+              });
+            } catch (error) {
+              handler.highlightCell(elem.querySelector('td:nth-child(2)'));
+              errorMessages.push({ keyCombo, enabled, error });
+            }
+          });
 
-        duplicatedKeyboardShortcuts = false;
-        shortcutKeys = shortcuts.map(function (shortcut) {
-          return shortcut.keyCombo.toUpperCase();
-        });
+        shortcutKeys = shortcuts.map(shortcut => shortcut.keyCombo.toUpperCase());
         shortcutKeysSet = [...new Set(shortcutKeys)];
-        if (shortcutKeys.length != shortcutKeysSet.length) {
-          duplicatedKeyboardShortcuts = true;
-        }
+        duplicatedKeyboardShortcuts = shortcutKeys.length != shortcutKeysSet.length ? true : false;
         appSettings.behavior.keyboardShortcuts.shortcuts = shortcuts;
       }
-      if (appSettings.behavior.keyboardShortcuts.shortcuts.length > 0) {
+      if (appSettings.behavior.keyboardShortcuts.shortcuts.length) {
         // add listener for keyboard shortcuts
         handler.load.keyboardShortcuts();
       }
       handler.update.localStorage();
     },
-    highlightCell: function (elem) {
-      $(elem).addClass('red colored');
-    },
-    unhighlightCell: function (elem) {
-      $(elem).removeClass('red colored');
-    },
-    notifyUser: function (object) {
-      if (object.title == undefined) {
-        object.title = object.type.charAt(0).toUpperCase() + object.type.slice(1);
-      }
-      if (object.time == undefined) {
-        object.time = 'auto';
-      }
+    highlightCell: elem => $(elem).addClass('red colored'),
+    unhighlightCell: elem => $(elem).removeClass('red colored'),
+    notifyUser: object => {
+      if (!object.title) object.title = object.type.charAt(0).toUpperCase() + object.type.slice(1);
+      if (!object.time) object.time = 'auto';
+      if (!object.class) object.class = 'neutral';
       $.toast({
         title: object.title,
-        class: object.type,
+        class: object.class,
         displayTime: object.time,
         showProgress: 'top',
         position: 'top right',
@@ -548,10 +527,10 @@ app.ready = async function () {
         actions: object.actions ? object.actions : false,
       });
     },
-    askUser: async function (object) {
+    askUser: async object => {
       if (!object.message) return false;
-      if ((object.type === 'differentFileNameWarning' && !appSettings.behavior.alerting.enableWarrningMessagesForDifferentFileNames) ||
-        (object.type === 'uncommittedChangesWarning' && !appSettings.behavior.alerting.enableWarrningMessagesForUncommittedChanges)) {
+      if (('differentFileNameWarning'.includes(object.type) && !appSettings.behavior.alerting.enableWarrningMessagesForDifferentFileNames) ||
+        ('uncommittedChangesWarning'.includes(object.type) && !appSettings.behavior.alerting.enableWarrningMessagesForUncommittedChanges)) {
         return true;
       }
       handler.setKeyboardControl('prompt');
@@ -572,13 +551,13 @@ app.ready = async function () {
           // closeIcon: true,
           // autofocus: true,
           // restoreFocus: true,
-          onApprove: function () {
+          onApprove: () => {
             resolve(true);
           },
-          onDeny: function () {
+          onDeny: () => {
             resolve(false);
           },
-          onHide: function () {
+          onHide: () => {
             handler.setKeyboardControl('form');
             resolve(false);
           },
@@ -587,36 +566,35 @@ app.ready = async function () {
         }).modal('show');
       });
     },
-    clearLocalStorage: function (loadingError = true) {
+    clearLocalStorage: (loadingError = true) => {
       localStorage.removeItem(appSettings.localStorageKey);
       if (loadingError) {
         localStorage.removeItem('loading-error');
       }
       location.reload();
     },
-    resetAppSettings: async function () {
-      var
-        response = await handler.askUser({
-          title: 'Reset App',
-          message: 'The app will reset it\'s settings and reload. Are you sure you want to continue?',
-          type: 'replacingTextWarning',
-          actions: [{
-            text: 'Cancel',
-            class: 'cancel',
-          }, {
-            text: 'Reset',
-            class: 'red ok',
-          }]
-        });
+    resetAppSettings: async () => {
+      const response = await handler.askUser({
+        title: notificationTypes.warning.resetAppWarning.title,
+        message: 'The app will reset it\'s settings and reload. Are you sure you want to continue?',
+        type: notificationTypes.warning.resetAppWarning.type,
+        actions: [{
+          text: 'Cancel',
+          class: 'cancel',
+        }, {
+          text: 'Reset',
+          class: 'red ok',
+        }]
+      });
       if (response) {
         handler.clearLocalStorage();
       }
     },
     keyboardShortcuts: {
-      getKeys: function () {
+      getKeys: () => {
         return appSettings.keyboardShortcuts;
       },
-      register: function () {
+      register: () => {
         handler.keyboardShortcuts.setUpPreview();
 
         // $document[0].addEventListener('keydown', handler.keyboardShortcuts.handleKeyDown);
@@ -624,10 +602,8 @@ app.ready = async function () {
 
         handler.keyboardShortcuts.updatePreview();
       },
-      has: function (key) {
-        return appSettings.keyboardShortcuts.hasOwnProperty(key);
-      },
-      handleKeyDown: function (event) {
+      has: key => appSettings.keyboardShortcuts.hasOwnProperty(key),
+      handleKeyDown: event => {
         if (handler.keyboardShortcuts.isModifierKey(event.key)) {
           pressedModifiers[event.key] = true;
           return;
@@ -653,50 +629,53 @@ app.ready = async function () {
         handler.keyboardShortcuts.updatePreview();
 
       },
-      add: function (key) {
+      add: key => {
         appSettings.keyboardShortcuts[key] = key;
       },
-      handleKeyUp: function (event) {
+      handleKeyUp: event => {
         if (handler.keyboardShortcuts.isModifierKey(event.key)) {
           pressedModifiers[event.key] = false;
         }
         // console.log(pressedModifiers);
       },
-      isNavigationKey: function (key) {
+      isNavigationKey: key => {
         navigationKeys = ['Tab', 'ArrowLeft', 'ArrowUp', 'ArrowRight', 'ArrowDown'];
         return navigationKeys.includes(key) ? true : false;
       },
-      isModifierKey: function (key) {
+      isModifierKey: key => {
         modifiers = ['Alt', 'Shift', 'Control', 'Meta'];
         return modifiers.includes(key) ? true : false;
       },
-      setUpPreview: function () {
-
-      },
-      updatePreview: function () {
+      setUpPreview: () => { },
+      updatePreview: () => {
         console.log(handler.keyboardShortcuts.getKeys());
       },
     },
-    setKeyboardControl: function (context) {
-      if (context == 'prompt') {
-        $window.off('keydown');
-      } else if (context == 'form') {
-        handler.load.keyboardShortcuts();
+    setKeyboardControl: context => {
+      switch (context) {
+        case 'prompt':
+          $window.off('keydown');
+          break;
+        case 'form':
+          handler.load.keyboardShortcuts();
+          break;
+        case 'settings':
+          // $window.off('keydown');
+          break;
+        default:
+          break;
       }
     },
     delete: {
-      box: function (box) {
-        var
-          boxIndex = boxData.findIndex(function (object) {
-            return object.equals(box);
-          });
+      box: box => {
+        const boxIndex = boxData.findIndex(object => object.equals(box));
         if (boxIndex > -1) {
           boxData.splice(boxIndex, 1);
         }
-        var
-          newIndex = recognizedLinesOfText.findIndex(function (object) {
+        const
+          newIndex = recognizedLinesOfText.findIndex(object => {
             object = object.bbox;
-            var newBox = new Box({
+            const newBox = new Box({
               text: '',
               y1: imageHeight - object.y1, // bottom
               y2: imageHeight - newBox.y0, // top
@@ -710,30 +689,31 @@ app.ready = async function () {
         }
         return boxIndex;
       },
-      expiredNotifications: function () {
+      expiredNotifications: () => {
         const currentDate = new Date();
 
-        $('.updateNotification').each(function () {
-          const
-            releaseDate = new Date($(this).attr('data-release-date')),
-            removeDays = parseInt($(this).attr('data-expire-notification')),
-            timeDifference = currentDate - releaseDate,
-            daysDifference = timeDifference / (1000 * 60 * 60 * 24),
-            parent = $(this)[0].parentElement;
+        $('.updateNotification')
+          .each(() => {
+            const
+              releaseDate = new Date($(this).attr('data-release-date')),
+              removeDays = parseInt($(this).attr('data-expire-notification')),
+              timeDifference = currentDate - releaseDate,
+              daysDifference = timeDifference / (1000 * 60 * 60 * 24),
+              parent = $(this)[0].parentElement;
 
-          if (daysDifference >= removeDays) {
-            try {
-              console.info(`Notification badge removed from: ${parent.attributes['id']}, ${parent.attributes['class'].textContent}, ${parent.outerHTML}`)
-              $(this).remove();
-            } catch (error) {
-              console.error(error);
+            if (daysDifference >= removeDays) {
+              try {
+                console.info(`Notification badge removed from: ${parent.attributes['id']}, ${parent.attributes['class'].textContent}, ${parent.outerHTML}`)
+                $(this).remove();
+              } catch (error) {
+                console.error(error);
+              }
             }
-          }
-        });
+          });
       },
     },
     create: {
-      defaultKeyboardShortcutsTable: async function () {
+      keyboardShortcutsTable: async () => {
         const
           table = document.createElement('table'),
           thead = document.createElement('thead'),
@@ -752,32 +732,26 @@ app.ready = async function () {
           theadRow.appendChild(th);
         }
 
-        var shortcuts = [];
         try {
-          if (localStorageValue) {
-            const localStorageSettings = JSON.parse(localStorageValue);
-            shortcuts = localStorageSettings.behavior.keyboardShortcuts.shortcuts;
-            if (shortcuts.length > 0) {
-              shortcuts.forEach(function (shortcut) {
-                const row = handler.create.keyboardShortcutRow(shortcut.enabled, shortcut.keyCombo, shortcut.name);
-                tbody.appendChild(row);
-              });
-            }
+          const localStorageSettings = JSON.parse(localStorageValue);
+          const shortcuts = localStorageSettings?.behavior?.keyboardShortcuts?.shortcuts;
+          shortcuts.forEach(shortcut => {
+            const row = handler.create.keyboardShortcutRow(shortcut.enabled, shortcut.keyCombo, shortcut.name);
+            tbody.appendChild(row);
+          });
+
+          if (!localStorageValue || shortcuts.length == 0) {
+            const rows = [
+              { enabled: true, keyCombo: 'ENTER', name: 'Move to next box' },
+              { enabled: true, keyCombo: 'Shift + ENTER', name: 'Move to previous box' },
+            ];
+            rows.forEach(row => {
+              const rowElement = handler.create.keyboardShortcutRow(row.enabled, row.keyCombo, row.name);
+              tbody.appendChild(rowElement);
+            });
           }
         } catch (error) {
           console.error(error);
-        }
-
-        if (!localStorageValue || shortcuts.length == 0) {
-          const rows = [
-            { enabled: true, keyCombo: 'ENTER', name: 'Move to next box' },
-            { enabled: true, keyCombo: 'Shift + ENTER', name: 'Move to previous box' },
-            // { enabled:availa
-          ];
-          rows.forEach(function (row) {
-            const rowElement = handler.create.keyboardShortcutRow(row.enabled, row.keyCombo, row.name);
-            tbody.appendChild(rowElement);
-          });
         }
 
         table.appendChild(thead);
@@ -790,7 +764,7 @@ app.ready = async function () {
 
         return table;
       },
-      defaultHighlighterTable: async function () {
+      highlighterTable: async () => {
         const
           table = document.createElement('table'),
           thead = document.createElement('thead'),
@@ -808,25 +782,20 @@ app.ready = async function () {
           theadRow.appendChild(th);
         }
 
-        var highlights = [];
-        if (localStorageValue) {
-          const localStorageSettings = JSON.parse(localStorageValue);
-          highlights = localStorageSettings.highlighter.textHighlighting.highlightsPatterns;
-          if (highlights.length > 0) {
-            highlights.forEach(function (highlight) {
-              const row = handler.create.highlighterRow(highlight.enabled, highlight.name, highlight.color, highlight.pattern);
-              tbody.appendChild(row);
-            });
-          }
-        }
+        const localStorageSettings = JSON.parse(localStorageValue);
+        const highlights = localStorageSettings?.highlighter.textHighlighting?.highlightsPatterns;
+        highlights.forEach(highlight => {
+          const row = handler.create.highlighterRow(highlight.enabled, highlight.name, highlight.color, highlight.pattern);
+          tbody.appendChild(row);
+        });
 
-        if (!localStorageValue || highlights.length == 0) {
+        if (!highlights || highlights.length == 0) {
           const rows = [
             { enabled: true, name: 'Latin', color: 'blue', pattern: '[\\u0000-\\u007F\\u0080-\\u00FF]' },
             { enabled: true, name: 'Cyrillic', color: 'yellow', pattern: '[\\u0400-\\u04FF\\u0500-\\u052F\\u2DE0-\\u2DFF\\uA640-\\uA69F\\u1C80-\\u1CBF]' },
             { enabled: true, name: 'Digits', color: 'red', pattern: '[0-9]' },
           ];
-          rows.forEach(function (row) {
+          rows.forEach(row => {
             const rowElement = handler.create.highlighterRow(row.enabled, row.name, row.color, row.pattern);
             tbody.appendChild(rowElement);
           });
@@ -836,13 +805,13 @@ app.ready = async function () {
 
         $highlighterTableContainer[0].insertBefore(table, $highlighterTableContainer[0].firstChild);
 
-        $highlighterTableBody = $highlighterTableContainer.find('.ui.celled.table tbody'),
-          $highlighterTableRows = $highlighterTableBody.find('tr');
+        $highlighterTableBody = $highlighterTableContainer.find('.ui.celled.table tbody');
+        $highlighterTableRows = $highlighterTableBody.find('tr');
 
         return table;
       },
-      infoPopupContent: function (objects) {
-        var
+      infoPopupContent: (objects) => {
+        const
           grid = document.createElement('div'),
           row = document.createElement('div'),
           leftColumn = document.createElement('div'),
@@ -865,8 +834,8 @@ app.ready = async function () {
         row.appendChild(rightColumn);
         grid.appendChild(row);
 
-        objects.forEach(function (object) {
-          var
+        objects.forEach((object) => {
+          const
             newRow = document.createElement('div'),
             leftContent = document.createElement('div'),
             rightContent = document.createElement('div');
@@ -884,24 +853,14 @@ app.ready = async function () {
         });
         return grid;
       },
-      highlighterRow: function (enabled, name, color, pattern) {
+      highlighterRow: (enabled, name, color, pattern) => {
         const
           row = document.createElement('tr'),
-          checkboxCell = handler.create.checkboxCell(name, {
-            onChange: handler.saveHighlightsToSettings
-          }),
-          nameCell = handler.create.editableTextCell(name, {
-            onChange: handler.saveHighlightsToSettings
-          }),
-          colorCell = handler.create.colorCell(color, {
-            onChange: handler.saveHighlightsToSettings
-          }),
-          patternCell = handler.create.editableTextCell(pattern, {
-            onChange: handler.saveHighlightsToSettings
-          }),
-          actionsCell = handler.create.actionsCell({
-            onClick: handler.saveHighlightsToSettings
-          });
+          checkboxCell = handler.create.checkboxCell(name, { onChange: handler.saveHighlightsToSettings }),
+          nameCell = handler.create.editableTextCell(name, { onChange: handler.saveHighlightsToSettings }),
+          colorCell = handler.create.colorCell(color, { onChange: handler.saveHighlightsToSettings }),
+          patternCell = handler.create.editableTextCell(pattern, { onChange: handler.saveHighlightsToSettings }),
+          actionsCell = handler.create.actionsCell({ onClick: handler.saveHighlightsToSettings });
         row.appendChild(checkboxCell);
         row.appendChild(nameCell);
         row.appendChild(colorCell);
@@ -910,21 +869,13 @@ app.ready = async function () {
 
         return row;
       },
-      keyboardShortcutRow: function (enabled, keyCombo, name) {
+      keyboardShortcutRow: (enabled, keyCombo, name) => {
         const
           row = document.createElement('tr'),
-          checkboxCell = handler.create.checkboxCell(keyCombo, {
-            onChange: handler.saveKeyboardShortcutsToSettings
-          }),
-          shortcutsActionCell = handler.create.shortcutActionCell(name, {
-            onChange: handler.saveKeyboardShortcutsToSettings
-          }),
-          keyComboCell = handler.create.editableTextCell(keyCombo, {
-            onChange: handler.saveKeyboardShortcutsToSettings
-          }),
-          actionsCell = handler.create.actionsCell({
-            onChange: handler.saveKeyboardShortcutsToSettings
-          });
+          checkboxCell = handler.create.checkboxCell(keyCombo, { onChange: handler.saveKeyboardShortcutsToSettings }),
+          shortcutsActionCell = handler.create.shortcutActionCell(name, { onChange: handler.saveKeyboardShortcutsToSettings }),
+          keyComboCell = handler.create.editableTextCell(keyCombo, { onChange: handler.saveKeyboardShortcutsToSettings }),
+          actionsCell = handler.create.actionsCell({ onChange: handler.saveKeyboardShortcutsToSettings });
         row.appendChild(checkboxCell);
         row.appendChild(shortcutsActionCell);
         row.appendChild(keyComboCell);
@@ -932,7 +883,7 @@ app.ready = async function () {
 
         return row;
       },
-      checkboxCell: function (name, params = {}) {
+      checkboxCell: (name, params = {}) => {
         const
           cell = document.createElement('td'),
           div = document.createElement('div'),
@@ -952,7 +903,7 @@ app.ready = async function () {
         cell.appendChild(div);
         return cell;
       },
-      editableTextCell: function (name, params = {}) {
+      editableTextCell: (name, params = {}) => {
         const
           cell = document.createElement('td');
         cell.contentEditable = true;
@@ -960,7 +911,7 @@ app.ready = async function () {
         $(cell).on('input', params.onChange);
         return cell;
       },
-      colorCell: function (color, params = {}) {
+      colorCell: (color, params = {}) => {
         const
           cell = document.createElement('td'),
           dropdownDiv = document.createElement('div'),
@@ -978,7 +929,7 @@ app.ready = async function () {
         defaultText.className = 'default text';
         defaultText.textContent = 'Color...';
         menuDiv.className = 'menu';
-        colors.forEach(function (color) {
+        colors.forEach(color => {
           const
             itemDiv = document.createElement('div'),
             colorIcon = document.createElement('i'),
@@ -1009,7 +960,7 @@ app.ready = async function () {
 
         return cell;
       },
-      shortcutActionCell: function (action, params = {}) {
+      shortcutActionCell: (action, params = {}) => {
         const
           cell = document.createElement('td');
         dropdownDiv = document.createElement('div'),
@@ -1026,7 +977,7 @@ app.ready = async function () {
         defaultText.className = 'default text';
         defaultText.textContent = 'Action...';
         menuDiv.className = 'menu';
-        availableShortcutActions.forEach(function (action) {
+        availableShortcutActions.forEach(action => {
           const
             itemDiv = document.createElement('div'),
             actionIcon = document.createElement('i'),
@@ -1054,7 +1005,7 @@ app.ready = async function () {
         cell.appendChild(dropdownDiv);
         return cell;
       },
-      actionsCell: function (params = {}) {
+      actionsCell: (params = {}) => {
         const
           actionCell = document.createElement('td'),
           deleteButton = document.createElement('i');
@@ -1070,7 +1021,7 @@ app.ready = async function () {
         actionCell.appendChild(deleteButton);
         return actionCell;
       },
-      map: function (name) {
+      map: (name) => {
         map = new L.map(name, {
           crs: L.CRS.Simple,
           minZoom: -2,
@@ -1086,17 +1037,8 @@ app.ready = async function () {
           maxBoundsViscosity: .5,
         });
 
-        var
+        const
           zoomControl = new L.Control.Zoom({ position: 'topright' }),
-          // modifiedDraw = new L.drawLocal.extend({
-          //   draw: {
-          //     toolbar: {
-          //       buttons: {
-          //         polygon: 'Draw an awesome polygon'
-          //       }
-          //     }
-          //   }
-          // }),
           drawControl = new L.Control.Draw({
             draw: {
               polygon: false,
@@ -1117,46 +1059,44 @@ app.ready = async function () {
         map.addControl(zoomControl);
         map.addControl(drawControl);
 
-        map.on('draw:deleted', function (e) {
+        map.on('draw:deleted', (e) => {
           Object.keys(e.layers._layers)
             .forEach(element => {
-              var
+              const
                 polyid = parseInt(element),
-                delbox = boxData.find(function (box) {
-                  return box.polyid == polyid;
-                }),
+                delbox = boxData.find(box => box.polyid == polyid),
                 delindex = handler.delete.box(delbox);
             });
           handler.update.progressBar({ type: 'tagging' });
         });
-        map.on('draw:deletestart', async function (event) {
-          mapState = 'deleting';
-        });
-        map.on('draw:deletestop', async function (event) {
+        map.on('draw:deletestart', async event => mapState = 'deleting');
+        map.on('draw:deletestop', async (event) => {
           mapState = null;
           handler.update.slider({ max: boxData.length });
         });
-        map.on('draw:drawstart', async function (event) {
-          mapState = 'editing';
-        });
-        map.on('draw:drawstop', async function (event) {
-          mapState = null;
-        });
-        map.on(L.Draw.Event.CREATED, async function (event) {
-          if (event.layerType === 'rectangle') {
-            await handler.create.rectangle(event.layer);
-          } else if (event.layerType === 'polyline') {
-            await handler.create.polyline(event.layer);
+        map.on('draw:drawstart', async event => mapState = 'editing');
+        map.on('draw:drawstop', async event => mapState = null);
+        map.on(L.Draw.Event.CREATED, async (event) => {
+          switch (event.layerType) {
+            case 'rectangle':
+              await handler.create.rectangle(event.layer);
+              break;
+            case 'polyline':
+              await handler.create.polyline(event.layer);
+              break;
+
+            default:
+              break;
           }
           handler.focusBoxID(selectedPoly._leaflet_id);
         });
       },
-      rectangle: function (layer) {
+      rectangle: layer => {
         layer.on('edit', handler.editRectangle);
         layer.on('click', handler.selectRectangle);
         handler.style.setActive(layer);
         boxLayer.addLayer(layer);
-        var
+        const
           polyid = boxLayer.getLayerId(layer),
           newBox = new Box({
             polyid: polyid,
@@ -1168,9 +1108,7 @@ app.ready = async function () {
           }),
           idx = 0;
         if (selectedBox) {
-          idx = boxData.findIndex(function (x) {
-            return x.equals(selectedBox);
-          });
+          idx = boxData.findIndex(x => x.equals(selectedBox));
         }
         boxData.splice(idx + 1, 0, newBox);
         handler.sortAllBoxes();
@@ -1178,7 +1116,7 @@ app.ready = async function () {
         map.addLayer(boxLayer);
         handler.focusBoxID(polyid);
       },
-      polyline: async function (poly) {
+      polyline: async (poly) => {
         handler.set.loadingState({ main: true, buttons: true });
         var
           polyBounds = poly.getBounds(),
@@ -1186,7 +1124,7 @@ app.ready = async function () {
           newBoxes = [],
           deleteBoxes = [];
         for (var i = 0; i < boxData.length; i++) {
-          var
+          const
             box = boxData[i],
             boxBounds = L.latLngBounds([box.y1, box.x1], [box.y2, box.x2]),
             intersection = boxBounds.intersects(polyBounds);
@@ -1202,8 +1140,8 @@ app.ready = async function () {
           }
         }
         deleteBoxes
-          .forEach(function (box) {
-            var layer = boxLayer.getLayer(box.polyid);
+          .forEach(box => {
+            const layer = boxLayer.getLayer(box.polyid);
             boxLayer.removeLayer(layer);
             boxData.splice(boxData.indexOf(box), 1);
             handler.delete.box(box);
@@ -1212,13 +1150,13 @@ app.ready = async function () {
         newBoxes = newBoxes.map(box => new Box(box));
 
         newBoxes
-          .forEach(function (newBox) {
-            var newPoly = L.rectangle([[newBox.y1, newBox.x1], [newBox.y2, newBox.x2]]);
+          .forEach(newBox => {
+            const newPoly = L.rectangle([[newBox.y1, newBox.x1], [newBox.y2, newBox.x2]]);
             newPoly.on('edit', handler.editRectangle);
             newPoly.on('click', handler.selectRectangle);
             handler.style.remove(newPoly);
             boxLayer.addLayer(newPoly);
-            var polyid = boxLayer.getLayerId(newPoly);
+            const polyid = boxLayer.getLayerId(newPoly);
             newBox.polyid = polyid;
             boxData.push(newBox);
           });
@@ -1238,54 +1176,46 @@ app.ready = async function () {
         }
       },
     },
-    addNewHighlighterPattern: function () {
-      const tableBody = $highlighterTableBody[0];
-      const row = handler.create.highlighterRow(true, 'New Highlighter', false, '.');
+    addNewHighlighterPattern: () => {
+      const
+        tableBody = $highlighterTableBody[0],
+        row = handler.create.highlighterRow(true, 'New Highlighter', false, '.');
       tableBody.append(row);
       // update selectors
       $highlighterTableBody = $highlighterTableContainer.find('.ui.celled.table tbody');
       $highlighterTableRows = $highlighterTableBody.find('tr');
       handler.saveHighlightsToSettings();
     },
-    sortAllBoxes: function () {
-      boxData.sort(Box.compare);
-    },
-    editRectangle: async function (event) {
-      var
+    sortAllBoxes: () => boxData.sort(Box.compare),
+    editRectangle: async (event) => {
+      const
         layer = event.target,
         box = boxData.find(x => x.polyid == layer._leaflet_id),
         newBox = new Box({
-          text: box.text,
+          text: lineDataInfo.isDirty() ? $groundTruthInputField.val() : box.text,
           x1: Math.round(layer._latlngs[0][0].lng),
           y1: Math.round(layer._latlngs[0][0].lat),
           x2: Math.round(layer._latlngs[0][2].lng),
           y2: Math.round(layer._latlngs[0][2].lat),
-        }),
-        lineWasDirty = lineDataInfo.isDirty();
+        });
       await handler.update.boxData(layer._leaflet_id, newBox);
-      handler.update.form(newBox);
-      if (lineWasDirty) {
-        newBox.text = $groundTruthInputField.val();
-      }
+      await handler.update.form(newBox);
       handler.sortAllBoxes();
     },
-    selectRectangle: function (event) {
-      if (event.target.editing.enabled() || mapState == 'deleting') {
-        return;
-      }
-      var
-        shape = event.target;
+    selectRectangle: (event) => {
+      if (event.target.editing.enabled() || 'deleting'.includes(mapState)) return;
+      const shape = event.target;
       handler.style.remove(selectedPoly);
       handler.map.disableEditBox(selectedPoly);
       handler.focusBoxID(shape._leaflet_id);
       handler.map.enableEditBox(shape);
       handler.sortAllBoxes();
     },
-    cutBoxByPoly: function (box, poly) {
-      var
+    cutBoxByPoly: (box, poly) => {
+      const
         polyFeature = turf.lineString(poly),
-        boxFeature = turf.bboxPolygon([box.x1, box.y1, box.x2, box.y2]),
-        splitLines = [];
+        boxFeature = turf.bboxPolygon([box.x1, box.y1, box.x2, box.y2]);
+      var splitLines = [];
 
       for (var i = 0; i < poly._latlngs.length - 1; i++) {
         var
@@ -1295,20 +1225,20 @@ app.ready = async function () {
           j++;
           segmentPoints.push([poly._latlngs[j].lng, poly._latlngs[j].lat]);
         }
-        var segmentFeature = turf.lineString(segmentPoints);
+        const segmentFeature = turf.lineString(segmentPoints);
         splitLines.push(segmentFeature);
         i = j - 1;
       }
 
       var intersectingLines = [];
-      splitLines.forEach(function (line) {
+      splitLines.forEach(line => {
         if (turf.booleanIntersects(line, boxFeature)) {
           intersectingLines.push(line);
         }
       });
 
       var boxGaps = [];
-      intersectingLines.forEach(function (line) {
+      intersectingLines.forEach(line=> {
         boxGaps.push(turf.envelope(line));
       });
 
@@ -1316,16 +1246,16 @@ app.ready = async function () {
         newBoxes = [],
         newEdges = [];
       newEdges.push(box.x1);
-      boxGaps.forEach(function (gap) {
+      boxGaps.forEach(gap=> {
         newEdges.push(gap.geometry.coordinates[0][0][0]);
         newEdges.push(gap.geometry.coordinates[0][2][0]);
       });
       newEdges.push(box.x2);
 
-      newEdges.sort(function (a, b) { return a - b });
+      newEdges.sort((a, b) => a - b);
 
       for (var i = 0; i < newEdges.length - 1; i += 2) {
-        var newBox = {
+        const newBox = {
           x1: newEdges[i],
           y1: box.y1,
           x2: newEdges[i + 1],
@@ -1334,7 +1264,7 @@ app.ready = async function () {
         newBoxes.push(newBox);
       }
 
-      newBoxes.forEach(function (element) {
+      newBoxes.forEach(element=> {
         element.x1 = Math.round(element.x1);
         element.y1 = Math.round(element.y1);
         element.x2 = Math.round(element.x2);
@@ -1344,27 +1274,22 @@ app.ready = async function () {
       return newBoxes;
     },
     set: {
-      mapResize: async function (height, animate) {
+      mapResize: async (height, animate) => {
         // TODO: refresh jquery selector. It does not work even though it shoud.
         // $map[0].animate({ height: height }, animate ? 500 : 0);
         $('#mapid').animate({ height: height }, animate ? 500 : 0);
         await handler.map.invalidateSize();
       },
-      mapSize: async function (options, animate = true) {
+      mapSize: async (options, animate = true) => {
         await handler.set.mapResize(options.height, animate);
-
-        if (selectedPoly != undefined) {
-          selectedPoly
-            .getBounds()
-            .extend(selectedPoly.getBounds());
-        }
+        selectedPoly?.getBounds().extend(selectedPoly.getBounds());
       },
-      appAppearance: function (value) {
-        var docClassesRef = $document[0].documentElement.classList;
+      appAppearance: (value) => {
+        const docClassesRef = $document[0].documentElement.classList;
         docClassesRef.remove(...docClassesRef);
         docClassesRef.toggle(value);
       },
-      loadingState: function (object) {
+      loadingState: (object) => {
         if (object.main != undefined) {
           if (object.main) {
             $map.addClass('loading disabled');
@@ -1385,38 +1310,34 @@ app.ready = async function () {
         if (object.buttons != undefined) {
           if (object.buttons) {
             $fields
-              .each(function () {
-                $(this)
-                  .prop('disabled', true)
-                  .addClass('disabled');
-              });
+              .each((_, elem) => $(elem)
+                .prop('disabled', true)
+                .addClass('disabled')
+              );
             $buttons
-              .each(function () {
-                $(this)
-                  .prop('disabled', true)
-                  .addClass('disabled');
-              });
+              .each((_, elem) => $(elem)
+                .prop('disabled', true)
+                .addClass('disabled')
+              );
           } else {
             $fields
-              .each(function () {
-                $(this)
-                  .prop('disabled', false)
-                  .removeClass('disabled');
-              });
+              .each((_, elem) => $(elem)
+                .prop('disabled', false)
+                .removeClass('disabled')
+              );
             $buttons
-              .each(function () {
-                $(this)
-                  .prop('disabled', false)
-                  .removeClass('disabled');
-              });
+              .each((_, elem) => $(elem)
+                .prop('disabled', false)
+                .removeClass('disabled')
+              );
           }
         }
       },
     },
     update: {
-      settingsModal: async function () {
+      settingsModal: async () => {
         // Toolbar Actions
-        if (Object.values(appSettings.interface.toolbarActions).every(function (value) { return !value; })) {
+        if (Object.values(appSettings.interface.toolbarActions).every(value => !value)) {
           $toolbar.toggle(false);
         } else {
           $toolbar.toggle(true);
@@ -1436,10 +1357,10 @@ app.ready = async function () {
         $imageViewHeightSlider.slider('set value', appSettings.interface.imageView, fireChange = false);
         if (appSettings.interface.imageView < 300) {
           // find item with text 'Tiny'
-          $imageViewHeightSlider.find('.label').each(function () {
+          $imageViewHeightSlider.find('.label').each(() => {
             if (this.innerText == 'Tiny') {
               // append span element with additional text
-              this.innerHTML += '<span class="ui italic grey text">&nbsp;– Some editor buttons will be clipped.</span>';
+              this.innerHTML += '<span class="ui italic grey text">&nbsp;– Some editor buttons will get clipped.</span>';
             }
           });
         }
@@ -1448,7 +1369,7 @@ app.ready = async function () {
         for (const [key, value] of Object.entries(appSettings.behavior.onImageLoad)) {
           const path = 'behavior.onImageLoad.' + key;
           document.querySelector(`input[name='${path}']`).checked = value;
-          if (key == 'detectAllLines' && !value) {
+          if ('detectAllLines'.includes(key) && !value) {
             document.querySelector(`input[name="behavior.onImageLoad.includeTextForDetectedLines"]`).disable = true;
             document.querySelector(`input[name="behavior.onImageLoad.includeTextForDetectedLines"]`).parentElement.classList.add('disabled');
           }
@@ -1464,16 +1385,11 @@ app.ready = async function () {
           const checkbox = $checkboxes.find(`input[name="${path}"]`);
           checkbox.prop('checked', value);
           $('#' + key).toggle(appSettings.behavior.workflow[key]);
-          // }
-          // // Convenience Features
-          // for (const [key, value] of Object.entries(appSettings.behavior.workflow)) {
-          // const path = 'behavior.convenience.' + key;
           document.querySelector(`input[name='${path}']`).checked = value;
-          // }
         }
         // Keyboard Shortcuts
         for (const [key, value] of Object.entries(appSettings.behavior.keyboardShortcuts)) {
-          if (key != 'shortcuts') {
+          if (!'shortcuts'.includes(key)) {
             const path = 'behavior.keyboardShortcuts.' + key;
             document.querySelector(`input[name='${path}']`).checked = value;
           }
@@ -1483,26 +1399,21 @@ app.ready = async function () {
         $ocrModelDropdown.dropdown('set selected', appSettings.language.recognitionModel, true);
         // Highlighter
         for (const [key, value] of Object.entries(appSettings.highlighter.textHighlighting)) {
-          if (key != 'highlightsPatterns') {
+          if (!'highlightsPatterns'.includes(key)) {
             const path = 'highlighter.textHighlighting.' + key;
             document.querySelector(`input[name='${path}']`).checked = value;
           }
         }
         // Invisibles Toggle
-        if (appSettings.interface.showInvisibles) {
-          $invisiblesToggleButton.addClass('active');
-        } else {
-          $invisiblesToggleButton.removeClass('active');
-        }
+        appSettings.interface.showInvisibles ? $invisiblesToggleButton.addClass('active') : $invisiblesToggleButton.removeClass('active');
       },
-      progressBar: function (options = {}) {
+      progressBar: (options = {}) => {
         if (options.reset) {
           $progressLabel.text('');
           return;
         }
-        if (options.type == 'tagging') {
-          var
-            currentPosition = boxData.indexOf(selectedBox);
+        if (/tagging/.test(options.type)) {
+          const currentPosition = boxData.indexOf(selectedBox);
           if ($positionSlider.slider('get max') != boxData.length) {
             handler.update.slider({
               value: currentPosition + 1,
@@ -1512,16 +1423,13 @@ app.ready = async function () {
             handler.update.slider({ value: currentPosition + 1 });
           }
           if (boxData.every(box => box.filled)) {
-            var
+            const
               modifiedLines = boxData.filter(box => box.committed);
             $progressSlider.progress({
               value: modifiedLines.length,
               total: boxData.length,
-              text: {
-                active: 'Updating: {value} out of {total} / {percent}%',
-              }
+              text: { active: 'Updating: {value} out of {total} / {percent}%', }
             })
-            return;
           } else {
             $progressSlider.removeClass('active indicating');
             var
@@ -1529,72 +1437,74 @@ app.ready = async function () {
             $progressSlider.progress({
               value: textLines.length,
               total: boxData.length,
-              text: {
-                active: 'Tagging: {value} out of {total} / {percent}%',
-              }
+              text: { active: 'Tagging: {value} out of {total} / {percent}%', }
             });
           }
           return;
         } else {
           $progressSlider.addClass('indicating');
-          if (options.type == 'ocr') {
+          if (/ocr/.test(options.type)) {
             $progressSlider.progress({
               value: options.progress,
               total: 1,
-              text: {
-                active: 'Analyzing Image: {percent}%',
-              }
+              text: { active: 'Analyzing Image: {percent}%', }
             });
-            return;
-          } else if (options.type == 'initializingWorker') {
+          } else if (/initializingWorker/.test(options.type)) {
             $progressSlider.progress({
               value: 0,
               total: 1,
-              text: {
-                active: options.status + '…',
-              }
+              text: { active: options.status + '…', }
             });
-          } else if (options.type = 'regeneratingTextData') {
+          } else if (/regeneratingTextData/.test(options.type)) {
             $progressSlider.progress({
               value: options.value,
               total: options.total,
-              text: {
-                active: 'Regenerating Text Data…',
-              }
+              text: { active: 'Regenerating Text Data…', }
             });
           }
+          return;
         }
       },
-      slider: function (options) {
+      slider: (options) => {
         if (options.max) handler.init.slider();
         if (options.value) $positionSlider.slider('set value', options.value, fireChange = false);
         if (options.min) $positionSlider.slider('setting', 'min', options.min);
-        return;
       },
-      boxData: function (polyid, newData) {
-        var
-          isUpdated = false,
-          oldBoxIndex = boxData.findIndex(function (x) {
-            return x.polyid == polyid;
-          }),
+      highlighterTable: (enabling) => {
+        if (enabling) {
+          $highlighterTableRows
+            .each((index, elem) => {
+              $(elem.querySelector('td:nth-child(1) .checkbox')).checkbox('set enabled');
+              $(elem.querySelector('td:nth-child(2)'))[0].classList.remove('disabled');
+              $(elem.querySelector('td:nth-child(3) .dropdown'))[0].classList.remove('disabled');
+              $(elem.querySelector('td:nth-child(4)'))[0].classList.remove('disabled');
+              handler.unhighlightCell(elem.querySelector('td:nth-child(4)'));
+            });
+        } else {
+          $highlighterTableRows
+            .each((index, elem) => {
+              $(elem.querySelector('td:nth-child(1) .checkbox')).checkbox('set disabled');
+              $(elem.querySelector('td:nth-child(2)'))[0].classList.add('disabled');
+              $(elem.querySelector('td:nth-child(3) .dropdown'))[0].classList.add('disabled');
+              $(elem.querySelector('td:nth-child(4)'))[0].classList.add('disabled');
+            });
+        }
+      },
+      boxData: (polyid, newData) => {
+        const oldBoxIndex = boxData.findIndex(x => x.polyid == polyid),
           // if oldBoxIndex is -1 then that box doesn't exist and data is new
           oldData = oldBoxIndex > -1 ? boxData[oldBoxIndex] : boxData[0];
-        newData.polyid = polyid
+        newData.polyid = polyid;
         // check if data is different
-        if (oldData.committed || !oldData.equals(newData)) {
-          isUpdated = true;
-          if (oldData.text != '') {
-            newData.committed = true;
-          }
-        }
-        boxData[oldBoxIndex] = newData
-        boxDataInfo.setDirty();
+        newData.committed = oldData.committed || !oldData.equals(newData);
+        boxData[oldBoxIndex] = newData;
+        boxDataInfo.setDirty(true);
         lineDataInfo.setDirty(false);
         handler.update.progressBar({ type: 'tagging' });
-        return isUpdated;
+        return newData.committed;
       },
-      boxCoordinates: function () {
-        var polyid = parseInt($groundTruthInputField.attr('boxid')),
+      boxCoordinates: () => {
+        const polyid = parseInt($groundTruthInputField.attr('boxid')),
           newBoxData = new Box({
             text: $groundTruthInputField.val(),
             x1: Math.round($x1Field.val()),
@@ -1605,14 +1515,14 @@ app.ready = async function () {
           isUpdated = handler.update.boxData(polyid, newBoxData);
         handler.update.rectangle(polyid, newBoxData);
       },
-      rectangle: function (polyid, data) {
-        var
-          box = boxLayer.getLayer(polyid);
+      rectangle: (polyid, data) => {
+        const box = boxLayer.getLayer(polyid);
         box.setBounds([[data.y1, data.x1], [data.y2, data.x2]]);
       },
-      form: function (box) {
+      form: (box) => {
+        const same = box.polyid == selectedBox?.polyid;
+        $groundTruthInputField.val(same && $groundTruthInputField.val().length ? $groundTruthInputField.val() : box.text);
         selectedBox = box;
-        $groundTruthInputField.val(box.text);
         $groundTruthInputField.attr('boxid', box.polyid);
         $x1Field.val(box.x1);
         $y1Field.val(box.y1);
@@ -1623,36 +1533,30 @@ app.ready = async function () {
         $groundTruthInputField.select();
         handler.update.colorizedBackground();
         handler.update.progressBar({ type: 'tagging' });
-        lineDataInfo.setDirty(false);
+        lineDataInfo.setDirty(same);
         handler.close.popups();
       },
-      confidenceScoreField: async function (box) {
-        if (!$modelConfidenceScoreEnabledCheckbox[0].checked) {
-          $modelConfidenceScoreDetail.text('');
-          return;
-        }
-        $modelConfidenceScoreDetail.text(box.isModelGeneratedText ? `Suggestion Confidence: ${Math.round(box.modelConfidenceScore)}%` : '');
-        // colorize if low confidence
-        if (box.isModelGeneratedText) {
-          colorMap = {
+      confidenceScoreField: async (box) => {
+        $modelConfidenceScoreDetail.text('');
+        if ($modelConfidenceScoreEnabledCheckbox[0].checked && box.isModelGeneratedText) {
+          $modelConfidenceScoreDetail.text(`Suggestion Confidence: ${Math.round(box.modelConfidenceScore)}%`);
+          // colorize if low confidence
+          const colorMap = {
             70: 'red',
             85: 'orange',
             95: 'grey',
             100: 'green',
           }
-          for (var lowConfidence in colorMap) {
+          for (const lowConfidence of Object.keys(colorMap).reverse()) {
             if (box.modelConfidenceScore < lowConfidence) {
+              $modelConfidenceScoreDetail.removeClass(Object.values(colorMap).join(' '));
               $modelConfidenceScoreDetail.addClass(colorMap[lowConfidence]);
-              // $modelConfidenceScoreDetail.removeClass('grey');
-              break;
             }
-            $modelConfidenceScoreDetail.removeClass(Object.values(colorMap).join(' '));
-            // $modelConfidenceScoreDetail.addClass('grey');
           }
         }
       },
-      downloadButtonsLabels: function (options = {}) {
-        var icon = document.createElement('i');
+      downloadButtonsLabels: (options = {}) => {
+        const icon = document.createElement('i');
         icon.className = 'download icon';
         if (options.boxDownloadButton) {
           $downloadBoxFileButton.html(icon.cloneNode(true));
@@ -1663,20 +1567,17 @@ app.ready = async function () {
           $downloadGroundTruthFileButton.html(options.groundTruthDownloadButton);
         }
       },
-      colorizedBackground: async function () {
-        $colorizedOutputForms.each(async function () {
-          var
-            inputField = $(this).find('.colorized-input-field'),
-            outputField = $(this).find('.colorized-output-field')[0],
+      colorizedBackground: async () => {
+        $colorizedOutputForms.each(async (_, element) => {
+          const
+            inputField = $(element).find('.colorized-input-field'),
+            outputField = $(element).find('.colorized-output-field')[0],
             colorizedText = await handler.colorizeText(inputField.val());
           outputField.innerHTML = colorizedText;
-
         });
       },
-      localStorage: function () {
-        localStorage.setItem(appSettings.localStorageKey, JSON.stringify(appSettings));
-      },
-      appSettings: function ({ path, value, localStorage }) {
+      localStorage: () => localStorage.setItem(appSettings.localStorageKey, JSON.stringify(appSettings)),
+      appSettings: ({ path, value, localStorage }) => {
         if (localStorage) {
           if (localStorage.appVersion == undefined) {
             localStorage.appVersion = '0';
@@ -1695,20 +1596,13 @@ app.ready = async function () {
 
           handler.update.localStorage();
         } else {
-          var
+          const
             pathElements = path.split('.'),
             button = document.createElement('div'),
             status = document.createElement('div'),
             inlineLoader = document.createElement('div'),
             lastElementIndex = pathElements.length - 1,
-            updatedSettings = pathElements.reduce((obj, key, index) => {
-              if (index === lastElementIndex) {
-                obj[key] = value;
-              } else {
-                obj[key] = { ...obj[key] };
-              }
-              return obj[key];
-            }, appSettings);
+            updatedSettings = pathElements.reduce((obj, key, index) => obj[key] = lastElementIndex === index ? value : { ...obj[key] }, appSettings);
           handler.update.localStorage();
           button.className = 'ui button ok';
           button.tabIndex = '0';
@@ -1731,7 +1625,7 @@ app.ready = async function () {
         }
         handler.update.settingsModal();
       },
-      patternLabels: function () {
+      patternLabels: () => {
         $highlighterLabels.empty();
         if (!$textHighlightingEnabledCheckbox[0].checked) return;
         const highlights = handler.getHighlighters();
@@ -1754,7 +1648,7 @@ app.ready = async function () {
         }
       },
     },
-    migrateSettings: function (oldSettings, downgrade = false) {
+    migrateSettings: (oldSettings, downgrade = false) => {
       if (downgrade) {
         // Downgrading settings
 
@@ -1767,7 +1661,7 @@ app.ready = async function () {
 
         if (handler.compareVersions(oldSettings.appVersion, '1.6.2') < 0) {
           // migrate map height labels to numbers
-          var oldHeightLabels = {
+          const oldHeightLabels = {
             'short': 300,
             'medium': 500,
             'tall': 700
@@ -1784,15 +1678,12 @@ app.ready = async function () {
         if (handler.compareVersions(oldSettings.appVersion, '1.6.0') < 0) {
           // clear cookies set by versions prior to 1.6.0
           // also remove html script tag for JS Cookie
-          const cookies = Cookies.get();
-          for (const cookie in cookies) {
-            Cookies.remove(cookie);
-          }
+          Cookies.get().forEach(cookie => Cookies.remove(cookie));
         }
         return oldSettings;
       }
     },
-    receiveDroppedFiles: async function (event) {
+    receiveDroppedFiles: async (event) => {
       if (event.length > 2) {
         handler.notifyUser({
           title: 'Too many files',
@@ -1811,7 +1702,7 @@ app.ready = async function () {
       }
       var
         files = event;
-      files.forEach(function (file) {
+      files.forEach(file=> {
         if (file.type.includes('image')) {
           imageFile = file;
         } else if (file.name.endsWith('.box')) {
@@ -1842,7 +1733,7 @@ app.ready = async function () {
       }
     },
     init: {
-      slider: function () {
+      slider: () => {
         $positionSlider.slider('destroy');
         $positionSlider.slider({
           min: 1,
@@ -1851,15 +1742,7 @@ app.ready = async function () {
           start: 1,
           smooth: true,
           labelDistance: 50,
-          onChange: function (value) {
-            if (currentSliderPosition != value &&
-              value > 0 &&
-              value <= boxData.length) {
-              handler.focusBoxID(boxData[value - 1].polyid);
-              currentSliderPosition = value;
-            }
-          },
-          onMove: function (value) {
+          onMove: (value) => {
             if (currentSliderPosition != value &&
               value > 0 &&
               value <= boxData.length) {
@@ -1873,31 +1756,30 @@ app.ready = async function () {
       },
     },
     process: {
-      workerLogMessage: function (message) {
-        if (message.status == 'recognizing text') {
-          message.type = 'ocr';
-        } else {
-          message.type = 'initializingWorker';
-        }
+      workerLogMessage: (message) => {
+        message.type = 'recognizing text'.includes(message.status) ? 'ocr' : 'initializingWorker';
         // suppress log messages
         if (!suppressLogMessages[message.status]) {
           handler.update.progressBar(message);
         }
         return message;
       },
-      boxFile: function (event) {
-        var
-          content = event.target.result;
-        handler.getBoxFileType(content);
+      boxFile: (event) => {
+        const content = event.target.result;
         if (content && content.length) {
           boxLayer.clearLayers();
           boxData = [];
-          if (boxFileType == BoxFileType.WORDSTR) {
-            handler.process.wordstr(content);
-          } else if (boxFileType == BoxFileType.CHAR_OR_LINE) {
-            handler.process.char_or_line(content);
-          } else {
-            console.warn('invalid file format');
+          switch (handler.getBoxFileType(content)) {
+            case BoxFileType.WORDSTR:
+              handler.process.wordstr(content);
+              break;
+            case BoxFileType.CHAR_OR_LINE:
+              handler.process.char_or_line(content);
+              return;
+
+            default:
+              console.error('invalid file format');
+              return;
           }
           map.addLayer(boxLayer);
         }
@@ -1906,48 +1788,52 @@ app.ready = async function () {
         handler.focusBoxID(selectedBox.polyid);
         handler.update.colorizedBackground();
       },
-      wordstr: function (content) {
-        var lines = content.split(/\r?\n/);
-        lines.forEach(function (line) {
-          if (line.startsWith('WordStr ')) {
-            var [dimensions, actualText] = line.split('#');
-            dimensions = dimensions.split(' ');
-            var box = new Box({
-              text: actualText,
-              x1: parseInt(dimensions[1]),
-              y1: parseInt(dimensions[2]),
-              x2: parseInt(dimensions[3]),
-              y2: parseInt(dimensions[4]),
-              isModelGeneratedText: false,
-            });
-
-            var rectangle = L.rectangle([[box.y1, box.x1], [box.y2, box.x2]]);
-            rectangle.on('edit', handler.editRectangle);
-            rectangle.on('click', handler.selectRectangle);
-            handler.style.remove(rectangle);
-            boxLayer.addLayer(rectangle);
-            box.polyid = boxLayer.getLayerId(rectangle);
-            boxData.push(box);
-          }
-        });
+      wordstr: (content) => {
+        const lines = content.split(/\r?\n/);
+        // get odd numbered lines
+        // lines.filter(index, lines => index % 2 == 1)
+        lines
+          .forEach((line) => {
+            if (line.startsWith('WordStr ')) {
+              const
+                [coordinates, text] = line.split('#'),
+                dimensions = coordinates.split(' '),
+                box = new Box({
+                  text: text,
+                  x1: parseInt(dimensions[1]),
+                  y1: parseInt(dimensions[2]),
+                  x2: parseInt(dimensions[3]),
+                  y2: parseInt(dimensions[4]),
+                  isModelGeneratedText: false,
+                }),
+                rectangle = L.rectangle([[box.y1, box.x1], [box.y2, box.x2]]);
+              rectangle.on('edit', handler.editRectangle);
+              rectangle.on('click', handler.selectRectangle);
+              handler.style.remove(rectangle);
+              boxLayer.addLayer(rectangle);
+              box.polyid = boxLayer.getLayerId(rectangle);
+              boxData.push(box);
+            }
+          });
       },
-      char_or_line: function (content) {
+      char_or_line: (content) => {
+        // TODO: handle char_or_line format
       },
     },
-    getBoxFileType: function (content) {
-      if (content == '') boxFileType = BoxFileType.WORDSTR;
-      var
-        firstLine = content.startsWith('WordStr '),
-        secondLine = content.split('\n')[1].startsWith('\t');
-      if (firstLine && secondLine) {
-        boxFileType = BoxFileType.WORDSTR;
-      } else {
-        boxFileType = BoxFileType.CHAR_OR_LINE;
+    getBoxFileType: (content) => {
+      if (!content.length) boxFileType = BoxFileType.WORDSTR;
+      for (key of Object.keys(BoxFileType)) {
+        if (key.endsWith('_PATTERN') && BoxFileType[key].test(content)) {
+          key = key.replace('_PATTERN', '');
+          boxFileType = BoxFileType[key];
+          return boxFileType;
+        }
       }
+      return !content.length ? BoxFileType.WORDSTR : '';
     },
-    formatDate: function (date) {
-      var options = { month: 'long', day: 'numeric', year: 'numeric' };
-      var dateString = date.toLocaleDateString('en-US', options);
+    formatDate: (date) => {
+      const options = { month: 'long', day: 'numeric', year: 'numeric' };
+      const dateString = date.toLocaleDateString('en-US', options);
       // dateString = dateString.replace(/(\d+)(st|nd|rd|th)/, '$1');
       const day = date.getDate();
       let daySuffix;
@@ -1966,14 +1852,10 @@ app.ready = async function () {
       return formattedDate;
     },
     load: {
-      tesseractWorker: async function () {
-        var
-          langPathURL = 'https://tessdata.projectnaptha.com/4.0.0_best',
-          isGzip = true;
-        if (appSettings.language.languageModelIsCustom) {
-          langPathURL = '../../assets';
-          isGzip = false;
-        }
+      tesseractWorker: async () => {
+        const
+          langPathURL = appSettings.language.languageModelIsCustom ? '../../assets' : 'https://tessdata.projectnaptha.com/4.0.0_best',
+          isGzip = appSettings.language.languageModelIsCustom ? false : true;
         worker = await Tesseract.createWorker({
           logger: m => handler.process.workerLogMessage(m),
           langPath: langPathURL,
@@ -1986,18 +1868,35 @@ app.ready = async function () {
         });
         return true;
       },
-      tesseractLanguage: async function () {
-        await worker.loadLanguage(appSettings.language.recognitionModel);
-        await worker.initialize(appSettings.language.recognitionModel);
-        return true;
+      tesseractLanguage: async () => {
+        try {
+          await worker.loadLanguage(appSettings.language.recognitionModel);
+          await worker.initialize(appSettings.language.recognitionModel);
+          return true;
+        } catch (error) {
+          if (error.includes('Error: Network error while fetching')) {
+            console.log(error);
+            handler.notifyUser({
+              title: notificationTypes.error.loadingLanguageModelError.title,
+              message: `Failed to load selected language model ${appSettings.language.recognitionModel}. Loading default RTS instead.`,
+              type: notificationTypes.error.loadingLanguageModelError.type,
+            });
+            appSettings.language.recognitionModel = 'RTS_from_Cyrillic';
+            $ocrModelDropdownInSettings.dropdown('set selected', appSettings.language.recognitionModel, false);
+            return await handler.load.tesseractLanguage();
+          } else {
+            console.log(error);
+            throw error;
+          }
+        }
       },
-      dropdowns: function () {
+      dropdowns: () => {
         $ocrModelDropdown.dropdown({
-          onChange: async function (value, text, $selectedItem) {
+          onChange: async (value, text, $selectedItem) => {
             $ocrModelDropdown.addClass('loading');
             handler.set.loadingState({ buttons: true });
             appSettings.language.recognitionModel = value;
-            var custom = value == 'RTS_from_Cyrillic' ? true : false;
+            const custom = value == 'RTS_from_Cyrillic' ? true : false;
             if (appSettings.language.languageModelIsCustom != custom) {
               appSettings.language.languageModelIsCustom = custom;
               await handler.load.tesseractWorker();
@@ -2011,7 +1910,7 @@ app.ready = async function () {
           }
         });
         $ocrModelDropdownInSettings.dropdown({
-          onChange: async function (value, text, $selectedItem) {
+          onChange: async (value, text, $selectedItem) => {
             // $ocrModelDropdownInSettings.dropdown('set selected', value, true);
             // handler.update.appSettings({
             //   path: $ocrModelDropdownInSettings[0].getAttribute('name'), value: value
@@ -2033,15 +1932,15 @@ app.ready = async function () {
           }
         });
       },
-      keyboardShortcuts: function () {
-        $window.keyup(function (event) {
+      keyboardShortcuts: () => {
+        $window.keyup(event => {
           if (handler.keyboardShortcuts.isModifierKey(event.key)) {
             pressedModifiers[event.key] = false;
             // console.log('removed', event.key, 'from pressedModifiers', pressedModifiers);
           }
         });
         $window.off('keydown');
-        $window.keydown(function (event) {
+        $window.keydown(event => {
           // Check if the pressed key is a modifier key
           if (handler.keyboardShortcuts.isModifierKey(event.key)) {
             pressedModifiers[event.key] = true;
@@ -2050,18 +1949,17 @@ app.ready = async function () {
           if (event.target == $groundTruthInputField[0]) {
             if (handler.keyboardShortcuts.isNavigationKey(event.key) || event.key == 'a') {
               // allow event to select text, propagate
-              setTimeout(function () {
-                handler.showCharInfoPopup(event);
-              }, 0);
+              setTimeout(handler.showCharInfoPopup(event), 0);
               return;
             }
           }
 
           // Combine modifiers with the pressed key to form the complete shortcut
-          const modifierKeys = Object.keys(pressedModifiers).filter(
-            key => pressedModifiers[key]).join("+");
-          const key = (modifierKeys ? modifierKeys + "+" : "") + event.key.toUpperCase();
-          const matchingAction = appSettings.behavior.keyboardShortcuts.shortcuts.find(action => action.keyCombo.replace(/\s/g, '') === key);
+          const
+            modifierKeys = Object.keys(pressedModifiers).filter(
+              key => pressedModifiers[key]).join("+"),
+            key = (modifierKeys ? modifierKeys + "+" : "") + event.key.toUpperCase(),
+            matchingAction = appSettings.behavior.keyboardShortcuts.shortcuts.find(action => action.keyCombo.replace(/\s/g, '') === key);
 
           if (matchingAction && matchingAction.enabled) {
             // console.log('matchingAction:', matchingAction);
@@ -2083,25 +1981,23 @@ app.ready = async function () {
           // }
         });
       },
-      eventListeners: function () {
-        $settingsModal[0].addEventListener('change', function (event) {
+      eventListeners: () => {
+        $settingsModal[0].addEventListener('change', event => {
           const
             path = event.target.name,
             value = event.target.type === 'checkbox' ? event.target.checked : event.target.value;
           handler.update.appSettings({ path: path, value: value });
         });
       },
-      sliders: function () {
-        var labels = ["Tiny", "Short", "Normal", "Tall", "Huge"];
+      sliders: () => {
+        const labels = ["Tiny", "Short", "Normal", "Tall", "Huge"];
         $imageViewHeightSlider.slider({
           min: 100,
           max: 900,
           step: 200,
           autoAdjustLabels: false,
-          interpretLabel: function (value) {
-            return labels[value];
-          },
-          onChange: function (value) {
+          interpretLabel: value => labels[value],
+          onChange: value => {
             if (value < 300) {
               // find item with text 'Tiny'
               $imageViewHeightSlider.find('.label').each(function () {
@@ -2124,43 +2020,34 @@ app.ready = async function () {
           },
         });
       },
-      settings: function () {
+      settings: () => {
         handler.getAppInfo();
         $appInfoVersion.text(appInfo.version);
         appSettings.appVersion = appInfo.version;
         // format date to month date, year
         const date = new Date(appInfo.updated);
         $appInfoUpdated.text(handler.formatDate(date));
-        $settingsMenuItems.tab({
-          onLoad: function () {
-            balanceText.updateWatched();
-          }
-        });
+        $settingsMenuItems.tab({ onLoad: () => balanceText.updateWatched(), });
         $settingsModal.modal({
           // inverted: true,
           blurring: true,
-          onHidden: function () {
+          onHidden: () => {
             // hide status if still visible
             if ($settingsModalStatusMessage[0]) $settingsModalStatusMessage[0].innerHTML = '';
-            var
-              title = '',
-              message = '';
-            if (invalidPatterns) {
-              title = 'Invalid Patterns',
-                message = 'Some enabled highlighters have invalid patterns. Please fix them or disable the highlighters.';
-            } else if (identicalPatternNames) {
-              title = 'Duplicate Pattern Names',
-                message = 'Some highlighter names are the same. Please give them different names.';
-            }
-            if (message != '') {
+            if (invalidPatterns || identicalPatternNames) {
+              const
+                title = invalidPatterns ? notificationTypes.error.invalidPatternsError.title : notificationTypes.error.identicalPatternNamesError.title,
+                message = invalidPatterns ? 'Some enabled highlighters have invalid patterns. Please fix them or disable the highlighters.' : 'Some highlighter names are the same. Please give them different names.',
+                type = invalidPatterns ? notificationTypes.error.invalidPatternsError.type : notificationTypes.error.identicalPatternNamesError.type,
+                classType = invalidPatterns ? notificationTypes.error.invalidPatternsError.class : notificationTypes.error.identicalPatternNamesError.class;
               handler.notifyUser({
                 title: title,
                 message: message,
-                type: 'error',
+                type: type,
+                class: classType,
                 actions: [{
                   text: 'Fix now',
                   click: handler.open.settingsModal.bind(handler.open, 'highlighter-settings'),
-
                 }]
               });
             }
@@ -2181,23 +2068,20 @@ app.ready = async function () {
           handler.update.settingsModal();
         }
       },
-      popups: function () {
-        $imageFileInput.popup({
-          popup: $useSamplePopup,
-          position: 'top left',
-          hoverable: true,
-          delay: {
-            hide: 800,
-          }
-
-        })
-      },
-      unicodeData: async function () {
+      popups: () => $imageFileInput.popup({
+        popup: $useSamplePopup,
+        position: 'top left',
+        hoverable: true,
+        delay: {
+          hide: 800,
+        }
+      }),
+      unicodeData: async () => {
         await $.ajax({
           url: '../../assets/unicodeData.csv',
           dataType: 'text',
-          success: function (data) {
-            var
+          success: data => {
+            const
               parsedData = $.csv.toObjects(data, {
                 separator: ';',
                 delimiter: '"',
@@ -2206,7 +2090,7 @@ app.ready = async function () {
           }
         });
       },
-      dropzone: function () {
+      dropzone: () => {
         $html.dropzone({
           url: handler.receiveDroppedFiles,
           uploadMultiple: true,
@@ -2215,7 +2099,7 @@ app.ready = async function () {
           clickable: false,
           acceptedFiles: "image/*,.box",
         });
-        $html.on('drag dragenter dragover', function (event) {
+        $html.on('drag dragenter dragover', (event) => {
           event.preventDefault();
           event.stopPropagation();
 
@@ -2224,99 +2108,31 @@ app.ready = async function () {
               .dimmer('show')
               .addClass('raised');
           }
-          window.setTimeout(function () {
-            if (!$html.hasClass('dz-drag-hover')) {
-              $dropzone
-                .dimmer('hide')
-                .removeClass('raised');
-            }
+          window.setTimeout(() => {
+            !$html.hasClass('dz-drag-hover') ? $dropzone
+              .dimmer('hide')
+              .removeClass('raised') : null;
           }, 1500);
         });
-        $html.on('drop', function (event) {
+        $html.on('drop', event => {
           event.preventDefault();
           event.stopPropagation();
 
-          if (!$html.hasClass('dz-drag-hover')) {
-            $dropzone
-              .transition('pulse');
-          }
+          !$html.hasClass('dz-drag-hover') ? $dropzone.transition('pulse') : null;
         });
       },
-      sampleImageAndBox: async function (event) {
+      sampleImageAndBox: async (event) => {
         handler.close.settingsModal();
+        // handle NetworkError: Load failed when parsing ../../assets/sampleImage.box
         await handler.load.imageFile(event, true);
         await handler.load.boxFile(event, true);
       },
-      boxFile: async function (e, sample = false) {
+      boxFile: async (event, sample = false) => {
         if (appSettings.behavior.alerting.enableWarrningMessagesForOverwritingDirtyData && boxDataInfo.isDirty()) {
-          var
-            response = await handler.askUser({
-              title: 'Unsaved Changes',
-              message: 'You did not download current progress. Do you want to overwrite existing data?',
-              type: 'uncommittedChangesWarning',
-              actions: [{
-                text: 'Cancel',
-                class: 'cancel',
-              }, {
-                text: 'Yes',
-                class: 'positive',
-              }],
-            });
-          if (!response) return false;
-        }
-        handler.set.loadingState({ buttons: true });
-        var
-          reader = new FileReader(),
-          defaultBoxUrl = '../../assets/sampleImage.box',
-          file = null;
-        if (sample) {
-          file = new File([await (await fetch(defaultBoxUrl)).blob()], 'sampleImage.box');
-        } else if (e.name.includes('box')) {
-          file = e;
-        } else {
-          file = this.files[0];
-        }
-
-        var fileExtension = file.name.split('.').pop();
-        if (fileExtension != 'box') {
-          handler.notifyUser({
-            title: 'Invalid File Type',
-            message: 'Expected box file. Received ' + fileExtension + ' file.',
-            type: 'error',
-          });
-          $boxFileInput.val(boxFileName);
-          return false;
-        } else if (appSettings.behavior.alerting.enableWarrningMessagesForDifferentFileNames && imageFileName != file.name.split('.').slice(0, -1).join('.') && imageFileName != undefined) {
-          var
-            response = await handler.askUser({
-              title: 'File Names Mismatch',
-              message: 'Expected box file with name ' + file.name + '. Received ' + imageFileName + '.<br> Are you sure you want to continue?',
-              type: 'differentFileNameWarning',
-              actions: [{
-                text: 'No',
-                class: 'cancel',
-              }, {
-                text: 'Yes',
-                class: 'positive',
-              }],
-            });
-          if (!response) {
-            $boxFileInput.val(boxFileNameForButton);
-            return false;
-          }
-        }
-        reader.readAsText(file);
-        file.name.split('.).slice(0, -1').join('.');
-        boxFileNameForButton = file;
-        $(reader).on('load', handler.process.boxFile);
-        handler.set.loadingState({ main: false, buttons: false });
-      },
-      imageFile: async function (e, sample = false) {
-        if (appSettings.behavior.alerting.enableWarrningMessagesForOverwritingDirtyData && boxDataInfo.isDirty() || lineDataInfo.isDirty()) {
-          var response = await handler.askUser({
-            title: 'Unsaved Changes',
+          const response = await handler.askUser({
+            title: notificationTypes.warning.overridingUnsavedChangesWarning.title,
             message: 'You did not download current progress. Do you want to overwrite existing data?',
-            type: 'uncommittedChangesWarning',
+            type: notificationTypes.warning.overridingUnsavedChangesWarning.type,
             actions: [{
               text: 'Cancel',
               class: 'cancel',
@@ -2326,13 +2142,77 @@ app.ready = async function () {
             }],
           });
           if (!response) {
-            $imageFileInput.val(imageFileNameForButton);
+            return false;
+          }
+        }
+        handler.set.loadingState({ buttons: true });
+        const
+          reader = new FileReader(),
+          defaultBoxUrl = '../../assets/sampleImage.box';
+        var file = null;
+        if (sample) {
+          file = new File([await (await fetch(defaultBoxUrl)).blob()], 'sampleImage.box');
+        } else if (event.name.includes('box')) {
+          file = event;
+        } else {
+          file = this.files[0];
+        }
+
+        const fileExtension = file.name.split('.').pop();
+        if (!'box'.includes(fileExtension)) {
+          handler.notifyUser({
+            title: notificationTypes.error.invalidFileTypeError.title,
+            message: 'Expected box file. Received ' + fileExtension + ' file.',
+            type: notificationTypes.error.invalidFileTypeError.type,
+          });
+          return false;
+        } else if (appSettings.behavior.alerting.enableWarrningMessagesForDifferentFileNames && imageFileName != file.name.split('.').slice(0, -1).join('.') && imageFileName != undefined) {
+          const
+            response = await handler.askUser({
+              title: notificationTypes.warning.nameMismatchError.title,
+              message: 'Expected box file with name ' + file.name + '. Received ' + imageFileName + '.<br> Are you sure you want to continue?',
+              type: notificationTypes.warning.nameMismatchError.type,
+              actions: [{
+                text: 'No',
+                class: 'cancel',
+              }, {
+                text: 'Yes',
+                class: 'positive',
+              }],
+            });
+          if (!response) {
+            handler.set.loadingState({ main: false, buttons: false });
+            return false;
+          }
+        }
+        reader.readAsText(file);
+        file.name.split('.).slice(0, -1').join('.');
+        boxFileNameForButton = file;
+        $(reader).on('load', handler.process.boxFile);
+        handler.set.loadingState({ main: false, buttons: false });
+      },
+      imageFile: async (e, sample = false) => {
+        if (appSettings.behavior.alerting.enableWarrningMessagesForOverwritingDirtyData && boxDataInfo.isDirty() || lineDataInfo.isDirty()) {
+          const response = await handler.askUser({
+            title: notificationTypes.warning.overridingUnsavedChangesWarning.title,
+            message: 'You did not download current progress. Do you want to overwrite existing data?',
+            type: notificationTypes.warning.overridingUnsavedChangesWarning.type,
+            actions: [{
+              text: 'Cancel',
+              class: 'cancel',
+            }, {
+              text: 'Yes',
+              class: 'positive',
+            }],
+          });
+          if (!response) {
+            // $imageFileInput.val(imageFileNameForButton.name);
             return false;
           }
         }
         handler.set.loadingState({ buttons: true });
 
-        var
+        const
           defaultImageUrl = '../../assets/sampleImage.jpg',
           img = new Image(),
           imageOverlayOptions = {
@@ -2352,21 +2232,18 @@ app.ready = async function () {
           imageFileNameForButton = file;
           filename = file.name;
         }
-        img.onload = async function () {
-          if (!map) {
-            handler.create.map('mapid');
-          }
-          map.eachLayer(function (layer) {
-            map.removeLayer(layer);
-          });
+        img.onload = async () => {
+          if (!map) { handler.create.map('mapid'); }
+          map.eachLayer(layer => map.removeLayer(layer));
 
-          imageHeight = this.height;
-          imageWidth = this.width;
+          imageHeight = img.height;
+          imageWidth = img.width;
 
-          bounds = [[0, 0], [parseInt(imageHeight), parseInt(imageWidth)]];
-          var bounds2 = [[imageHeight - 300, 0], [imageHeight, imageWidth]];
+          const
+            bounds = [[0, 0], [parseInt(imageHeight), parseInt(imageWidth)]]
+          bounds2 = [[imageHeight - 300, 0], [imageHeight, imageWidth]];
           if (image) {
-            $(image._image).fadeOut(750, function () {
+            $(image._image).fadeOut(750, () => {
               map.removeLayer(image);
               image = new L.imageOverlay(img.src, bounds, imageOverlayOptions).addTo(map);
               $(image._image).fadeIn(500);
@@ -2377,20 +2254,15 @@ app.ready = async function () {
             $(image._image).fadeIn(750);
           }
         };
-        img.onerror = function (error) {
-          var fileExtension = file.name.split('.').pop();
+        img.onerror = (error) => {
+          const fileExtension = file.name.split('.').pop();
           handler.notifyUser({
-            title: 'Invalid File Type',
+            title: notificationTypes.error.invalidFileTypeError.title,
             message: 'Expected image file. Received ' + fileExtension + ' file.',
-            type: 'error',
+            type: notificationTypes.error.invalidFileTypeError.type,
           });
-          $imageFileInput.val(imageFileNameForButton);
         };
-        if (sample) {
-          img.src = defaultImageUrl;
-        } else {
-          img.src = _URL.createObjectURL(file);
-        }
+        img.src = sample ? defaultImageUrl : _URL.createObjectURL(file);
         handler.update.downloadButtonsLabels({
           boxDownloadButton: imageFileName + '.box',
           groundTruthDownloadButton: imageFileName + '.gt.txt'
@@ -2399,9 +2271,7 @@ app.ready = async function () {
         await handler.load.tesseractWorker();
 
         if (appSettings.behavior.onImageLoad.detectAllLines && !sample) {
-          var response = await handler.generate.initialBoxes(
-            includeSuggestions = appSettings.behavior.onImageLoad.includeTextForDetectedLines
-          );
+          await handler.generate.initialBoxes(includeSuggestions = appSettings.behavior.onImageLoad.includeTextForDetectedLines);
         }
         handler.set.loadingState({ main: false, buttons: false });
         if (appSettings.behavior.onImageLoad.detectAllLines) {
@@ -2411,24 +2281,24 @@ app.ready = async function () {
         imageFileInfo.setProcessed();
       }
     },
-    focusGroundTruthField: function () {
+    focusGroundTruthField: () => {
       $groundTruthInputField.focus();
       $groundTruthInputField.select();
     },
-    focusBoxID: function (id, options = { isUpdated: false, zoom: true }) {
-      if (options.isUpdated == undefined) options.isUpdated = false;
-      if (options.zoom == undefined) options.zoom = true;
+    focusBoxID: (id, options = { isUpdated: false, zoom: true }) => {
+      if (!options.isUpdated) options.isUpdated = false;
+      if (!options.zoom) options.zoom = true;
       handler.style.remove(selectedPoly, options.isUpdated);
       handler.map.disableEditBox(selectedBox);
-      var box = boxLayer.getLayer(id);
+      const box = boxLayer.getLayer(id);
       handler.update.form(boxData.find(x => x.polyid == id));
       if (options.zoom) handler.map.focusShape(box, options.isUpdated);
       handler.style.setActive(box);
     },
-    submitText: function (event) {
-      if (event) event.preventDefault();
-      if (this.disabled === true) return false;
-      var
+    submitText: (event) => {
+      event?.preventDefault();
+      if (this.disabled) return false;
+      const
         polyid = parseInt($groundTruthInputField.attr('boxid')),
         newData = new Box({
           text: $groundTruthInputField.val(),
@@ -2453,66 +2323,38 @@ app.ready = async function () {
           $downloadGroundTruthFileButton.click();
         }
       }
-      return modified
+      return modified;
     },
     style: {
-      setProcessing: function (poly) {
-        if (poly) {
-          poly.setStyle(boxState.boxProcessing);
-        }
-      },
-      setActive: function (poly) {
-        if (poly) {
-          poly.setStyle(boxState.boxActive);
-        }
-      },
-      setCommitted: function (poly) {
-        if (poly) {
-          poly.setStyle(boxState.boxComitted);
-        }
-      },
-      remove: function (poly, isUpdated = false) {
-        if (poly) {
-          poly.setStyle(isUpdated ? boxState.boxComitted : boxState.boxInactive);
-        }
-      },
+      setProcessing: (poly) => poly?.setStyle(boxState.boxProcessing),
+      setActive: (poly) => poly?.setStyle(boxState.boxActive),
+      setCommitted: (poly) => poly?.setStyle(boxState.boxComitted),
+      remove: (poly, isUpdated = false) => { poly?.setStyle(isUpdated ? boxState.boxComitted : boxState.boxInactive); },
     },
     map: {
-      disableEditBox: function (shape) {
-        if (selectedPoly && shape != selectedPoly) {
-          selectedPoly.editing.disable();
-        }
-      },
-      enableEditBox: function (shape) {
+      disableEditBox: (shape) => { selectedPoly && shape != selectedPoly ? selectedPoly.editing.disable() : ''; },
+      enableEditBox: (shape) => {
         selectedPoly = shape;
         shape.editing.enable();
       },
-      getMapPosition: function () {
-        return map.getBounds();
-      },
-      invalidateSize: function () {
-        if (map) {
-          setTimeout(function () { map.invalidateSize() }, 500);
-        }
-      },
-      fitImage: function () {
+      getMapPosition: () => map.getBounds(),
+      invalidateSize: () => map ? setTimeout(() => map.invalidateSize(), 500) : '',
+      fitImage: () =>
         map.flyToBounds(image.getBounds(), {
           // paddingBottomRight: mapPaddingBottomRight,
           duration: .25,
           easeLinearity: .25,
           animate: true,
-        });
-      },
-      fitBounds: function (bounds) {
+        }),
+      fitBounds: (bounds) =>
         map.flyToBounds(bounds, {
           maxZoom: maxZoom,
           animate: true,
           paddingBottomRight: mapPaddingBottomRight,
           duration: .25,
           easeLinearity: .25,
-        });
-      },
-      focusShape: function (box, isUpdated = false) {
+        }),
+      focusShape: (box, isUpdated = false) => {
         handler.style.remove(selectedPoly, isUpdated);
         handler.map.disableEditBox(selectedPoly);
         map.flyToBounds(box.getBounds(), {
@@ -2527,59 +2369,65 @@ app.ready = async function () {
         handler.focusGroundTruthField();
       },
     },
-    getBoxContent: function (previous = false) {
-      if (typeof selectedBox === 'undefined') return boxData[0];
-      var
+    getBoxContent: (previous = false) => {
+      // if ('undefined'.includes(typeof selectedBox)) return boxData[0];
+      const
         range = boxData.length,
-        el = boxData.findIndex(el => el.polyid == selectedBox.polyid);
-      if (previous) return boxData[(el + range - 1) % range];
-      return boxData[(el + 1) % range];
+        el = boxData.findIndex(el => el.polyid == selectedBox?.polyid);
+      if (el == -1) return boxData[0];
+      return previous ? boxData[(el + range - 1) % range] : boxData[(el + 1) % range];
     },
-    getNextBoxContentAndFill: function () {
-      var
+    getNextBoxContentAndFill: () => {
+      const
         isUpdated = handler.submitText(),
         box = handler.getBoxContent();
       handler.focusBoxID(box.polyid, { isUpdated });
     },
-    getPreviousBoxContentAndFill: function () {
-      var
+    getPreviousBoxContentAndFill: () => {
+      const
         isUpdated = handler.submitText(),
         box = handler.getBoxContent(previous = true);
       handler.focusBoxID(box.polyid, { isUpdated });
 
     },
     download: {
-      file: async function (type, event) {
-        event.preventDefault() && event.stopPropagation();
-        if (boxData.length == 0) {
+      file: async (type, event) => {
+        event?.preventDefault() && event?.stopPropagation();
+        if (!boxData.length) {
           handler.notifyUser({
+            title: notificationTypes.info.nothingToDownloadInfo.title,
             message: 'There is nothing to download!',
-            type: 'warning',
+            type: notificationTypes.info.nothingToDownloadInfo.type,
           });
           return false;
         }
         if (lineDataInfo.isDirty()) {
           handler.notifyUser({
+            title: notificationTypes.error.commitLineError.title,
             message: 'Please commit the current line first.',
-            type: 'warning',
+            type: notificationTypes.error.commitLineError.type,
           });
           return false;
         }
         handler.sortAllBoxes();
-        for (var box of boxData) {
-          box.text = box.text.replace(/(\r\n|\n|\r)/gm, '');
-        }
+        boxData.forEach(box => box.text = box.text.replace(/(\r\n|\n|\r)/gm, ''));
         var
           content = '',
           fileExtension = '';
-        if (type == 'box') {
-          content = await handler.generate.boxFileContent();
-          fileExtension = 'box';
-        } else if (type == 'ground-truth') {
-          content = await handler.generate.groundTruthContent();
-          fileExtension = 'gt.txt';
+        switch (type) {
+          case 'box':
+            content = await handler.generate.boxFileContent();
+            fileExtension = 'box';
+            break;
+          case 'ground-truth':
+            content = await handler.generate.groundTruthContent();
+            fileExtension = 'gt.txt';
+            break;
+
+          default:
+            break;
         }
-        downloadAnchor = document.createElement('a');
+        const downloadAnchor = document.createElement('a');
         downloadAnchor.href = 'data:application/text;charset=utf-8,' + encodeURIComponent(content);
         downloadAnchor.download = imageFileName + '.' + fileExtension;
         downloadAnchor.target = '_blank';
@@ -2589,56 +2437,61 @@ app.ready = async function () {
         downloadAnchor.click();
         document.body.removeChild(downloadAnchor);
         handler.notifyUser({
+          title: notificationTypes.info.fileDownloadedInfo.title,
           message: 'Downloaded file ' + imageFileName + '.' + fileExtension,
-          type: 'success',
+          type: notificationTypes.info.fileDownloadedInfo.type,
         });
         boxDataInfo.setDirty(false);
       },
     },
     generate: {
-      boxFileContent: async function (event) {
-        if (event) event.preventDefault();
+      boxFileContent: async (event) => {
+        event?.preventDefault();
         var content = '';
-        if (boxFileType == BoxFileType.WORDSTR) {
-          for (var box of boxData) {
+        if (BoxFileType.WORDSTR === boxFileType) {
+          for (const box of boxData) {
             content = `${content}WordStr ${box.x1} ${box.y1} ${box.x2} ${box.y2} 0 #${box.text}\n`;
             content = `${content}\t ${box.x2 + 1} ${box.y1} ${box.x2 + 5} ${box.y2} 0\n`;
           }
         }
         return content;
       },
-      groundTruthContent: async function (event) {
-        if (event) event.preventDefault();
+      groundTruthContent: async (event) => {
+        event?.preventDefault();
         var content = '';
-        if (boxFileType == BoxFileType.WORDSTR) {
-          for (var box of boxData) {
+        if (BoxFileType.WORDSTR === boxFileType) {
+          for (const box of boxData) {
             content = `${content}${box.text}\n`;
           }
         }
         return content;
       },
-      textSuggestion: async function () {
+      textSuggestion: async () => {
         $regenerateTextSuggestionForSelectedBoxButton.addClass('disabled double loading');
         suppressLogMessages['recognizing text'] = true;
 
-        if (boxLayer.getLayers().length > 0) {
-          var
+        if (boxLayer.getLayers().length) {
+          const
             results = await handler.ocr.detect([selectedBox]),
-            element = boxData.findIndex(el => el.polyid == selectedBox.polyid);
-          boxData[element].text = results.length > 0 ? results[0].text : '';
+            element = boxData.findIndex(el => el.polyid == selectedBox?.polyid);
+          console.log(boxData[element].text);
+          console.log(results[0].text);
+          console.log(selectedBox.text);
+          boxData[element].text = results.length ? results[0].text : selectedBox.text;
+          $groundTruthInputField.val(boxData[element].text);
           handler.focusBoxID(boxData[element].polyid, { zoom: false })
         }
 
         suppressLogMessages['recognizing text'] = false;
         $regenerateTextSuggestionForSelectedBoxButton.removeClass('disabled double loading');
       },
-      textSuggestions: async function () {
+      textSuggestions: async () => {
         $regenerateTextSuggestionsButton.addClass('disabled double loading');
         if (appSettings.behavior.alerting.enableWarrningMessagesForOverwritingDirtyData && boxDataInfo.isDirty()) {
-          var response = await handler.askUser({
-            title: 'Warning',
+          const response = await handler.askUser({
+            title: notificationTypes.warning.replacingTextWarning.title,
             message: 'Suggestions will be generated from the current lines. Do you want to continue?',
-            type: 'replacingTextWarning',
+            type: notificationTypes.warning.replacingTextWarning.type,
             actions: [{
               text: 'Cancel',
               class: 'cancel',
@@ -2656,19 +2509,18 @@ app.ready = async function () {
         suppressLogMessages['recognizing text'] = true;
         handler.update.progressBar({ reset: true });
         handler.set.loadingState({ buttons: true, main: true });
-        var mapPosition = handler.map.getMapPosition();
+        const mapPosition = handler.map.getMapPosition();
         handler.map.fitImage();
 
-        if (boxLayer.getLayers().length > 0) {
-          var results = await handler.ocr.detect(boxData);
-          await Promise.all(boxData.map(async (box) => {
-            if (results.length > 0) {
-              var result = results.find(function (x) {
-                return box.equals(x);
-              });
-              box.text = result != undefined ? result.text : '';
-            }
-          }));
+        if (boxLayer.getLayers().length) {
+          const results = await handler.ocr.detect(boxData);
+          // TODO: this does not seem to be needed here
+          // await Promise.all(boxData.map(async (box) => {
+          // if (results.length) {
+          // const result = results?.find(x => box.equals(x));
+          // box.text = result?.text;
+          // }
+          // }));
           handler.focusBoxID(selectedBox.polyid, { zoom: false })
         }
         suppressLogMessages['recognizing text'] = false;
@@ -2676,14 +2528,14 @@ app.ready = async function () {
         handler.set.loadingState({ buttons: false, main: false });
         $regenerateTextSuggestionsButton.removeClass('disabled double loading');
       },
-      initialBoxes: async function (includeSuggestions = true) {
+      initialBoxes: async (includeSuggestions = true) => {
         $redetectAllBoxesButton.addClass('disabled double loading');
 
         if (appSettings.behavior.alerting.enableWarrningMessagesForOverwritingDirtyData && boxDataInfo.isDirty()) {
-          var response = await handler.askUser({
-            title: 'Warning',
+          const response = await handler.askUser({
+            title: notificationTypes.warning.replacingTextWarning.title,
             message: 'Suggestions will be generated from the current lines. Do you want to continue?',
-            type: 'replacingTextWarning',
+            type: notificationTypes.warning.replacingTextWarning.type,
             actions: [{
               text: 'Cancel',
               class: 'cancel',
@@ -2704,17 +2556,15 @@ app.ready = async function () {
         boxLayer.clearLayers();
         boxData = [];
         try {
-          var
+          const
             results = await handler.ocr.detect(),
             textLines = results.data.lines;
-          if (textLines.length == 0) {
+          if (!textLines.length) {
             handler.set.loadingState({ buttons: false, main: false });
             return false;
           }
 
-          textLines.forEach(line => {
-            line.text = line.text.replace(/(\r\n|\n|\r)/gm, "");
-          });
+          textLines.forEach(line => line.text = line.text.replace(/(\r\n|\n|\r)/gm, ""));
           await handler.ocr.insertSuggestions(includeSuggestions, textLines);
           handler.focusBoxID(handler.getBoxContent().polyid);
           handler.set.loadingState({ buttons: false, main: false });
@@ -2730,11 +2580,11 @@ app.ready = async function () {
       },
     },
     ocr: {
-      insertSuggestions: async function (includeSuggestions, textLines) {
+      insertSuggestions: async (includeSuggestions, textLines) => {
         boxLayer.clearLayers();
         boxData = [];
-        for (var line of textLines) {
-          var
+        for (const line of textLines) {
+          const
             shape = line.bbox,
             text = includeSuggestions ? line.text : '',
             box = new Box({
@@ -2758,12 +2608,10 @@ app.ready = async function () {
         }
         map.addLayer(boxLayer);
       },
-      detect: async function (boxList = []) {
-        if (boxList.length == 0) {
-          return await worker.recognize(image._image);
-        }
-        for (var box of boxList) {
-          var layer = boxLayer.getLayer(box.polyid);
+      detect: async (boxList = []) => {
+        if (!boxList.length) { return await worker.recognize(image._image); }
+        for (const box of boxList) {
+          const layer = boxLayer.getLayer(box.polyid);
           handler.map.disableEditBox(layer);
           handler.style.setProcessing(layer);
           const message = {
@@ -2793,22 +2641,21 @@ app.ready = async function () {
       },
     },
     close: {
-      settingsModal: function () {
+      settingsModal: () => {
         $settingsModal.modal('hide');
+        handler.setKeyboardControl('form');
       },
-      popups: function () {
+      popups: () => {
         $popups.popup('hide all');
+        handler.setKeyboardControl('form');
       },
     },
     open: {
-      settingsModal: function (location = '') {
-        // if location is an event and not a string
-        if (!(typeof location === 'string')) {
-          location = '';
-        }
+      settingsModal: (location = '') => {
+        handler.setKeyboardControl('settings');
         handler.close.popups();
         $settingsModal.modal('show');
-        if (location) {
+        if (location.length) {
           $settingsMenuItems.removeClass('active');
           $settingsMenuPaneTabs.removeClass('active');
           $settingsMenuItems.filter('[data-tab="' + location + '"]').addClass('active');
@@ -2819,28 +2666,19 @@ app.ready = async function () {
       },
 
     },
-    toggleInvisibles: function () {
-      var
+    toggleInvisibles: () => {
+      const
         showInvisibles = !appSettings.interface.showInvisibles,
         path = 'interface.showInvisibles',
         value = showInvisibles;
       handler.update.appSettings({ path, value });
       handler.update.colorizedBackground();
-      // $invisiblesToggleButton.toggleClass('active');
       handler.focusGroundTruthField();
     },
-    showCharInfoPopupFromMouseClick: function (event) {
-      if (event.type == 'mouseup') {
-        setTimeout(function () {
-          handler.showCharInfoPopup(event);
-        }, 0);
-      }
-    },
-    showCharInfoPopup: function (event) {
+    showCharInfoPopupFromMouseClick: (event) => { if (/mouseup/.test(event.type)) { setTimeout(() => { handler.showCharInfoPopup(event); }, 0); } },
+    showCharInfoPopup: (event) => {
       if (!appSettings.behavior.workflow.unicodeInfoPopup) return;
-      // if (event.ctrlKey || event.altKey || event.metaKey || event.keyCode == 13) return false;
-      // if mouse up timeout to allow for selection to complete
-      var selection = null;
+      var selection = '';
       if (window.getSelection) {
         selection = window.getSelection();
       } else if (document.selection) {
@@ -2848,30 +2686,28 @@ app.ready = async function () {
       }
 
       // if selection outside of ground truth field then close char info popup
-      if (!selection.anchorNode || $.contains($groundTruthForm[0], selection.anchorNode) == false) {
+      if (!selection.anchorNode || !$.contains($groundTruthForm[0], selection.anchorNode)) {
         handler.close.popups();
         return false;
       }
 
       // if cmd/ctrl + a then select all text field
-      if ((event.ctrlKey || event.metaKey) && event.keyCode == 65) {
-        $groundTruthInputField.select();
-      }
+      if ((event.ctrlKey || event.metaKey) && event.keyCode == 65) { $groundTruthInputField.select(); }
 
       // Firefox bug workaround
       if (selection.toString().length == 0) {
-        var
+        const
           startPosition = $groundTruthInputField[0].selectionStart,
-          endPosition = $groundTruthInputField[0].selectionEnd,
-          selection = $groundTruthInputField[0].value.substring(startPosition, endPosition);
+          endPosition = $groundTruthInputField[0].selectionEnd;
+        selection = $groundTruthInputField[0].value.substring(startPosition, endPosition);
       }
-      var results = handler.getUnicodeInfo(selection.toString());
+      const results = handler.getUnicodeInfo(selection.toString());
       // TODO: replace max length with a programmatic solution
-      if (results.length == 0 || results.length > 15) {
+      if (results.length <= 0 || results.length > 15) {
         handler.close.popups();
         return false;
       } else {
-        var content = handler.create.infoPopupContent(results);
+        const content = handler.create.infoPopupContent(results);
 
         if ($groundTruthForm.popup('is visible')) {
           $groundTruthForm.popup('change content (html)', content);
@@ -2888,21 +2724,16 @@ app.ready = async function () {
         $groundTruthForm.popup('get popup').css('scrollbar-width', 'none');
       }
     },
-    bindInputs: function () {
+    bindInputs: () => {
       handler.bindColorizerOnInput();
-      $groundTruthInputField.on('input', function () {
-        lineDataInfo.setDirty(true);
-      })
+      $groundTruthInputField.on('input', () => { lineDataInfo.setDirty(true); })
       $textHighlightingEnabledCheckbox.checkbox({
-        onChange: function () {
-          handler.saveHighlightsToSettings();
+        onChange: () => {
+          handler.update.highlighterTable($textHighlightingEnabledCheckbox[0].checked);
+          handler.update.colorizedBackground();
         }
       });
-      $modelConfidenceScoreEnabledCheckbox.checkbox({
-        onChange: async function () {
-          await handler.update.confidenceScoreField(selectedBox);
-        }
-      });
+      $modelConfidenceScoreEnabledCheckbox.checkbox({ onChange: async () => { await handler.update.confidenceScoreField(selectedBox); } });
       $window.bind('mouseup', handler.showCharInfoPopupFromMouseClick)
       $coordinateFields.on('input', handler.update.boxCoordinates);
       $boxFileInput.on('change', handler.load.boxFile);
@@ -2911,23 +2742,13 @@ app.ready = async function () {
       $checkboxes.filter('.master')
         .checkbox({
           // check all children
-          onChecked: function () {
-            var
-              $childCheckbox = $(this).closest('.item').siblings().find('.child')
-              ;
-            $childCheckbox.checkbox('set enabled');
-          },
+          onChecked: function () { $(this).closest('.item').siblings().find('.child').checkbox('set enabled'); },
           // disable all children
-          onUnchecked: function () {
-            var
-              $childCheckbox = $(this).closest('.item').siblings().find('.child')
-              ;
-            $childCheckbox.checkbox('set disabled');
-          }
+          onUnchecked: function () { $(this).closest('.item').siblings().find('.child').checkbox('set disabled'); }
         })
         ;
     },
-    bindButtons: function () {
+    bindButtons: () => {
       $nextBoxButton.on('click', handler.getNextBoxContentAndFill);
       $previousBoxButton.on('click', handler.getPreviousBoxContentAndFill);
       $downloadBoxFileButton.on('click', handler.download.file.bind(handler.download, 'box'));
@@ -2942,15 +2763,11 @@ app.ready = async function () {
       $useSampleImageButton.on('click', handler.load.sampleImageAndBox);
       $addNewHighligherButton.on('click', handler.addNewHighlighterPattern);
     },
-    addBehaviors: function () {
-      $groundTruthInputField.focus(function () {
-        $groundTruthColorizedOutput.addClass('focused')
-      });
-      $groundTruthInputField.blur(function () {
-        $groundTruthColorizedOutput.removeClass('focused')
-      });
+    addBehaviors: () => {
+      $groundTruthInputField.focus(() => $groundTruthColorizedOutput.addClass('focused'));
+      $groundTruthInputField.blur(() => $groundTruthColorizedOutput.removeClass('focused'));
     },
-    initialize: async function () {
+    initialize: async () => {
       handler.bindInputs();
       handler.bindButtons();
       handler.addBehaviors();
@@ -2965,8 +2782,9 @@ app.ready = async function () {
       handler.load.popups();
       handler.load.sliders();
       handler.load.settings();
-      handler.create.defaultHighlighterTable();
-      handler.create.defaultKeyboardShortcutsTable();
+      handler.create.highlighterTable();
+      // TODO: Keyboard shortcuts table not behaving properly in settings
+      handler.create.keyboardShortcutsTable();
       handler.load.eventListeners();
 
       handler.saveHighlightsToSettings();
@@ -2977,7 +2795,7 @@ app.ready = async function () {
       handler.hideSplashScreen();
 
     },
-    hideSplashScreen: function () {
+    hideSplashScreen: () => {
       $body[0].style.transition = "opacity 0.5s ease-in-out";
       $body[0].style.opacity = "1";
     },
@@ -3018,7 +2836,7 @@ app.ready = async function () {
           text: 'Report issue...',
           class: 'red',
           icon: 'github',
-          click: function () {
+          click: () => {
             window.open('https://github.com/mariuspenteliuc/box-editor-for-tesseract/issues/new?assignees=&labels=help+wanted&projects=&template=website-loading-error.md&title=App+Loading+Error', '_blank');
           }
         }];
@@ -3040,7 +2858,7 @@ app.ready = async function () {
       message: 'App encountered repeated errors while loading. Click "Try again" to delete the local storage and try again. This will reset all the settings and data.',
       type: 'loadingError',
       actions: actions,
-    }).then(() =>{
+    }).then(() => {
       localStorage.setItem(appSettings.localStorageKey + '-loading-error', times ? parseInt(times) + 1 : 1);
       handler.clearLocalStorage(loadingError = false);
     });
