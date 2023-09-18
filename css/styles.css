@@ -4,17 +4,14 @@ body {
 }
 
 @media (prefers-color-scheme: light) {
-  body {
+  html:not(.dark-theme) body {
     background-color: white;
     color: black;
   }
 }
 
 @media (prefers-color-scheme: dark) {
-  .ui.modal>.content {
-    color: gray;
-  }
-  body {
+  html:not(.light-theme) body {
     background-color: black;
     color: white;
   }

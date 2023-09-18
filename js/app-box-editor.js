@@ -1288,6 +1288,32 @@ app.ready = async () => {
         const docClassesRef = $document[0].documentElement.classList;
         docClassesRef.remove(...docClassesRef);
         docClassesRef.toggle(value);
+        value = value.replaceAll('-theme', '');
+        handler.set.sourceMediaTheme(value);
+      },
+      sourceMediaTheme: function (colorPreference) {
+        const pictures = document.querySelectorAll('picture')
+
+        pictures.forEach((picture) => {
+          const sources =
+            picture.querySelectorAll(`
+        source[media*="prefers-color-scheme"],
+        source[data-media*="prefers-color-scheme"]
+      `)
+
+          sources.forEach((source) => {
+            if (source?.media.includes('prefers-color-scheme')) {
+              source.dataset.media = source.media
+            }
+            if ('match-device' === colorPreference) {
+              source.media = '(prefers-color-scheme: dark)'
+            } else if (source?.dataset.media.includes(colorPreference)) {
+              source.media = 'all'
+            } else if (source) {
+              source.media = 'none'
+            }
+          })
+        })
       },
       loadingState: (object) => {
         if (object.main != undefined) {
