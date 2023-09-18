@@ -2153,7 +2153,7 @@ app.ready = async () => {
         await handler.load.imageFile(event, true);
         await handler.load.boxFile(event, true);
       },
-      boxFile: async (event, sample = false) => {
+      boxFile: async function (event, sample = false) {
         if (appSettings.behavior.alerting.enableWarrningMessagesForOverwritingDirtyData && boxDataInfo.isDirty()) {
           const response = await handler.askUser({
             title: notificationTypes.warning.overridingUnsavedChangesWarning.title,
@@ -2178,8 +2178,8 @@ app.ready = async () => {
         var file = null;
         if (sample) {
           file = new File([await (await fetch(defaultBoxUrl)).blob()], 'sampleImage.box');
-        } else if (event.name.includes('box')) {
-          file = event;
+        } else if (event.target.files[0].name.includes('box')) {
+          file = event.target.files[0];
         } else {
           file = this.files[0];
         }
@@ -2217,7 +2217,7 @@ app.ready = async () => {
         $(reader).on('load', handler.process.boxFile);
         handler.set.loadingState({ main: false, buttons: false });
       },
-      imageFile: async (e, sample = false) => {
+      imageFile: async function (e, sample = false) {
         if (appSettings.behavior.alerting.enableWarrningMessagesForOverwritingDirtyData && boxDataInfo.isDirty() || lineDataInfo.isDirty()) {
           const response = await handler.askUser({
             title: notificationTypes.warning.overridingUnsavedChangesWarning.title,
