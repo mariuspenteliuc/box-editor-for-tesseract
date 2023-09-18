@@ -76,8 +76,6 @@
           <a id="settingsButton" class="item" data-tooltip="Open Settings" data-position="bottom center">
             <i class="fitted icons">
               <i class="large fitted cog icon"></i>
-              <i class="top right corner orange circle icon updateNotification" data-release-date="2023-08-14"
-                data-expire-notification="14"></i>
             </i>
           </a>
         </div>
@@ -386,8 +384,6 @@
         <a class="item active" data-tab="interface-settings">
           <i class="fitted icons">
             <i class="grey adjust icon"></i>
-            <!-- <i class="top right corner orange circle icon updateNotification" data-release-date="2023-08-14"
-              data-expire-notification="7"></i> -->
           </i>
           Interface
         </a>
@@ -400,10 +396,7 @@
         <a class="item" data-tab="language-settings">
           <i class="fitted icons">
             <i class="grey globe icon"></i>
-            <i class="top right corner orange circle icon updateNotification" data-release-date="2023-08-14"
-              data-expire-notification="7"></i>
           </i>
-          <!-- <i class="orange certificate icon updateNotification" data-release-date="2023-08-14" data-expire-notification="14"></i> -->
           Language Models
         </a>
         <a id="highlighterTab" class="item" data-tab="highlighter-settings">
@@ -429,7 +422,7 @@
             <div class="description">
               Adjust the appearance of the interface.
             </div>
-            <div class="list">
+            <div class="ui list">
               <div class="item">
                 <div class="ui radio checkbox">
                   <input type="radio" name="interface.appearance" value="light-theme">
@@ -455,38 +448,60 @@
             <div class="description">
               Choose actions to display in the toolbar.
             </div>
-            <div class="list">
+            <div class="ui list">
               <div class="item">
-                <div class="ui checkbox">
-                  <input type="checkbox" name="interface.toolbarActions.detectAllLines">
-                  <label>Detect all lines of text visible in the image</label>
+                <div class="content">
+                  <div class="ui checkbox">
+                    <input type="checkbox" name="interface.toolbarActions.invisiblesToggle">
+                    <label>
+                      <i class="paragraph icon"></i>
+                      Toggle between showing or hiding invisibles
+                    </label>
+                  </div>
                 </div>
               </div>
               <div class="item">
-                <div class="ui checkbox">
-                  <input type="checkbox" name="interface.toolbarActions.detectAllBoxes">
-                  <label>Identify all characters for all text boxes</label>
+                <div class="content">
+                  <div class="ui checkbox">
+                    <input type="checkbox" name="interface.toolbarActions.detectAllLines">
+                    <label>
+                      <i class="magic icon"></i>
+                      Detect all lines of text visible in the image
+                    </label>
+                  </div>
                 </div>
               </div>
               <div class="item">
-                <div class="ui checkbox">
-                  <input type="checkbox" name="interface.toolbarActions.detectSelectedBox">
-                  <label>Identify all characters for the selected text box</label>
+                <div class="content">
+                  <div class="ui checkbox">
+                    <input type="checkbox" name="interface.toolbarActions.detectAllBoxes">
+                    <label>
+                      <i class="sync icon"></i>
+                      Identify all characters for all text boxes
+                    </label>
+                  </div>
                 </div>
               </div>
               <div class="item">
-                <div class="ui checkbox">
-                  <input type="checkbox" name="interface.toolbarActions.invisiblesToggle">
-                  <label>Toggle between showing or hiding invisibles</label>
+                <div class="content">
+                  <div class="ui checkbox">
+                    <input type="checkbox" name="interface.toolbarActions.detectSelectedBox">
+                    <label>
+                      <i class="redo icon"></i>
+                      Identify all characters for the selected text box
+                    </label>
+                  </div>
                 </div>
               </div>
               <div class="item">
-                <div class="ui checkbox">
-                  <input type="checkbox" name="interface.toolbarActions.languageModelDropdown">
-                  <label>Language model dropdown selector
-                    <span class="ui small italic orange text updateNotification" data-release-date="2023-08-14"
-                      data-expire-notification="14">new</span>
-                  </label>
+                <div class="content">
+                  <div class="ui checkbox">
+                    <input type="checkbox" name="interface.toolbarActions.languageModelDropdown">
+                    <label>
+                      <i class="world icon"></i>
+                      Language model dropdown selector
+                    </label>
+                  </div>
                 </div>
               </div>
             </div>
@@ -496,7 +511,7 @@
             <div class="description">
               Adjust the size of the image display area.
             </div>
-            <div class="list">
+            <div class="ui list">
               <div class="item">
                 <div id="imageViewHeightSlider" name="interface.imageView"
                   class="ui right aligned labeled ticked reversed vertical slider"></div>
@@ -512,7 +527,7 @@
             <div class="description">
               Perform actions when a new image is loaded.
             </div>
-            <div class="list">
+            <div class="ui list">
               <div class="item">
                 <div class="ui master checkbox">
                   <input type="checkbox" name="behavior.onImageLoad.detectAllLines">
@@ -532,7 +547,7 @@
             <div class="description">
               Enable or surpress the following messages.
             </div>
-            <div class="list">
+            <div class="ui list">
               <div class="item">
                 <div class="ui checkbox">
                   <input type="checkbox" name="behavior.alerting.enableWarrningMessagesForDifferentFileNames">
@@ -549,8 +564,6 @@
                 <div class="ui checkbox">
                   <input type="checkbox" name="behavior.alerting.enableWarrningMessagesForOverwritingDirtyData">
                   <label>Overwriting unsaved (not downloaded) data
-                    <span class="ui small italic orange text updateNotification" data-release-date="2023-08-18"
-                      data-expire-notification="14">new</span>
                   </label>
                 </div>
               </div>
@@ -573,7 +586,7 @@
             <div class="description">
               Choose what convenience features you would like to use.
             </div>
-            <div class="list">
+            <div class="ui list">
               <div class="item">
                 <div class="ui checkbox">
                   <input type="checkbox" name="behavior.workflow.progressIndicator">
@@ -602,8 +615,6 @@
                 <div class="ui checkbox">
                   <input type="checkbox" name="behavior.workflow.confidenceScoreEnabled">
                   <label>Display confidence score for text suggestions
-                    <span class="ui small italic orange text updateNotification" data-release-date="2023-08-14"
-                      data-expire-notification="14">new</span>
                   </label>
                 </div>
               </div>
@@ -626,7 +637,7 @@
             <div class="description">
               Customize the keyboard shortcuts for frequently used actions.
             </div>
-            <div class="list">
+            <div class="ui list">
               <div class="item">
                 <div class="ui disabled checkbox">
                   <input disabled type="checkbox" name="behavior.keyboardShortcuts.keyboardShortcutsEnabled">
@@ -657,8 +668,6 @@
         <div class="ui very relaxed list">
           <div class="item" name="recognitionModel">
             <div class="header">Recognition Model
-              <span class="ui small italic orange text updateNotification" data-release-date="2023-08-14"
-                data-expire-notification="14">new</span>
             </div>
             <div class="description">
               Choose a language to use for OCR text suggestions.
@@ -798,8 +807,6 @@
           </div>
           <div class="item">
             <div class="header">RTS Keyboard Layout
-              <span class="ui small italic orange text updateNotification" data-release-date="2023-08-14"
-                data-expire-notification="14">new</span>
             </div>
             <div class="description">
               <p>
@@ -830,7 +837,7 @@
             <div class="description">
               Highlight text in the input field based on custom regex patterns.
             </div>
-            <div class="list">
+            <div class="ui list">
               <div class="item">
                 <div class="ui checkbox">
                   <input type="checkbox" name="highlighter.textHighlighting.textHighlightingEnabled">
@@ -967,7 +974,7 @@
             <p>In case of unexpected behavior, you can reset all settings to their default values.</p>
             <button id="resetAppSettings" class="ui left floating negative button">Reset App...</button>
             <a class="ui right labeled icon button" target="_blank"
-              href="https://github.com/mariuspenteliuc/box-editor-for-tesseract/issues/new/choose">
+              href="https://github.com/mariuspenteliuc/box-editor-for-tesseract/issues/new">
               <i class="github icon"></i>
               Report Issue
             </a>
@@ -1042,12 +1049,9 @@
               <p>Description.</p>
             </div>
           </div> -->
-          <div class="ui divider updateNotification" data-release-date="2023-08-23" data-expire-notification="7"></div>
-          <div class="item updateNotification" data-release-date="2023-08-23" data-expire-notification="7">
-            <p><span class="ui grey text">Reset button has moved to the
-                <a onclick="app.handler.open.settingsModal('help-section')" class="more">Help pane.</a>
-              </span></p>
-          </div>
+          <p><span class="ui grey text">Reset button has moved to the
+              <a onclick="app.handler.open.settingsModal('help-section')" class="more">Help pane.</a>
+            </span></p>
         </div>
       </div>
     </div>
