@@ -1810,8 +1810,7 @@ app.ready = async () => {
           map.addLayer(boxLayer);
         }
         handler.sortAllBoxes();
-        selectedBox = handler.getBoxContent();
-        handler.focusBoxID(selectedBox.polyid);
+        handler.focusBoxID(handler.getBoxContent().polyid);
         handler.update.colorizedBackground();
       },
       wordstr: (content) => {
@@ -2150,11 +2149,11 @@ app.ready = async () => {
       sampleImageAndBox: async (event) => {
         handler.close.settingsModal();
         // handle NetworkError: Load failed when parsing ../../assets/sampleImage.box
-        await handler.load.imageFile(event, true);
-        await handler.load.boxFile(event, true);
+        if (await handler.load.imageFile(event, true))
+          await handler.load.boxFile(event, true, true);
       },
-      boxFile: async (event, sample = false) => {
-        if (appSettings.behavior.alerting.enableWarrningMessagesForOverwritingDirtyData && boxDataInfo.isDirty()) {
+      boxFile: async (event, sample = false, skipWarning = false) => {
+        if (!skipWarning && appSettings.behavior.alerting.enableWarrningMessagesForOverwritingDirtyData && boxDataInfo.isDirty()) {
           const response = await handler.askUser({
             title: notificationTypes.warning.overridingUnsavedChangesWarning.title,
             message: 'You did not download current progress. Do you want to overwrite existing data?',
@@ -2305,6 +2304,8 @@ app.ready = async () => {
         }
         $(image._image).animate({ opacity: 1 }, 500);
         imageFileInfo.setProcessed();
+
+        return true;
       }
     },
     focusGroundTruthField: () => {
