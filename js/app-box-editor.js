@@ -1238,7 +1238,7 @@ app.ready = async () => {
       });
 
       var boxGaps = [];
-      intersectingLines.forEach(line=> {
+      intersectingLines.forEach(line => {
         boxGaps.push(turf.envelope(line));
       });
 
@@ -1246,7 +1246,7 @@ app.ready = async () => {
         newBoxes = [],
         newEdges = [];
       newEdges.push(box.x1);
-      boxGaps.forEach(gap=> {
+      boxGaps.forEach(gap => {
         newEdges.push(gap.geometry.coordinates[0][0][0]);
         newEdges.push(gap.geometry.coordinates[0][2][0]);
       });
@@ -1264,7 +1264,7 @@ app.ready = async () => {
         newBoxes.push(newBox);
       }
 
-      newBoxes.forEach(element=> {
+      newBoxes.forEach(element => {
         element.x1 = Math.round(element.x1);
         element.y1 = Math.round(element.y1);
         element.x2 = Math.round(element.x2);
@@ -1728,7 +1728,7 @@ app.ready = async () => {
       }
       var
         files = event;
-      files.forEach(file=> {
+      files.forEach(file => {
         if (file.type.includes('image')) {
           imageFile = file;
         } else if (file.name.endsWith('.box')) {
@@ -1752,10 +1752,10 @@ app.ready = async () => {
         return;
       }
       if (imageFile) {
-        await handler.load.imageFile(imageFile);
+        await handler.load.imageFile(imageFile, sample = false, skipProcessing = boxFile ? true : false);
       }
       if (boxFile) {
-        await handler.load.boxFile(boxFile);
+        await handler.load.boxFile(boxFile, sample = false, skipWarning = imageFileInfo.isProcessed());
       }
     },
     init: {
@@ -2152,7 +2152,7 @@ app.ready = async () => {
         if (await handler.load.imageFile(event, true))
           await handler.load.boxFile(event, true, true);
       },
-      boxFile: async (event, sample = false, skipWarning = false) => {
+      boxFile: async function (event, sample = false, skipWarning = false) {
         if (!skipWarning && appSettings.behavior.alerting.enableWarrningMessagesForOverwritingDirtyData && boxDataInfo.isDirty()) {
           const response = await handler.askUser({
             title: notificationTypes.warning.overridingUnsavedChangesWarning.title,
@@ -2177,8 +2177,10 @@ app.ready = async () => {
         var file = null;
         if (sample) {
           file = new File([await (await fetch(defaultBoxUrl)).blob()], 'sampleImage.box');
-        } else if (event.name.includes('box')) {
-          file = event;
+        } else if (event.target.files[0].name.includes('box')) {
+        // } else if (event.name.includes('box')) {
+          // file = event;
+          file = event.target.files[0];
         } else {
           file = this.files[0];
         }
@@ -2216,7 +2218,7 @@ app.ready = async () => {
         $(reader).on('load', handler.process.boxFile);
         handler.set.loadingState({ main: false, buttons: false });
       },
-      imageFile: async (e, sample = false) => {
+      imageFile: async function (e, sample = false, skipProcessing = false)  {
         if (appSettings.behavior.alerting.enableWarrningMessagesForOverwritingDirtyData && boxDataInfo.isDirty() || lineDataInfo.isDirty()) {
           const response = await handler.askUser({
             title: notificationTypes.warning.overridingUnsavedChangesWarning.title,
@@ -2265,18 +2267,18 @@ app.ready = async () => {
           imageWidth = img.width;
 
           const
-            bounds = [[0, 0], [parseInt(imageHeight), parseInt(imageWidth)]]
-          bounds2 = [[imageHeight - 300, 0], [imageHeight, imageWidth]];
+            bounds = [[0, 0], [parseInt(imageHeight), parseInt(imageWidth)]],
+            bounds2 = [[imageHeight - 300, 0], [imageHeight, imageWidth]];
           if (image) {
-            $(image._image).fadeOut(750, () => {
+            await $(image._image).fadeOut(750, async () => {
               map.removeLayer(image);
               image = new L.imageOverlay(img.src, bounds, imageOverlayOptions).addTo(map);
-              $(image._image).fadeIn(500);
+              await $(image._image).fadeIn(500);
             });
           } else {
             map.fitBounds(bounds2);
             image = new L.imageOverlay(img.src, bounds, imageOverlayOptions).addTo(map);
-            $(image._image).fadeIn(750);
+            await $(image._image).fadeIn(750);
           }
         };
         img.onerror = (error) => {
@@ -2295,14 +2297,14 @@ app.ready = async () => {
         // Load Tesseract Worker
         await handler.load.tesseractWorker();
 
-        if (appSettings.behavior.onImageLoad.detectAllLines && !sample) {
+        if (appSettings.behavior.onImageLoad.detectAllLines && !sample && !skipProcessing) {
           await handler.generate.initialBoxes(includeSuggestions = appSettings.behavior.onImageLoad.includeTextForDetectedLines);
         }
         handler.set.loadingState({ main: false, buttons: false });
         if (appSettings.behavior.onImageLoad.detectAllLines) {
           handler.focusGroundTruthField();
         }
-        $(image._image).animate({ opacity: 1 }, 500);
+        await $(image._image).animate({ opacity: 1 }, 500);
         imageFileInfo.setProcessed();
 
         return true;
