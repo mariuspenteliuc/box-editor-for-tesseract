@@ -350,9 +350,6 @@ app.ready = async function () {
     load: {
       sampleImageAndBox: async function (event) {
         handler.close.settingsModal();
-        $dropzone
-          .dimmer('hide')
-          .removeClass('raised');
         await handler.load.imageFile(event, true);
       },
       eventListeners: function () {
@@ -433,6 +430,9 @@ app.ready = async function () {
         }
       },
       imageFile: async function (e, sample = false) {
+        $dropzone
+          .dimmer('hide')
+          .removeClass('raised');
         handler.set.loadingState({ buttons: true });
 
         var
