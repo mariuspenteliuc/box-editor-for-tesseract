@@ -2177,12 +2177,14 @@ app.ready = async () => {
         var file = null;
         if (sample) {
           file = new File([await (await fetch(defaultBoxUrl)).blob()], 'sampleImage.box');
-        } else if (event.target.files[0].name.includes('box')) {
-        // } else if (event.name.includes('box')) {
+        } else if (event.target?.files[0].name.includes('box')) {
+          // } else if (event.name.includes('box')) {
           // file = event;
+          // TODO: Fix file upload handling for all cases (image+box, image, box, files uncomitted, new files, samples)
           file = event.target.files[0];
         } else {
-          file = this.files[0];
+          // file = this.files[0];
+          file = event;
         }
 
         const fileExtension = file.name.split('.').pop();
@@ -2218,7 +2220,7 @@ app.ready = async () => {
         $(reader).on('load', handler.process.boxFile);
         handler.set.loadingState({ main: false, buttons: false });
       },
-      imageFile: async function (e, sample = false, skipProcessing = false)  {
+      imageFile: async function (e, sample = false, skipProcessing = false) {
         if (appSettings.behavior.alerting.enableWarrningMessagesForOverwritingDirtyData && boxDataInfo.isDirty() || lineDataInfo.isDirty()) {
           const response = await handler.askUser({
             title: notificationTypes.warning.overridingUnsavedChangesWarning.title,
@@ -2256,59 +2258,80 @@ app.ready = async () => {
           file = e;
         } else if (file = this.files[0]) {
           imageFileName = file.name.split('.').slice(0, -1).join('.');
-          imageFileNameForButton = file;
+          imageFileNameForButton = file.name;
           filename = file.name;
         }
-        img.onload = async () => {
-          if (!map) { handler.create.map('mapid'); }
-          map.eachLayer(layer => map.removeLayer(layer));
 
-          imageHeight = img.height;
-          imageWidth = img.width;
+        handler.load.image(sample ? defaultImageUrl : _URL.createObjectURL(file))
+          .then(async img => {
+            // console.log('Image loaded', img);
+            if (!map) { handler.create.map('mapid'); }
+            map.eachLayer(layer => map.removeLayer(layer));
 
-          const
-            bounds = [[0, 0], [parseInt(imageHeight), parseInt(imageWidth)]],
-            bounds2 = [[imageHeight - 300, 0], [imageHeight, imageWidth]];
-          if (image) {
-            await $(image._image).fadeOut(750, async () => {
-              map.removeLayer(image);
+            imageHeight = img.height;
+            imageWidth = img.width;
+
+            const
+              bounds = [[0, 0], [parseInt(imageHeight), parseInt(imageWidth)]],
+              bounds2 = [[imageHeight - 300, 0], [imageHeight, imageWidth]];
+            if (image) {
+              await $(image._image).fadeOut(750, async () => {
+                map.removeLayer(image);
+                image = new L.imageOverlay(img.src, bounds, imageOverlayOptions).addTo(map);
+                await $(image._image).fadeIn(500);
+              });
+            } else {
+              map.fitBounds(bounds2);
               image = new L.imageOverlay(img.src, bounds, imageOverlayOptions).addTo(map);
-              await $(image._image).fadeIn(500);
+              await $(image._image).fadeIn(750);
+            }
+
+            handler.update.downloadButtonsLabels({
+              boxDownloadButton: imageFileName + '.box',
+              groundTruthDownloadButton: imageFileName + '.gt.txt'
             });
-          } else {
-            map.fitBounds(bounds2);
-            image = new L.imageOverlay(img.src, bounds, imageOverlayOptions).addTo(map);
-            await $(image._image).fadeIn(750);
+
+            // $imageFileInput[0].value = imageFileName;
+            document.addEventListener('DOMContentLoaded', () => {
+              // const fileInput = document.getElementById('file-input');
+              $imageFileInput[0].value = 'C:\\path\\to\\file.jpg';
+            });
+
+
+          })
+          .catch(error => {
+            console.error('Image load failed:', error);
+            const fileExtension = file.name.split('.').pop();
+              handler.notifyUser({
+                title: notificationTypes.error.invalidFileTypeError.title,
+                message: 'Expected image file. Received ' + fileExtension + ' file.',
+                type: notificationTypes.error.invalidFileTypeError.type,
+              });
+          })
+          // Load Tesseract Worker
+          await handler.load.tesseractWorker();
+
+          if (appSettings.behavior.onImageLoad.detectAllLines && !sample && !skipProcessing) {
+            await handler.generate.initialBoxes(includeSuggestions = appSettings.behavior.onImageLoad.includeTextForDetectedLines);
           }
-        };
-        img.onerror = (error) => {
-          const fileExtension = file.name.split('.').pop();
-          handler.notifyUser({
-            title: notificationTypes.error.invalidFileTypeError.title,
-            message: 'Expected image file. Received ' + fileExtension + ' file.',
-            type: notificationTypes.error.invalidFileTypeError.type,
-          });
-        };
-        img.src = sample ? defaultImageUrl : _URL.createObjectURL(file);
-        handler.update.downloadButtonsLabels({
-          boxDownloadButton: imageFileName + '.box',
-          groundTruthDownloadButton: imageFileName + '.gt.txt'
+          handler.set.loadingState({ main: false, buttons: false });
+          if (appSettings.behavior.onImageLoad.detectAllLines) {
+            handler.focusGroundTruthField();
+          }
+          await $(image._image).animate({ opacity: 1 }, 500);
+          imageFileInfo.setProcessed();
+
+          return true;
+
+      },
+      image: (source) => {
+        return new Promise((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = error => reject(error);
+          img.src = source;
         });
-        // Load Tesseract Worker
-        await handler.load.tesseractWorker();
-
-        if (appSettings.behavior.onImageLoad.detectAllLines && !sample && !skipProcessing) {
-          await handler.generate.initialBoxes(includeSuggestions = appSettings.behavior.onImageLoad.includeTextForDetectedLines);
-        }
-        handler.set.loadingState({ main: false, buttons: false });
-        if (appSettings.behavior.onImageLoad.detectAllLines) {
-          handler.focusGroundTruthField();
-        }
-        await $(image._image).animate({ opacity: 1 }, 500);
-        imageFileInfo.setProcessed();
-
-        return true;
-      }
+      },
     },
     focusGroundTruthField: () => {
       $groundTruthInputField.focus();
