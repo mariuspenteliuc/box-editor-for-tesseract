@@ -89,6 +89,7 @@ app.ready = async () => {
     $map = $('#mapid'),
     $boxFileInput = $('#boxFile'),
     $imageFileInput = $('#imageFile'),
+    $imageFileInputButton = $('#imageFileButton'),
     $downloadBoxFileButton = $('#downloadBoxFileButton'),
     $downloadGroundTruthFileButton = $('#downloadGroundTruthButton'),
     $previousBoxButton = $('#previousBB'),
@@ -2093,7 +2094,7 @@ app.ready = async () => {
           handler.update.settingsModal();
         }
       },
-      popups: () => $imageFileInput.popup({
+      popups: () => $imageFileInputButton.popup({
         popup: $useSamplePopup,
         position: 'top left',
         hoverable: true,
@@ -2290,13 +2291,6 @@ app.ready = async () => {
               boxDownloadButton: imageFileName + '.box',
               groundTruthDownloadButton: imageFileName + '.gt.txt'
             });
-
-            // $imageFileInput[0].value = imageFileName;
-            document.addEventListener('DOMContentLoaded', () => {
-              // const fileInput = document.getElementById('file-input');
-              $imageFileInput[0].value = 'C:\\path\\to\\file.jpg';
-            });
-
 
           })
           .catch(error => {
@@ -2526,9 +2520,6 @@ app.ready = async () => {
           const
             results = await handler.ocr.detect([selectedBox]),
             element = boxData.findIndex(el => el.polyid == selectedBox?.polyid);
-          console.log(boxData[element].text);
-          console.log(results[0].text);
-          console.log(selectedBox.text);
           boxData[element].text = results.length ? results[0].text : selectedBox.text;
           $groundTruthInputField.val(boxData[element].text);
           handler.focusBoxID(boxData[element].polyid, { zoom: false })

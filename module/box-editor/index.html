@@ -109,11 +109,19 @@
                   </div>
                 </div>
                 <label for="imageFile">Image</label>
-                <input class="form-control" type="file" disabled id="imageFile" name="imageFile" accept="image/*" />
+                <input class="ui invisible file input form-control" type="file" disabled id="imageFile" name="imageFile" accept="image/*" />
+                <label for="imageFile" class="ui small fluid button" id="imageFileButton">
+                  <i class="file upload icon"></i>
+                  Choose File
+                </label>
               </div>
               <div class="field">
                 <label for="boxFile">Box File</label>
-                <input class="form-control" type="file" disabled id="boxFile" name="boxFile" accept=".box" />
+                <input class="ui invisible file input" type="file" disabled id="boxFile" name="boxFile" accept=".box" />
+                <label for="boxFile" class="ui disabled small fluid button" id="boxFileButton">
+                  <i class="file upload icon"></i>
+                  Choose File
+                </label>
               </div>
             </div>
           </form>
@@ -128,14 +136,14 @@
             <div class="two fields">
               <div class="field">
                 <label for="download">Box File</label>
-                <button id="downloadBoxFileButton" name="download" tabindex="0" class="disabled fluid ui button">
+                <button id="downloadBoxFileButton" name="download" tabindex="0" class="disabled small fluid ui button">
                   <i class="file download icon"></i>
                   Download
                 </button>
               </div>
               <div class="field">
                 <label for="download">Ground Truth</label>
-                <button id="downloadGroundTruthButton" name="download" tabindex="0" class="disabled fluid ui button">
+                <button id="downloadGroundTruthButton" name="download" tabindex="0" class="disabled small fluid ui button">
                   <i class="file download icon"></i>
                   Download
                 </button>
