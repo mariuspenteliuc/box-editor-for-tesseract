@@ -1106,11 +1106,8 @@ app.ready = async () => {
             y1: Math.round(layer._latlngs[0][0].lat),
             x2: Math.round(layer._latlngs[0][2].lng),
             y2: Math.round(layer._latlngs[0][2].lat)
-          }),
-          idx = 0;
-        if (selectedBox) {
-          idx = boxData.findIndex(x => x.equals(selectedBox));
-        }
+          });
+        idx = selectedBox ? boxData.findIndex(x => x.equals(selectedBox)) : 0;
         boxData.splice(idx + 1, 0, newBox);
         handler.sortAllBoxes();
         handler.init.slider();
