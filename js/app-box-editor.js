@@ -89,6 +89,7 @@ app.ready = async () => {
     $map = $('#mapid'),
     $boxFileInput = $('#boxFile'),
     $imageFileInput = $('#imageFile'),
+    $imageFileInputButton = $('#imageFileButton'),
     $downloadBoxFileButton = $('#downloadBoxFileButton'),
     $downloadGroundTruthFileButton = $('#downloadGroundTruthButton'),
     $previousBoxButton = $('#previousBB'),
@@ -251,6 +252,7 @@ app.ready = async () => {
         differentFileNameWarning: { title: 'Different File Name Warning', type: 'differentFileNameWarning', class: 'warning' },
       },
       error: {
+        networkError: { title: 'Connection issue', type: 'networkError', class: 'error' },
         identicalPatternNamesError: { title: 'Identical Pattern Names', type: 'identicalPatternNamesError', class: 'error' },
         invalidPatternsError: { title: 'Invalid Pattern', type: 'invalidPatternsError', class: 'error' },
         commitLineError: { title: 'Commit Line Error', type: 'commitLineError', class: 'error' },
@@ -1105,11 +1107,8 @@ app.ready = async () => {
             y1: Math.round(layer._latlngs[0][0].lat),
             x2: Math.round(layer._latlngs[0][2].lng),
             y2: Math.round(layer._latlngs[0][2].lat)
-          }),
-          idx = 0;
-        if (selectedBox) {
-          idx = boxData.findIndex(x => x.equals(selectedBox));
-        }
+          });
+        idx = selectedBox ? boxData.findIndex(x => x.equals(selectedBox)) : 0;
         boxData.splice(idx + 1, 0, newBox);
         handler.sortAllBoxes();
         handler.init.slider();
@@ -1238,7 +1237,7 @@ app.ready = async () => {
       });
 
       var boxGaps = [];
-      intersectingLines.forEach(line=> {
+      intersectingLines.forEach(line => {
         boxGaps.push(turf.envelope(line));
       });
 
@@ -1246,7 +1245,7 @@ app.ready = async () => {
         newBoxes = [],
         newEdges = [];
       newEdges.push(box.x1);
-      boxGaps.forEach(gap=> {
+      boxGaps.forEach(gap => {
         newEdges.push(gap.geometry.coordinates[0][0][0]);
         newEdges.push(gap.geometry.coordinates[0][2][0]);
       });
@@ -1264,7 +1263,7 @@ app.ready = async () => {
         newBoxes.push(newBox);
       }
 
-      newBoxes.forEach(element=> {
+      newBoxes.forEach(element => {
         element.x1 = Math.round(element.x1);
         element.y1 = Math.round(element.y1);
         element.x2 = Math.round(element.x2);
@@ -1728,7 +1727,7 @@ app.ready = async () => {
       }
       var
         files = event;
-      files.forEach(file=> {
+      files.forEach(file => {
         if (file.type.includes('image')) {
           imageFile = file;
         } else if (file.name.endsWith('.box')) {
@@ -1752,10 +1751,10 @@ app.ready = async () => {
         return;
       }
       if (imageFile) {
-        await handler.load.imageFile(imageFile);
+        await handler.load.imageFile(imageFile, sample = false, skipProcessing = boxFile ? true : false);
       }
       if (boxFile) {
-        await handler.load.boxFile(boxFile);
+        await handler.load.boxFile(boxFile, sample = false, skipWarning = imageFileInfo.isProcessed());
       }
     },
     init: {
@@ -1810,8 +1809,7 @@ app.ready = async () => {
           map.addLayer(boxLayer);
         }
         handler.sortAllBoxes();
-        selectedBox = handler.getBoxContent();
-        handler.focusBoxID(selectedBox.polyid);
+        handler.focusBoxID(handler.getBoxContent().polyid);
         handler.update.colorizedBackground();
       },
       wordstr: (content) => {
@@ -1887,7 +1885,17 @@ app.ready = async () => {
           langPath: langPathURL,
           gzip: isGzip,
         });
+        // try {
         await handler.load.tesseractLanguage();
+        // } catch (error) {
+        //   console.error(error);
+        //   notifyUser({
+        //     title: notificationTypes.error.networkError.title,
+        //     message: 'Failed to load language model. You may not be connected to the internet.',
+        //     type: notificationTypes.error.networkError.type,
+        //   });
+        //   return false;
+        // }
         await worker.setParameters({
           tessedit_ocr_engine_mode: 1,
           tessedit_pageseg_mode: 1,// 12
@@ -1900,7 +1908,7 @@ app.ready = async () => {
           await worker.initialize(appSettings.language.recognitionModel);
           return true;
         } catch (error) {
-          if (error.includes('Error: Network error while fetching')) {
+          if (error.toString().includes('Error: Network error while fetching')) {
             console.log(error);
             handler.notifyUser({
               title: notificationTypes.error.loadingLanguageModelError.title,
@@ -1910,6 +1918,13 @@ app.ready = async () => {
             appSettings.language.recognitionModel = 'RTS_from_Cyrillic';
             $ocrModelDropdownInSettings.dropdown('set selected', appSettings.language.recognitionModel, false);
             return await handler.load.tesseractLanguage();
+          } else if (error.toString().includes('NetworkError: Load failed') || error.toString().includes('Failed to load resource: The Internet connection')) {
+            console.log(error);
+            handler.notifyUser({
+              title: notificationTypes.error.networkError.title,
+              message: 'Failed to load language model. You may not be connected to the internet.',
+              type: notificationTypes.error.networkError.type,
+            });
           } else {
             console.log(error);
             throw error;
@@ -1947,7 +1962,7 @@ app.ready = async () => {
             var custom = value == 'RTS_from_Cyrillic' ? true : false;
             if (appSettings.language.languageModelIsCustom != custom) {
               appSettings.language.languageModelIsCustom = custom;
-              await handler.load.tesseractWorker();
+              response = await handler.load.tesseractWorker();
             } else {
               await handler.load.tesseractLanguage();
             }
@@ -2094,7 +2109,7 @@ app.ready = async () => {
           handler.update.settingsModal();
         }
       },
-      popups: () => $imageFileInput.popup({
+      popups: () => $imageFileInputButton.popup({
         popup: $useSamplePopup,
         position: 'top left',
         hoverable: true,
@@ -2150,11 +2165,11 @@ app.ready = async () => {
       sampleImageAndBox: async (event) => {
         handler.close.settingsModal();
         // handle NetworkError: Load failed when parsing ../../assets/sampleImage.box
-        await handler.load.imageFile(event, true);
-        await handler.load.boxFile(event, true);
+        if (await handler.load.imageFile(event, true))
+          await handler.load.boxFile(event, true, true);
       },
-      boxFile: async function (event, sample = false) {
-        if (appSettings.behavior.alerting.enableWarrningMessagesForOverwritingDirtyData && boxDataInfo.isDirty()) {
+      boxFile: async function (event, sample = false, skipWarning = false) {
+        if (!skipWarning && appSettings.behavior.alerting.enableWarrningMessagesForOverwritingDirtyData && boxDataInfo.isDirty()) {
           const response = await handler.askUser({
             title: notificationTypes.warning.overridingUnsavedChangesWarning.title,
             message: 'You did not download current progress. Do you want to overwrite existing data?',
@@ -2178,10 +2193,14 @@ app.ready = async () => {
         var file = null;
         if (sample) {
           file = new File([await (await fetch(defaultBoxUrl)).blob()], 'sampleImage.box');
-        } else if (event.target.files[0].name.includes('box')) {
+        } else if (event.target?.files[0].name.includes('box')) {
+          // } else if (event.name.includes('box')) {
+          // file = event;
+          // TODO: Fix file upload handling for all cases (image+box, image, box, files uncomitted, new files, samples)
           file = event.target.files[0];
         } else {
-          file = this.files[0];
+          // file = this.files[0];
+          file = event;
         }
 
         const fileExtension = file.name.split('.').pop();
@@ -2217,7 +2236,7 @@ app.ready = async () => {
         $(reader).on('load', handler.process.boxFile);
         handler.set.loadingState({ main: false, buttons: false });
       },
-      imageFile: async function (e, sample = false) {
+      imageFile: async function (e, sample = false, skipProcessing = false) {
         if (appSettings.behavior.alerting.enableWarrningMessagesForOverwritingDirtyData && boxDataInfo.isDirty() || lineDataInfo.isDirty()) {
           const response = await handler.askUser({
             title: notificationTypes.warning.overridingUnsavedChangesWarning.title,
@@ -2255,57 +2274,73 @@ app.ready = async () => {
           file = e;
         } else if (file = this.files[0]) {
           imageFileName = file.name.split('.').slice(0, -1).join('.');
-          imageFileNameForButton = file;
+          imageFileNameForButton = file.name;
           filename = file.name;
         }
-        img.onload = async () => {
-          if (!map) { handler.create.map('mapid'); }
-          map.eachLayer(layer => map.removeLayer(layer));
 
-          imageHeight = img.height;
-          imageWidth = img.width;
+        handler.load.image(sample ? defaultImageUrl : _URL.createObjectURL(file))
+          .then(async img => {
+            // console.log('Image loaded', img);
+            if (!map) { handler.create.map('mapid'); }
+            map.eachLayer(layer => map.removeLayer(layer));
 
-          const
-            bounds = [[0, 0], [parseInt(imageHeight), parseInt(imageWidth)]]
-          bounds2 = [[imageHeight - 300, 0], [imageHeight, imageWidth]];
-          if (image) {
-            $(image._image).fadeOut(750, () => {
-              map.removeLayer(image);
+            imageHeight = img.height;
+            imageWidth = img.width;
+
+            const
+              bounds = [[0, 0], [parseInt(imageHeight), parseInt(imageWidth)]],
+              bounds2 = [[imageHeight - 300, 0], [imageHeight, imageWidth]];
+            if (image) {
+              await $(image._image).fadeOut(750, async () => {
+                map.removeLayer(image);
+                image = new L.imageOverlay(img.src, bounds, imageOverlayOptions).addTo(map);
+                await $(image._image).fadeIn(500);
+              });
+            } else {
+              map.fitBounds(bounds2);
               image = new L.imageOverlay(img.src, bounds, imageOverlayOptions).addTo(map);
-              $(image._image).fadeIn(500);
+              await $(image._image).fadeIn(750);
+            }
+
+            handler.update.downloadButtonsLabels({
+              boxDownloadButton: imageFileName + '.box',
+              groundTruthDownloadButton: imageFileName + '.gt.txt'
             });
-          } else {
-            map.fitBounds(bounds2);
-            image = new L.imageOverlay(img.src, bounds, imageOverlayOptions).addTo(map);
-            $(image._image).fadeIn(750);
-          }
-        };
-        img.onerror = (error) => {
-          const fileExtension = file.name.split('.').pop();
-          handler.notifyUser({
-            title: notificationTypes.error.invalidFileTypeError.title,
-            message: 'Expected image file. Received ' + fileExtension + ' file.',
-            type: notificationTypes.error.invalidFileTypeError.type,
-          });
-        };
-        img.src = sample ? defaultImageUrl : _URL.createObjectURL(file);
-        handler.update.downloadButtonsLabels({
-          boxDownloadButton: imageFileName + '.box',
-          groundTruthDownloadButton: imageFileName + '.gt.txt'
-        });
+
+          })
+          .catch(error => {
+            console.error('Image load failed:', error);
+            const fileExtension = file.name.split('.').pop();
+            handler.notifyUser({
+              title: notificationTypes.error.invalidFileTypeError.title,
+              message: 'Expected image file. Received ' + fileExtension + ' file.',
+              type: notificationTypes.error.invalidFileTypeError.type,
+            });
+          })
         // Load Tesseract Worker
         await handler.load.tesseractWorker();
 
-        if (appSettings.behavior.onImageLoad.detectAllLines && !sample) {
+        if (appSettings.behavior.onImageLoad.detectAllLines && !sample && !skipProcessing) {
           await handler.generate.initialBoxes(includeSuggestions = appSettings.behavior.onImageLoad.includeTextForDetectedLines);
         }
         handler.set.loadingState({ main: false, buttons: false });
         if (appSettings.behavior.onImageLoad.detectAllLines) {
           handler.focusGroundTruthField();
         }
-        $(image._image).animate({ opacity: 1 }, 500);
+        await $(image._image).animate({ opacity: 1 }, 500);
         imageFileInfo.setProcessed();
-      }
+
+        return true;
+
+      },
+      image: (source) => {
+        return new Promise((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = error => reject(error);
+          img.src = source;
+        });
+      },
     },
     focusGroundTruthField: () => {
       $groundTruthInputField.focus();
@@ -2500,9 +2535,6 @@ app.ready = async () => {
           const
             results = await handler.ocr.detect([selectedBox]),
             element = boxData.findIndex(el => el.polyid == selectedBox?.polyid);
-          console.log(boxData[element].text);
-          console.log(results[0].text);
-          console.log(selectedBox.text);
           boxData[element].text = results.length ? results[0].text : selectedBox.text;
           $groundTruthInputField.val(boxData[element].text);
           handler.focusBoxID(boxData[element].polyid, { zoom: false })
