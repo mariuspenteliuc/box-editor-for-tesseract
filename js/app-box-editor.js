@@ -252,6 +252,7 @@ app.ready = async () => {
         differentFileNameWarning: { title: 'Different File Name Warning', type: 'differentFileNameWarning', class: 'warning' },
       },
       error: {
+        networkError: { title: 'Connection issue', type: 'networkError', class: 'error' },
         identicalPatternNamesError: { title: 'Identical Pattern Names', type: 'identicalPatternNamesError', class: 'error' },
         invalidPatternsError: { title: 'Invalid Pattern', type: 'invalidPatternsError', class: 'error' },
         commitLineError: { title: 'Commit Line Error', type: 'commitLineError', class: 'error' },
@@ -1884,7 +1885,17 @@ app.ready = async () => {
           langPath: langPathURL,
           gzip: isGzip,
         });
+        // try {
         await handler.load.tesseractLanguage();
+        // } catch (error) {
+        //   console.error(error);
+        //   notifyUser({
+        //     title: notificationTypes.error.networkError.title,
+        //     message: 'Failed to load language model. You may not be connected to the internet.',
+        //     type: notificationTypes.error.networkError.type,
+        //   });
+        //   return false;
+        // }
         await worker.setParameters({
           tessedit_ocr_engine_mode: 1,
           tessedit_pageseg_mode: 1,// 12
@@ -1897,7 +1908,7 @@ app.ready = async () => {
           await worker.initialize(appSettings.language.recognitionModel);
           return true;
         } catch (error) {
-          if (error.includes('Error: Network error while fetching')) {
+          if (error.toString().includes('Error: Network error while fetching')) {
             console.log(error);
             handler.notifyUser({
               title: notificationTypes.error.loadingLanguageModelError.title,
@@ -1907,6 +1918,13 @@ app.ready = async () => {
             appSettings.language.recognitionModel = 'RTS_from_Cyrillic';
             $ocrModelDropdownInSettings.dropdown('set selected', appSettings.language.recognitionModel, false);
             return await handler.load.tesseractLanguage();
+          } else if (error.toString().includes('NetworkError: Load failed') || error.toString().includes('Failed to load resource: The Internet connection')) {
+            console.log(error);
+            handler.notifyUser({
+              title: notificationTypes.error.networkError.title,
+              message: 'Failed to load language model. You may not be connected to the internet.',
+              type: notificationTypes.error.networkError.type,
+            });
           } else {
             console.log(error);
             throw error;
@@ -1944,7 +1962,7 @@ app.ready = async () => {
             var custom = value == 'RTS_from_Cyrillic' ? true : false;
             if (appSettings.language.languageModelIsCustom != custom) {
               appSettings.language.languageModelIsCustom = custom;
-              await handler.load.tesseractWorker();
+              response = await handler.load.tesseractWorker();
             } else {
               await handler.load.tesseractLanguage();
             }
@@ -2293,26 +2311,26 @@ app.ready = async () => {
           .catch(error => {
             console.error('Image load failed:', error);
             const fileExtension = file.name.split('.').pop();
-              handler.notifyUser({
-                title: notificationTypes.error.invalidFileTypeError.title,
-                message: 'Expected image file. Received ' + fileExtension + ' file.',
-                type: notificationTypes.error.invalidFileTypeError.type,
-              });
+            handler.notifyUser({
+              title: notificationTypes.error.invalidFileTypeError.title,
+              message: 'Expected image file. Received ' + fileExtension + ' file.',
+              type: notificationTypes.error.invalidFileTypeError.type,
+            });
           })
-          // Load Tesseract Worker
-          await handler.load.tesseractWorker();
+        // Load Tesseract Worker
+        await handler.load.tesseractWorker();
 
-          if (appSettings.behavior.onImageLoad.detectAllLines && !sample && !skipProcessing) {
-            await handler.generate.initialBoxes(includeSuggestions = appSettings.behavior.onImageLoad.includeTextForDetectedLines);
-          }
-          handler.set.loadingState({ main: false, buttons: false });
-          if (appSettings.behavior.onImageLoad.detectAllLines) {
-            handler.focusGroundTruthField();
-          }
-          await $(image._image).animate({ opacity: 1 }, 500);
-          imageFileInfo.setProcessed();
+        if (appSettings.behavior.onImageLoad.detectAllLines && !sample && !skipProcessing) {
+          await handler.generate.initialBoxes(includeSuggestions = appSettings.behavior.onImageLoad.includeTextForDetectedLines);
+        }
+        handler.set.loadingState({ main: false, buttons: false });
+        if (appSettings.behavior.onImageLoad.detectAllLines) {
+          handler.focusGroundTruthField();
+        }
+        await $(image._image).animate({ opacity: 1 }, 500);
+        imageFileInfo.setProcessed();
 
-          return true;
+        return true;
 
       },
       image: (source) => {
