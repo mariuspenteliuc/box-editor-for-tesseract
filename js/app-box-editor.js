@@ -2242,6 +2242,13 @@ app.ready = async () => {
             pressedModifiers[event.key] = false;
             // console.log('removed', event.key, 'from pressedModifiers', pressedModifiers);
           }
+          if (event.target == $groundTruthInputField[0]) {
+            if (handler.keyboardShortcuts.isNavigationKey(event.key)) {
+              // allow event to continue selection, then call showCharInfoPopup
+              setTimeout(handler.showCharInfoPopup(event), 0);
+              return;
+            }
+          }
         });
         $window.off('keydown');
         $window.keydown(event => {
@@ -2251,8 +2258,8 @@ app.ready = async () => {
             return;
           }
           if (event.target == $groundTruthInputField[0]) {
-            if (handler.keyboardShortcuts.isNavigationKey(event.key) || event.key == 'a') {
-              // allow event to select text, propagate
+            if (!handler.keyboardShortcuts.isNavigationKey(event.key) && event.key == 'a') {
+              // allow event to continue selection, then call showCharInfoPopup
               setTimeout(handler.showCharInfoPopup(event), 0);
               return;
             }
@@ -3021,7 +3028,11 @@ app.ready = async () => {
       }
 
       // if selection outside of ground truth field then close char info popup
-      if (!selection.anchorNode || !$.contains($groundTruthForm[0], selection.anchorNode)) {
+      // if (!selection.anchorNode || !$.contains($groundTruthForm[0], selection.anchorNode)) {
+      //   handler.close.popups();
+      //   return false;
+      // }
+      if (selection.anchorNode != null || !event.target.id.includes('formtxt') || selection.toString().length < 1) {
         handler.close.popups();
         return false;
       }
@@ -3047,7 +3058,7 @@ app.ready = async () => {
         if ($groundTruthForm.popup('is visible')) {
           $groundTruthForm.popup('change content (html)', content);
         } else if ($groundTruthForm.popup('is hidden')) {
-          $groundTruthForm.popup({ on: 'manual', 'html': content }).popup('show');
+          $groundTruthForm.popup({ on: 'manual', 'html': content, closable: false}).popup('show');
         } else {
           console.error('Unknown Char Info popup state');
         }
@@ -3076,6 +3087,7 @@ app.ready = async () => {
         }
       });
       $modelConfidenceScoreEnabledCheckbox.checkbox({ onChange: async () => { await handler.update.confidenceScoreField(selectedBox); } });
+      // $groundTruthInputField.bind('mouseup', handler.showCharInfoPopupFromMouseClick)
       $window.bind('mouseup', handler.showCharInfoPopupFromMouseClick)
       $coordinateFields.on('input', handler.update.boxCoordinates);
       $boxFileInput.on('change', handler.load.boxFile);
