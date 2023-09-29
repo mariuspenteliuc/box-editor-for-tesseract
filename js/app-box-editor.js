@@ -99,7 +99,7 @@ app.ready = async () => {
     $taggingSegment = $('#taggingSegment'),
     $positionSlider = $('#positionSlider'),
     $progressSlider = $('#progressIndicator'),
-    $virtualKeyboard = $('.simple-keyboard'),
+    $virtualKeyboard = $('#virtualKeyboard'),
     $progressLabel = $progressSlider.find('.label'),
     $popups = $('.popup'),
     $settingsButton = $('#settingsButton'),
@@ -201,6 +201,14 @@ app.ready = async () => {
           invisiblesToggle: true,
           languageModelDropdown: true,
         },
+        editorTools: {
+          virtualKeyboard: false,
+          progressIndicator: true,
+          positionSlider: true,
+          formCoordinateFields: true,
+          unicodeInfoPopup: true,
+          confidenceScoreEnabled: true,
+        },
         imageView: 'medium',
         showInvisibles: false,
       },
@@ -215,11 +223,6 @@ app.ready = async () => {
           enableWarrningMessagesForOverwritingDirtyData: true,
         },
         workflow: {
-          progressIndicator: true,
-          positionSlider: true,
-          formCoordinateFields: true,
-          unicodeInfoPopup: true,
-          confidenceScoreEnabled: true,
           autoDownloadBoxFileOnAllLinesComitted: false,
           autoDownloadGroundTruthFileOnAllLinesComitted: false,
         },
@@ -1426,7 +1429,7 @@ app.ready = async () => {
         }
       } else {
         // if (alternativeLayouts.includes(currentLayout)) {
-          // virtualKeyboard.removeButtonTheme(currentLayout, 'active');
+        // virtualKeyboard.removeButtonTheme(currentLayout, 'active');
         // } else {
 
         // }
@@ -1439,7 +1442,7 @@ app.ready = async () => {
             //   newLayout = [newLayout, currentLayout].sort((a, b) => a.localeCompare(b)).join('+');
             //   // newLayout = [newLayout, currentLayout].join('+');
             // } else {
-              newLayout = [newLayout, currentLayout].join('+');
+            newLayout = [newLayout, currentLayout].join('+');
             // }
           } else {
             // newLayout = 'default';
@@ -1519,9 +1522,9 @@ app.ready = async () => {
             $positionSlider.addClass('disabled');
             $virtualKeyboard.find('.button')
               .filter((index, element) => $(element).attr('data-skbtn') !== '')
-              .addClass('disabled');            if (image != undefined) {
-              $(image._image).animate({ opacity: 0.3 }, 200);
-            }
+              .addClass('disabled'); if (image != undefined) {
+                $(image._image).animate({ opacity: 0.3 }, 200);
+              }
           } else {
             $map.removeClass('loading disabled');
             $progressSlider.removeClass('disabled');
@@ -1592,6 +1595,15 @@ app.ready = async () => {
           });
         }
         handler.set.mapSize({ height: appSettings.interface.imageView });
+        // Editor Tools
+        const editorToolsPath = 'interface.editorTools';
+        for (const [key, value] of Object.entries(appSettings.interface.editorTools)) {
+          const path = 'interface.editorTools.' + key;
+          const checkbox = $checkboxes.find(`input[name="${path}"]`);
+          checkbox.prop('checked', value);
+          $('#' + key).toggle(appSettings.interface.editorTools[key]);
+          document.querySelector(`input[name='${path}']`).checked = value;
+        }
         // On Image Load
         for (const [key, value] of Object.entries(appSettings.behavior.onImageLoad)) {
           const path = 'behavior.onImageLoad.' + key;
@@ -1887,6 +1899,23 @@ app.ready = async () => {
           return appSettings;
         }
         // Upgrading settings
+
+        if (handler.compareVersions(oldSettings.appVersion, '1.7.0') < 0) {
+
+          // add new setting
+          appSettings.interface.editorTools.virtualKeyboard = false;
+
+          // move behavior workflow settings to interface editor tools settings
+          const oldKeys = ['progressIndicator', 'positionSlider', 'formCoordinateFields', 'unicodeInfoPopup'];
+
+          oldKeys.forEach(element => {
+            if (appSettings.behavior.workflow[element] != undefined) {
+              appSettings.interface.editorTools[element] = oldSettings.behavior.workflow[element];
+              delete appSettings.behavior.workflow[element];
+            }
+          });
+        }
+
 
         if (handler.compareVersions(oldSettings.appVersion, '1.6.2') < 0) {
           // migrate map height labels to numbers
@@ -3058,7 +3087,7 @@ app.ready = async () => {
         if ($groundTruthForm.popup('is visible')) {
           $groundTruthForm.popup('change content (html)', content);
         } else if ($groundTruthForm.popup('is hidden')) {
-          $groundTruthForm.popup({ on: 'manual', 'html': content, closable: false}).popup('show');
+          $groundTruthForm.popup({ on: 'manual', 'html': content, closable: false }).popup('show');
         } else {
           console.error('Unknown Char Info popup state');
         }
@@ -3084,6 +3113,7 @@ app.ready = async () => {
         onChange: () => {
           handler.update.highlighterTable($textHighlightingEnabledCheckbox[0].checked);
           handler.update.colorizedBackground();
+          handler.saveHighlightsToSettings();
         }
       });
       $modelConfidenceScoreEnabledCheckbox.checkbox({ onChange: async () => { await handler.update.confidenceScoreField(selectedBox); } });
