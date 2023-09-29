@@ -499,7 +499,7 @@ div.ui.blue.empty.circular.label.text-highlighter {
 }
 
 .light-theme .hg-theme-default {
-  background-color: #3d3e3f55;
+  /* background-color: #3d3e3f55; */
   border-radius: 5px;
   box-sizing: border-box;
   font-family: HelveticaNeue-Light, Helvetica Neue Light, Helvetica Neue, Helvetica, Arial, Lucida Grande, sans-serif;
@@ -3426,7 +3426,8 @@ div.ui.blue.empty.circular.label.text-highlighter {
 .dark-theme .ui.segments,
 .dark-theme .ui.segments .segment,
 .dark-theme .ui.segment {
-  border: none;
+  /* border: none; */
+  border: 1px solid rgba(34, 36, 38, .15);
   box-shadow: none;
 }
 
