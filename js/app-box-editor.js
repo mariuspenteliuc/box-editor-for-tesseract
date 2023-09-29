@@ -242,10 +242,10 @@ app.ready = async () => {
 
     notificationTypes = {
       info: {
-        fileDownloadedInfo: { title: 'File Downloaded', type: 'fileDownloadedInfo', class: 'info' },
-        nothingToDownloadInfo: { title: 'Nothing To Download', type: 'nothingToDownloadInfo', class: 'info' },
+        fileDownloadedInfo: { title: 'File Downloaded', type: 'fileDownloadedInfo' },
       },
       warning: {
+        nothingToDownloadWarning: { title: 'Nothing To Download', type: 'nothingToDownloadWarning', class: 'warning' },
         resetAppWarning: { title: 'App Reset', type: 'resetAppWarning', class: 'warning' },
         replacingTextWarning: { title: 'Replacing Text', type: 'replacingTextWarning', class: 'warning' },
         nameMismatchError: { title: 'File Names Mismatch', type: 'nameMismatchError', class: 'warning' },
@@ -669,6 +669,7 @@ app.ready = async () => {
         handler.clearLocalStorage();
       }
     },
+    testFunction: fn => fn(),
     keyboardShortcuts: {
       getKeys: () => {
         return appSettings.keyboardShortcuts;
@@ -1960,6 +1961,16 @@ app.ready = async () => {
         await handler.load.boxFile(boxFile, sample = false, skipWarning = imageFileInfo.isProcessed());
       }
     },
+    destroy: {
+      positionSlider: () => {
+        $positionSlider.slider('destroy');
+        $positionSlider.contents().remove()
+      },
+      progressBar: () => {
+        $progressSlider.progress('destroy');
+        $progressSlider.children().contents().remove()
+      },
+    },
     init: {
       slider: () => {
         $positionSlider.slider('destroy');
@@ -2164,6 +2175,7 @@ app.ready = async () => {
               title: notificationTypes.error.loadingLanguageModelError.title,
               message: `Failed to load selected language model ${appSettings.language.recognitionModel}. Loading default RTS instead.`,
               type: notificationTypes.error.loadingLanguageModelError.type,
+              class: notificationTypes.error.loadingLanguageModelError.class,
             });
             appSettings.language.recognitionModel = 'RTS_from_Cyrillic';
             $ocrModelDropdownInSettings.dropdown('set selected', appSettings.language.recognitionModel, false);
@@ -2174,6 +2186,7 @@ app.ready = async () => {
               title: notificationTypes.error.networkError.title,
               message: 'Failed to load language model. You may not be connected to the internet.',
               type: notificationTypes.error.networkError.type,
+              class: notificationTypes.error.networkError.class,
             });
           } else {
             console.log(error);
@@ -2459,6 +2472,7 @@ app.ready = async () => {
             title: notificationTypes.error.invalidFileTypeError.title,
             message: 'Expected box file. Received ' + fileExtension + ' file.',
             type: notificationTypes.error.invalidFileTypeError.type,
+            class: notificationTypes.error.invalidFileTypeError.class,
           });
           return false;
         } else if (appSettings.behavior.alerting.enableWarrningMessagesForDifferentFileNames && imageFileName != file.name.split('.').slice(0, -1).join('.') && imageFileName != undefined) {
@@ -2556,7 +2570,6 @@ app.ready = async () => {
               boxDownloadButton: imageFileName + '.box',
               groundTruthDownloadButton: imageFileName + '.gt.txt'
             });
-
           })
           .catch(error => {
             console.error('Image load failed:', error);
@@ -2565,8 +2578,19 @@ app.ready = async () => {
               title: notificationTypes.error.invalidFileTypeError.title,
               message: 'Expected image file. Received ' + fileExtension + ' file.',
               type: notificationTypes.error.invalidFileTypeError.type,
+              class: notificationTypes.error.invalidFileTypeError.class,
             });
           })
+        // remove current box data
+        boxLayer.clearLayers();
+        boxData = [];
+        boxDataInfo.setDirty(false);
+        lineDataInfo.setDirty(false);
+        $groundTruthInputField.val('');
+        handler.destroy.positionSlider();
+        handler.destroy.progressBar();
+        handler.update.colorizedBackground();
+
         // Load Tesseract Worker
         await handler.load.tesseractWorker();
 
@@ -2594,7 +2618,7 @@ app.ready = async () => {
     },
     focusGroundTruthField: () => {
       $groundTruthInputField.focus();
-      $groundTruthInputField.select();
+      // $groundTruthInputField.select();
     },
     focusBoxID: (id, options = { isUpdated: false, zoom: true }) => {
       if (!options.isUpdated) options.isUpdated = false;
@@ -2706,9 +2730,10 @@ app.ready = async () => {
         event?.preventDefault() && event?.stopPropagation();
         if (!boxData.length) {
           handler.notifyUser({
-            title: notificationTypes.info.nothingToDownloadInfo.title,
+            title: notificationTypes.warning.nothingToDownloadWarning.title,
             message: 'There is nothing to download!',
-            type: notificationTypes.info.nothingToDownloadInfo.type,
+            type: notificationTypes.warning.nothingToDownloadWarning.type,
+            class: notificationTypes.warning.nothingToDownloadWarning.class,
           });
           return false;
         }
@@ -2717,6 +2742,7 @@ app.ready = async () => {
             title: notificationTypes.error.commitLineError.title,
             message: 'Please commit the current line first.',
             type: notificationTypes.error.commitLineError.type,
+            class: notificationTypes.error.commitLineError.class,
           });
           return false;
         }
@@ -2751,6 +2777,7 @@ app.ready = async () => {
           title: notificationTypes.info.fileDownloadedInfo.title,
           message: 'Downloaded file ' + imageFileName + '.' + fileExtension,
           type: notificationTypes.info.fileDownloadedInfo.type,
+          class: notificationTypes.info.fileDownloadedInfo.class,
         });
         boxDataInfo.setDirty(false);
       },
