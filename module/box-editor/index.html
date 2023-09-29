@@ -47,6 +47,10 @@
 
   <!-- JS Cookie -->
   <script src="https://cdn.jsdelivr.net/npm/js-cookie@3"></script>
+
+  <!-- Simple Virtual Keyboard -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/simple-keyboard@latest/build/css/index.css">
+  <script src="https://cdn.jsdelivr.net/npm/simple-keyboard@latest/build/index.js"></script>
   <!-- Custom JS and CSS -->
   <script src="../../js/jquery.csv.min.js"></script>
   <script src="../../js/app-box-editor.js"></script>
@@ -109,7 +113,8 @@
                   </div>
                 </div>
                 <label for="imageFile">Image</label>
-                <input class="ui invisible file input form-control" type="file" disabled id="imageFile" name="imageFile" accept="image/*" />
+                <input class="ui invisible file input form-control" type="file" disabled id="imageFile" name="imageFile"
+                  accept="image/*" />
                 <label for="imageFile" class="ui small fluid button" id="imageFileButton">
                   <i class="file upload icon"></i>
                   Choose File
@@ -143,7 +148,8 @@
               </div>
               <div class="field">
                 <label for="download">Ground Truth</label>
-                <button id="downloadGroundTruthButton" name="download" tabindex="0" class="disabled small fluid ui button">
+                <button id="downloadGroundTruthButton" name="download" tabindex="0"
+                  class="disabled small fluid ui button">
                   <i class="file download icon"></i>
                   Download
                 </button>
@@ -339,6 +345,7 @@
             </div>
           </form>
         </div>
+        <div id="virtualKeyboard" class="simple-keyboard"></div>
         <div class="ui center aligned basic fitted segment">
           <button id="previousBB" class="ui disabled left labeled icon button">
             <i class="left chevron icon"></i>
@@ -526,6 +533,50 @@
               </div>
             </div>
           </div>
+          <div class="item">
+            <div class="header">Editor Tools</div>
+            <div class="description"></div>
+            <div class="ui list">
+              <div class="item">
+                <div class="ui checkbox">
+                  <input type="checkbox" name="interface.editorTools.virtualKeyboard">
+                  <label>Use cyrillic virtual keyboard <span class="ui small italic orange text updateNotification"
+                      data-release-date="2023-09-30" data-expire-notification="14">new</span></label>
+                </div>
+              </div>
+              <div class="item">
+                <div class="ui checkbox">
+                  <input type="checkbox" name="interface.editorTools.progressIndicator">
+                  <label>Indicate task progress</label>
+                </div>
+              </div>
+              <div class="item">
+                <div class="ui checkbox">
+                  <input type="checkbox" name="interface.editorTools.positionSlider">
+                  <label>Show interactive position slider</label>
+                </div>
+              </div>
+              <div class="item">
+                <div class="ui checkbox">
+                  <input type="checkbox" name="interface.editorTools.formCoordinateFields">
+                  <label>Display coordinate fields in form</label>
+                </div>
+              </div>
+              <div class="item">
+                <div class="ui checkbox">
+                  <input type="checkbox" name="interface.editorTools.unicodeInfoPopup">
+                  <label>Show Unicode info popup for selected characters</label>
+                </div>
+              </div>
+              <div class="item">
+                <div class="ui checkbox">
+                  <input type="checkbox" name="interface.editorTools.confidenceScoreEnabled">
+                  <label>Display confidence score for text suggestions
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
       <div class="ui tab" data-tab="behavior-settings">
@@ -595,37 +646,6 @@
               Choose what convenience features you would like to use.
             </div>
             <div class="ui list">
-              <div class="item">
-                <div class="ui checkbox">
-                  <input type="checkbox" name="behavior.workflow.progressIndicator">
-                  <label>Indicate task progress</label>
-                </div>
-              </div>
-              <div class="item">
-                <div class="ui checkbox">
-                  <input type="checkbox" name="behavior.workflow.positionSlider">
-                  <label>Show interactive position slider</label>
-                </div>
-              </div>
-              <div class="item">
-                <div class="ui checkbox">
-                  <input type="checkbox" name="behavior.workflow.formCoordinateFields">
-                  <label>Display coordinate fields in form</label>
-                </div>
-              </div>
-              <div class="item">
-                <div class="ui checkbox">
-                  <input type="checkbox" name="behavior.workflow.unicodeInfoPopup">
-                  <label>Show Unicode info popup for selected characters</label>
-                </div>
-              </div>
-              <div class="item">
-                <div class="ui checkbox">
-                  <input type="checkbox" name="behavior.workflow.confidenceScoreEnabled">
-                  <label>Display confidence score for text suggestions
-                  </label>
-                </div>
-              </div>
               <div class="item">
                 <div class="ui checkbox">
                   <input type="checkbox" name="behavior.workflow.autoDownloadBoxFileOnAllLinesComitted">

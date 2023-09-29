@@ -17,6 +17,41 @@ body {
   }
 }
 
+.hg-theme-default .hg-button {
+border-bottom: none;
+}
+
+.hg-button[data-skbtn="{optionleft}"],
+.hg-button[data-skbtn="{optionright}"],
+.hg-button[data-skbtn="{altleft}"],
+.hg-button[data-skbtn="{altright}"],
+.hg-button[data-skbtn="{backspace}"],
+.hg-button[data-skbtn="{shiftleft}"],
+.hg-button[data-skbtn="{shiftright}"],
+.hg-button[data-skbtn="{kavyka}"],
+.hg-button[data-skbtn="{acute}"],
+.hg-button[data-skbtn="{grave}"] {
+  /* border-radius: 50px; */
+  width: 5rem;
+  min-width: fit-content;
+  max-width: 7rem;
+  /* max-width: fit-content; */
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+.hg-button[data-skbtn="{//}"] {
+  background: transparent;
+  box-shadow: none;
+  border: none;
+  pointer-events: none;
+}
+
+.hg-button[data-skbtn="{space}"] {
+  min-width: 30%;
+  max-width: auto;
+}
+
 .more::after {
   vertical-align: -8%;
   content: "\f105";
@@ -461,6 +496,34 @@ div.ui.blue.empty.circular.label.text-highlighter {
   /* font-size: 20px; */
   /* line-height: 1.21428571em; */
   font-family: Lato, system-ui, -apple-system, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+}
+
+.light-theme .hg-theme-default {
+  /* background-color: #3d3e3f55; */
+  border-radius: 5px;
+  box-sizing: border-box;
+  font-family: HelveticaNeue-Light, Helvetica Neue Light, Helvetica Neue, Helvetica, Arial, Lucida Grande, sans-serif;
+  overflow: hidden;
+  padding: 5px;
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+  width: 100%;
+}
+
+.dark-theme .hg-theme-default {
+  background-color: #3d3e3f55;
+  border-radius: 5px;
+  box-sizing: border-box;
+  font-family: HelveticaNeue-Light, Helvetica Neue Light, Helvetica Neue, Helvetica, Arial, Lucida Grande, sans-serif;
+  overflow: hidden;
+  padding: 5px;
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+  width: 100%;
 }
 
 
@@ -3363,7 +3426,8 @@ div.ui.blue.empty.circular.label.text-highlighter {
 .dark-theme .ui.segments,
 .dark-theme .ui.segments .segment,
 .dark-theme .ui.segment {
-  border: none;
+  /* border: none; */
+  border: 1px solid rgba(34, 36, 38, .15);
   box-shadow: none;
 }
 
@@ -7626,6 +7690,19 @@ div.ui.blue.empty.circular.label.text-highlighter {
 }
 
 @media(prefers-color-scheme: dark) {
+  .match-device .hg-theme-default {
+      background-color: #3d3e3f55;
+      border-radius: 5px;
+      box-sizing: border-box;
+      font-family: HelveticaNeue-Light, Helvetica Neue Light, Helvetica Neue, Helvetica, Arial, Lucida Grande, sans-serif;
+      overflow: hidden;
+      padding: 5px;
+      touch-action: manipulation;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      user-select: none;
+      width: 100%;
+    }
 
   .match-device #previewText::selection,
   .match-device #formtxt::selection {
@@ -10526,7 +10603,7 @@ div.ui.blue.empty.circular.label.text-highlighter {
   .match-device .ui.segments,
   .match-device .ui.segments .segment,
   .match-device .ui.segment {
-    border: none;
+    /* border: none; */
     box-shadow: none;
   }
 
