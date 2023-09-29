@@ -89,6 +89,7 @@ app.ready = async () => {
     $map = $('#mapid'),
     $boxFileInput = $('#boxFile'),
     $imageFileInput = $('#imageFile'),
+    $imageFileInputButton = $('#imageFileButton'),
     $downloadBoxFileButton = $('#downloadBoxFileButton'),
     $downloadGroundTruthFileButton = $('#downloadGroundTruthButton'),
     $previousBoxButton = $('#previousBB'),
@@ -98,6 +99,7 @@ app.ready = async () => {
     $taggingSegment = $('#taggingSegment'),
     $positionSlider = $('#positionSlider'),
     $progressSlider = $('#progressIndicator'),
+    $virtualKeyboard = $('.simple-keyboard'),
     $progressLabel = $progressSlider.find('.label'),
     $popups = $('.popup'),
     $settingsButton = $('#settingsButton'),
@@ -185,6 +187,7 @@ app.ready = async () => {
     duplicatedKeyboardShortcuts = false,
     suppressLogMessages = { 'recognizing text': false, },
     worker,
+    virtualKeyboard,
 
     appSettings = {
       localStorageKey: 'appSettings-boxEditor',
@@ -251,11 +254,87 @@ app.ready = async () => {
         differentFileNameWarning: { title: 'Different File Name Warning', type: 'differentFileNameWarning', class: 'warning' },
       },
       error: {
+        networkError: { title: 'Connection issue', type: 'networkError', class: 'error' },
         identicalPatternNamesError: { title: 'Identical Pattern Names', type: 'identicalPatternNamesError', class: 'error' },
         invalidPatternsError: { title: 'Invalid Pattern', type: 'invalidPatternsError', class: 'error' },
         commitLineError: { title: 'Commit Line Error', type: 'commitLineError', class: 'error' },
         loadingLanguageModelError: { title: 'Language Model Error', type: 'loadingLanguageModelError', class: 'error' },
         invalidFileTypeError: { title: 'Invalid File Type', type: 'invalidFileTypeError', class: 'error' },
+      },
+    },
+
+    virtualKeyboardLayouts = {
+      rts: {
+        default: [
+          '{grave} „ 1 2 3 4 5 6 7 8 9 0 - = {backspace}',
+          '{acute}  ш е р т у ꙋ і о п ъ ꙟ',
+          '{kavyka} а с д ф г х ж к л ꚗ ꚏ ѫ',
+          '{capslock}    ч в б н м , . {capslock}',
+          '{altleft} {space} {altright}',
+        ],
+        shift: [
+          '{grave} ” ! @ # $ % ^ & * ( ) _ + {backspace}',
+          '{acute}  Ш Е Р Т У Ꙋ І О П Ъ Ꙟ',
+          '{kavyka} А С Д Ф Г Х Ж К Л Ꚗ Ꚏ Ѫ',
+          '{capslock}    Ч В Б Н М ; : {capslock}',
+          '{altleft} {space} {altright}',
+        ],
+        alt: [
+          '{grave} „ 1 2 3 4 5 6 7 8 9 0 - = {backspace}',
+          '{acute} ц щ є   ꙇ ꙋ꙼ ꙇ꙼   ь ',
+          '{kavyka}  ѕ ԁ  џ  ј  ꙥ ; \' ѣ',
+          '{capslock} з ԑ ӡ        {shiftright}',
+          '{altleft} {space} {altright}',
+        ],
+        'alt+shift': [
+          '{grave} ” ! @ # $ % ^ & * ( ) _ + {backspace}',
+          '{acute} Ц Щ Є   Ꙇ Ꙋ꙼ Ꙇ꙼   Ь ',
+          '{kavyka}  Ѕ Ԁ  Џ  Ј  Ꙥ : " Ѣ',
+          '{capslock} З Ԑ Ӡ        {capslock}',
+          '{altleft} {space} {altright}',
+        ],
+        grave: [
+          '{grave} „ 1 2 3 4 5 6 7 8 9 0 - = {backspace}',
+          '{acute}   ѐ є̀  у̀ ꙋ̀ ꙇ̀ о̀   ',
+          '{kavyka} а̀ ꙗ̀          ѫ̀',
+          '{capslock}           {capslock}',
+          '{altleft} {space} {altright}',
+        ],
+        'grave+shift': [
+          '{grave} ” ! @ # $ % ^ & * ( ) _ + {backspace}',
+          '{acute}   Ѐ Є̀  У̀ Ꙋ̀ Ꙇ̀ О̀   ',
+          '{kavyka} А̀ Ꙗ̀          Ѫ̀',
+          '{capslock}           {capslock}',
+          '{altleft} {space} {altright}',
+        ],
+        acute: [
+          '{grave} „ 1 2 3 4 5 6 7 8 9 0 - = {backspace}',
+          '{acute}   е́ є́  у́ ꙋ́ ꙇ́ о́   ',
+          '{kavyka} а́ ꙗ́          ѫ́',
+          '{capslock}           {capslock}',
+          '{altleft} {space} {altright}',
+        ],
+        'acute+shift': [
+          '{grave} ” ! @ # $ % ^ & * ( ) _ + {backspace}',
+          '{acute}   Е́ Є́  У́ Ꙋ́ Ꙇ́ О́   ',
+          '{kavyka} А́ Ꙗ́          Ѫ́',
+          '{capslock}           {capslock}',
+          '{altleft} {space} {altright}',
+        ],
+        kavyka: [
+          '{grave} „ 1 2 3 4 5 6 7 8 9 0 - = {backspace}',
+          '{acute}       ꙋ꙼ ꙇ꙼    ',
+          '{kavyka}  ꙗ꙼          ',
+          '{capslock}           {capslock}',
+          '{altleft} {space} {altright}',
+        ],
+        'kavyka+shift': [
+          '{grave} ” ! @ # $ % ^ & * ( ) _ + {backspace}',
+          '{acute}       Ꙋ꙼ Ꙇ꙼    ',
+          '{kavyka}  Ꙗ꙼          ',
+          '{capslock}           {capslock}',
+          '{altleft} {space} {altright}',
+        ],
       },
     },
 
@@ -1106,11 +1185,8 @@ app.ready = async () => {
             y1: Math.round(layer._latlngs[0][0].lat),
             x2: Math.round(layer._latlngs[0][2].lng),
             y2: Math.round(layer._latlngs[0][2].lat)
-          }),
-          idx = 0;
-        if (selectedBox) {
-          idx = boxData.findIndex(x => x.equals(selectedBox));
-        }
+          });
+        idx = selectedBox ? boxData.findIndex(x => x.equals(selectedBox)) : 0;
         boxData.splice(idx + 1, 0, newBox);
         handler.sortAllBoxes();
         handler.init.slider();
@@ -1274,7 +1350,126 @@ app.ready = async () => {
 
       return newBoxes;
     },
+    virtualKeyboardKeyPressed: key => {
+      console.log("Button pressed", key);
+      virtualKeyboard.removeButtonTheme(key, 'active')
+      let
+        currentLayout = virtualKeyboard.options.layoutName,
+        alternativeLayouts = ['grave', 'acute', 'kavyka', 'alt'],
+        keysDic = {
+          'grave': '{grave}',
+          'acute': '{acute}',
+          'kavyka': '{kavyka}',
+          'alt': '{altleft} {altright} {optionleft} {optionright} {alt} {option}',
+          'shift': '{shiftleft} {shiftright} {shift} {capslock}',
+        }
+      var
+        newLayout = '',
+        keys = '';
+
+      switch (key) {
+        case '{shiftleft}':
+        case '{shiftright}':
+        case '{capslock}':
+          newLayout = 'shift';
+          keys = '{shiftleft} {shiftright} {capslock}';
+          virtualKeyboard.addButtonTheme(keys, "ui active button")
+          break;
+        case '{altleft}':
+        case '{altright}':
+        case '{optionleft}':
+        case '{optionright}':
+          newLayout = 'alt';
+          keys = '{altleft} {altright} {optionleft} {optionright}';
+          virtualKeyboard.addButtonTheme(keys, "ui active button")
+          break;
+        case '{cyrillic}':
+          newLayout = 'cyrillic';
+          break;
+        case '{latin}':
+          newLayout = 'latin';
+          break;
+        case '{grave}':
+          newLayout = 'grave';
+          keys = '{grave}';
+          virtualKeyboard.addButtonTheme(keys, "ui active button")
+          break;
+        case '{acute}':
+          newLayout = 'acute';
+          keys = '{acute}';
+          virtualKeyboard.addButtonTheme(keys, "ui active button")
+          break;
+        case '{kavyka}':
+          newLayout = 'kavyka';
+          keys = '{kavyka}';
+          virtualKeyboard.addButtonTheme(keys, "ui active button")
+          break;
+
+        default:
+          return false;
+          break;
+      }
+
+
+      console.log(currentLayout);
+      if (currentLayout.includes('+')) {
+        if (currentLayout.includes(newLayout)) {
+          // remove current layout from string
+          newLayout = currentLayout.replace(newLayout, '').replace('+', '');
+          virtualKeyboard.removeButtonTheme(keys, 'active');
+        } else {
+          // retrieve other layout from string
+          const otherLayout = currentLayout.split('+').find(layout => layout !== alternativeLayouts.find(accent => newLayout === accent));
+          // virtualKeyboard.removeButtonTheme('{'+otherLayout+'}', 'active');
+          virtualKeyboard.removeButtonTheme(keysDic[otherLayout], 'active');
+          newLayout = [newLayout, currentLayout.split('+')[1]].join('+');
+        }
+      } else {
+        // if (alternativeLayouts.includes(currentLayout)) {
+          // virtualKeyboard.removeButtonTheme(currentLayout, 'active');
+        // } else {
+
+        // }
+
+
+        if (!alternativeLayouts.includes(currentLayout)) {
+          if (currentLayout !== 'default' && currentLayout !== newLayout) {
+            // if (!alternativeLayouts.includes(newLayout)) {
+            //   // sort layouts alphabetically
+            //   newLayout = [newLayout, currentLayout].sort((a, b) => a.localeCompare(b)).join('+');
+            //   // newLayout = [newLayout, currentLayout].join('+');
+            // } else {
+              newLayout = [newLayout, currentLayout].join('+');
+            // }
+          } else {
+            // newLayout = 'default';
+          }
+        } else {
+          if (alternativeLayouts.includes(newLayout))
+            // virtualKeyboard.removeButtonTheme('{' + currentLayout + '}', 'active');
+            virtualKeyboard.removeButtonTheme(keysDic[currentLayout], 'active');
+          else
+            newLayout = [currentLayout, newLayout].join('+');
+        }
+      }
+
+
+      let toggle = currentLayout === newLayout ? 'default' : newLayout;
+      if (toggle === 'default') virtualKeyboard.removeButtonTheme(keys, 'active')
+      virtualKeyboard.setOptions({
+        layoutName: toggle
+      });
+      console.log("Switching to layout", toggle);
+    },
     set: {
+      virtualKeyboardInput: text => {
+        virtualKeyboard.setInput(text);
+      },
+      virtualKeyboardLayout: layout => {
+        virtualKeyboard.setOptions({
+          layout: virtualKeyboardLayouts[layout]
+        });
+      },
       mapResize: async (height, animate) => {
         // TODO: refresh jquery selector. It does not work even though it shoud.
         // $map[0].animate({ height: height }, animate ? 500 : 0);
@@ -1322,13 +1517,18 @@ app.ready = async () => {
             $map.addClass('loading disabled');
             $progressSlider.addClass('disabled');
             $positionSlider.addClass('disabled');
-            if (image != undefined) {
+            $virtualKeyboard.find('.button')
+              .filter((index, element) => $(element).attr('data-skbtn') !== '')
+              .addClass('disabled');            if (image != undefined) {
               $(image._image).animate({ opacity: 0.3 }, 200);
             }
           } else {
             $map.removeClass('loading disabled');
             $progressSlider.removeClass('disabled');
             $positionSlider.removeClass('disabled');
+            $virtualKeyboard.find('.button')
+              .filter((index, element) => $(element).attr('data-skbtn') !== '')
+              .removeClass('disabled');
             if (image != undefined) {
               $(image._image).animate({ opacity: 1 }, 500);
             }
@@ -1547,8 +1747,11 @@ app.ready = async () => {
         box.setBounds([[data.y1, data.x1], [data.y2, data.x2]]);
       },
       form: (box) => {
-        const same = box.polyid == selectedBox?.polyid;
-        $groundTruthInputField.val(same && $groundTruthInputField.val().length ? $groundTruthInputField.val() : box.text);
+        const
+          same = box.polyid == selectedBox?.polyid,
+          newText = same && $groundTruthInputField.val().length ? $groundTruthInputField.val() : box.text;
+        $groundTruthInputField.val(newText);
+        handler.set.virtualKeyboardInput(newText)
         selectedBox = box;
         $groundTruthInputField.attr('boxid', box.polyid);
         $x1Field.val(box.x1);
@@ -1556,8 +1759,7 @@ app.ready = async () => {
         $x2Field.val(box.x2);
         $y2Field.val(box.y2);
         handler.update.confidenceScoreField(box);
-        $groundTruthInputField.focus();
-        $groundTruthInputField.select();
+        handler.focusGroundTruthField();
         handler.update.colorizedBackground();
         handler.update.progressBar({ type: 'tagging' });
         lineDataInfo.setDirty(same);
@@ -1753,10 +1955,10 @@ app.ready = async () => {
         return;
       }
       if (imageFile) {
-        await handler.load.imageFile(imageFile);
+        await handler.load.imageFile(imageFile, sample = false, skipProcessing = boxFile ? true : false);
       }
       if (boxFile) {
-        await handler.load.boxFile(boxFile);
+        await handler.load.boxFile(boxFile, sample = false, skipWarning = imageFileInfo.isProcessed());
       }
     },
     destroy: {
@@ -1821,8 +2023,7 @@ app.ready = async () => {
           map.addLayer(boxLayer);
         }
         handler.sortAllBoxes();
-        selectedBox = handler.getBoxContent();
-        handler.focusBoxID(selectedBox.polyid);
+        handler.focusBoxID(handler.getBoxContent().polyid);
         handler.update.colorizedBackground();
       },
       wordstr: (content) => {
@@ -1889,6 +2090,53 @@ app.ready = async () => {
       return formattedDate;
     },
     load: {
+      virtualKeyboard: () => {
+        virtualKeyboard = new Keyboard({
+          theme: "simple-keyboard hg-theme-default hg-layout-default",
+          layout: virtualKeyboardLayouts['rts'],
+          // physicalKeyboardHighlight: true,
+          // syncInstanceInputs: true,
+          // mergeDisplay: true,
+          // debug: true,
+          onChange: input => {
+            $groundTruthInputField[0].value = input;
+            handler.update.colorizedBackground();
+            console.log("Input changed", input);
+          },
+          onInit: (keyboard) => $virtualKeyboard.find('.button').addClass('disabled'),
+          onRender: (keyboard) => {
+            keyboard.recurseButtons(buttonElement => {
+              buttonElement.classList.add('ui', 'button');
+              if (buttonElement.getAttribute('data-skbtn') === '') {
+                buttonElement.classList.add('disabled');
+              }
+            });
+          },
+          onKeyReleased: (button) => handler.focusGroundTruthField(),
+          onKeyPress: button => handler.virtualKeyboardKeyPressed(button),
+          display: {
+            "{escape}": "esc ⎋",
+            "{tab}": "tab ⇥",
+            "{backspace}": "backspace ⌫",
+            "{enter}": "enter ↵",
+            "{capslock}": "caps lock ⇪",
+            "{shiftleft}": "shift ⇧",
+            "{shiftright}": "shift ⇧",
+            "{controlleft}": "ctrl ⌃",
+            "{controlright}": "ctrl ⌃",
+            "{altleft}": "alt ⌥",
+            "{altright}": "alt ⌥",
+            "{metaleft}": "cmd ⌘",
+            "{metaright}": "cmd ⌘",
+            '{space}': 'space',
+            '{grave}': 'grave  ̀',
+            '{acute}': 'acute  ́',
+            '{kavyka}': 'kavyka  ꙼',
+            '{cyrillic}': ' Cyrillic',
+            '{latin}': ' Latin',
+          }
+        });
+      },
       tesseractWorker: async () => {
         const
           langPathURL = appSettings.language.languageModelIsCustom ? '../../assets' : 'https://tessdata.projectnaptha.com/4.0.0_best',
@@ -1898,7 +2146,17 @@ app.ready = async () => {
           langPath: langPathURL,
           gzip: isGzip,
         });
+        // try {
         await handler.load.tesseractLanguage();
+        // } catch (error) {
+        //   console.error(error);
+        //   notifyUser({
+        //     title: notificationTypes.error.networkError.title,
+        //     message: 'Failed to load language model. You may not be connected to the internet.',
+        //     type: notificationTypes.error.networkError.type,
+        //   });
+        //   return false;
+        // }
         await worker.setParameters({
           tessedit_ocr_engine_mode: 1,
           tessedit_pageseg_mode: 1,// 12
@@ -1911,7 +2169,7 @@ app.ready = async () => {
           await worker.initialize(appSettings.language.recognitionModel);
           return true;
         } catch (error) {
-          if (error.includes('Error: Network error while fetching')) {
+          if (error.toString().includes('Error: Network error while fetching')) {
             console.log(error);
             handler.notifyUser({
               title: notificationTypes.error.loadingLanguageModelError.title,
@@ -1967,7 +2225,7 @@ app.ready = async () => {
             var custom = value == 'RTS_from_Cyrillic' ? true : false;
             if (appSettings.language.languageModelIsCustom != custom) {
               appSettings.language.languageModelIsCustom = custom;
-              await handler.load.tesseractWorker();
+              response = await handler.load.tesseractWorker();
             } else {
               await handler.load.tesseractLanguage();
             }
@@ -2114,7 +2372,7 @@ app.ready = async () => {
           handler.update.settingsModal();
         }
       },
-      popups: () => $imageFileInput.popup({
+      popups: () => $imageFileInputButton.popup({
         popup: $useSamplePopup,
         position: 'top left',
         hoverable: true,
@@ -2170,11 +2428,11 @@ app.ready = async () => {
       sampleImageAndBox: async (event) => {
         handler.close.settingsModal();
         // handle NetworkError: Load failed when parsing ../../assets/sampleImage.box
-        await handler.load.imageFile(event, true);
-        await handler.load.boxFile(event, true);
+        if (await handler.load.imageFile(event, true))
+          await handler.load.boxFile(event, true, true);
       },
-      boxFile: async function (event, sample = false) {
-        if (appSettings.behavior.alerting.enableWarrningMessagesForOverwritingDirtyData && boxDataInfo.isDirty()) {
+      boxFile: async function (event, sample = false, skipWarning = false) {
+        if (!skipWarning && appSettings.behavior.alerting.enableWarrningMessagesForOverwritingDirtyData && boxDataInfo.isDirty()) {
           const response = await handler.askUser({
             title: notificationTypes.warning.overridingUnsavedChangesWarning.title,
             message: 'You did not download current progress. Do you want to overwrite existing data?',
@@ -2198,10 +2456,14 @@ app.ready = async () => {
         var file = null;
         if (sample) {
           file = new File([await (await fetch(defaultBoxUrl)).blob()], 'sampleImage.box');
-        } else if (event.target.files[0].name.includes('box')) {
+        } else if (event.target?.files[0].name.includes('box')) {
+          // } else if (event.name.includes('box')) {
+          // file = event;
+          // TODO: Fix file upload handling for all cases (image+box, image, box, files uncomitted, new files, samples)
           file = event.target.files[0];
         } else {
-          file = this.files[0];
+          // file = this.files[0];
+          file = event;
         }
 
         const fileExtension = file.name.split('.').pop();
@@ -2238,7 +2500,7 @@ app.ready = async () => {
         $(reader).on('load', handler.process.boxFile);
         handler.set.loadingState({ main: false, buttons: false });
       },
-      imageFile: async function (e, sample = false) {
+      imageFile: async function (e, sample = false, skipProcessing = false) {
         if (appSettings.behavior.alerting.enableWarrningMessagesForOverwritingDirtyData && boxDataInfo.isDirty() || lineDataInfo.isDirty()) {
           const response = await handler.askUser({
             title: notificationTypes.warning.overridingUnsavedChangesWarning.title,
@@ -2276,42 +2538,34 @@ app.ready = async () => {
           file = e;
         } else if (file = this.files[0]) {
           imageFileName = file.name.split('.').slice(0, -1).join('.');
-          imageFileNameForButton = file;
+          imageFileNameForButton = file.name;
           filename = file.name;
         }
+
         handler.load.image(sample ? defaultImageUrl : _URL.createObjectURL(file))
           .then(async img => {
-            img.onload = async () => {
-              if (!map) { handler.create.map('mapid'); }
-              map.eachLayer(layer => map.removeLayer(layer));
+            // console.log('Image loaded', img);
+            if (!map) { handler.create.map('mapid'); }
+            map.eachLayer(layer => map.removeLayer(layer));
 
-              imageHeight = img.height;
-              imageWidth = img.width;
+            imageHeight = img.height;
+            imageWidth = img.width;
 
-              const
-                bounds = [[0, 0], [parseInt(imageHeight), parseInt(imageWidth)]]
+            const
+              bounds = [[0, 0], [parseInt(imageHeight), parseInt(imageWidth)]],
               bounds2 = [[imageHeight - 300, 0], [imageHeight, imageWidth]];
-              if (image) {
-                $(image._image).fadeOut(750, () => {
-                  map.removeLayer(image);
-                  image = new L.imageOverlay(img.src, bounds, imageOverlayOptions).addTo(map);
-                  $(image._image).fadeIn(500);
-                });
-              } else {
-                map.fitBounds(bounds2);
+            if (image) {
+              await $(image._image).fadeOut(750, async () => {
+                map.removeLayer(image);
                 image = new L.imageOverlay(img.src, bounds, imageOverlayOptions).addTo(map);
-                $(image._image).fadeIn(750);
-              }
-            };
-            img.onerror = (error) => {
-              const fileExtension = file.name.split('.').pop();
-              handler.notifyUser({
-                title: notificationTypes.error.invalidFileTypeError.title,
-                message: 'Expected image file. Received ' + fileExtension + ' file.',
-                type: notificationTypes.error.invalidFileTypeError.type,
+                await $(image._image).fadeIn(500);
               });
-            };
-            img.src = sample ? defaultImageUrl : _URL.createObjectURL(file);
+            } else {
+              map.fitBounds(bounds2);
+              image = new L.imageOverlay(img.src, bounds, imageOverlayOptions).addTo(map);
+              await $(image._image).fadeIn(750);
+            }
+
             handler.update.downloadButtonsLabels({
               boxDownloadButton: imageFileName + '.box',
               groundTruthDownloadButton: imageFileName + '.gt.txt'
@@ -2340,16 +2594,27 @@ app.ready = async () => {
         // Load Tesseract Worker
         await handler.load.tesseractWorker();
 
-        if (appSettings.behavior.onImageLoad.detectAllLines && !sample) {
+        if (appSettings.behavior.onImageLoad.detectAllLines && !sample && !skipProcessing) {
           await handler.generate.initialBoxes(includeSuggestions = appSettings.behavior.onImageLoad.includeTextForDetectedLines);
         }
         handler.set.loadingState({ main: false, buttons: false });
         if (appSettings.behavior.onImageLoad.detectAllLines) {
           handler.focusGroundTruthField();
         }
-        $(image._image).animate({ opacity: 1 }, 500);
+        await $(image._image).animate({ opacity: 1 }, 500);
         imageFileInfo.setProcessed();
-      }
+
+        return true;
+
+      },
+      image: (source) => {
+        return new Promise((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = error => reject(error);
+          img.src = source;
+        });
+      },
     },
     focusGroundTruthField: () => {
       $groundTruthInputField.focus();
@@ -2547,9 +2812,6 @@ app.ready = async () => {
           const
             results = await handler.ocr.detect([selectedBox]),
             element = boxData.findIndex(el => el.polyid == selectedBox?.polyid);
-          console.log(boxData[element].text);
-          console.log(results[0].text);
-          console.log(selectedBox.text);
           boxData[element].text = results.length ? results[0].text : selectedBox.text;
           $groundTruthInputField.val(boxData[element].text);
           handler.focusBoxID(boxData[element].polyid, { zoom: false })
@@ -2799,7 +3061,14 @@ app.ready = async () => {
     },
     bindInputs: () => {
       handler.bindColorizerOnInput();
-      $groundTruthInputField.on('input', () => { lineDataInfo.setDirty(true); })
+      $groundTruthInputField.on('input', event => {
+        lineDataInfo.setDirty(true);
+        handler.set.virtualKeyboardInput(event.target.value);
+      });
+      // $groundTruthInputField.on('mousedown', event => {
+      //   handler.set.virtualKeyboardInput(event.target.value)
+      //   console.log("here", event.target.value);
+      // });
       $textHighlightingEnabledCheckbox.checkbox({
         onChange: () => {
           handler.update.highlighterTable($textHighlightingEnabledCheckbox[0].checked);
@@ -2863,6 +3132,8 @@ app.ready = async () => {
       handler.saveHighlightsToSettings();
       handler.saveKeyboardShortcutsToSettings();
 
+      handler.load.virtualKeyboard();
+
       handler.delete.expiredNotifications();
       balanceText($balancedText, { watch: true });
       handler.hideSplashScreen();
@@ -2873,7 +3144,7 @@ app.ready = async () => {
       $body[0].style.opacity = "1";
     },
   };
-
+  const Keyboard = window.SimpleKeyboard.default;
   availableShortcutActions = [
     {
       // target: $window,
