@@ -123,7 +123,7 @@ app.ready = async () => {
     $keyboardShortcutsTableBody = $keyboardShortcutsTableContainer.find('.ui.celled.table tbody'),
     $keyboardShortcutsTableRows = $keyboardShortcutsTableBody.find('tr'),
     $modelConfidenceScoreDetail = $('#modelConfidenceScore'),
-    $modelConfidenceScoreEnabledCheckbox = $(`input[name='behavior.workflow.confidenceScoreEnabled']`),
+    $modelConfidenceScoreEnabledCheckbox = $(`input[name='interface.editorTools.confidenceScoreEnabled']`),
     $unsavedChangesBadge = $('#unsavedChanges'),
     $appInfoVersion = $('#appInfoVersion'),
     $appInfoUpdated = $('#appInfoUpdated'),
@@ -3048,7 +3048,7 @@ app.ready = async () => {
     },
     showCharInfoPopupFromMouseClick: (event) => { if (/mouseup/.test(event.type)) { setTimeout(() => { handler.showCharInfoPopup(event); }, 0); } },
     showCharInfoPopup: (event) => {
-      if (!appSettings.behavior.workflow.unicodeInfoPopup) return;
+      if (!appSettings.interface.editorTools.unicodeInfoPopup) return;
       var selection = '';
       if (window.getSelection) {
         selection = window.getSelection();
