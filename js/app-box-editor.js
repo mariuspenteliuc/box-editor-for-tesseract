@@ -188,6 +188,7 @@ app.ready = async () => {
     suppressLogMessages = { 'recognizing text': false, },
     worker,
     virtualKeyboard,
+    virtualKeyboardBackspacePressed = false,
 
     appSettings = {
       localStorageKey: 'appSettings-boxEditor',
@@ -1371,6 +1372,10 @@ app.ready = async () => {
         keys = '';
 
       switch (key) {
+        case '{backspace}':
+        case '{bksp}':
+          virtualKeyboardBackspacePressed = true;
+          break;
         case '{shiftleft}':
         case '{shiftright}':
         case '{capslock}':
@@ -1413,8 +1418,6 @@ app.ready = async () => {
           break;
       }
 
-
-      console.log(currentLayout);
       if (currentLayout.includes('+')) {
         if (currentLayout.includes(newLayout)) {
           // remove current layout from string
@@ -1462,7 +1465,6 @@ app.ready = async () => {
       virtualKeyboard.setOptions({
         layoutName: toggle
       });
-      console.log("Switching to layout", toggle);
     },
     set: {
       virtualKeyboardInput: text => {
@@ -1909,7 +1911,7 @@ app.ready = async () => {
           const oldKeys = ['progressIndicator', 'positionSlider', 'formCoordinateFields', 'unicodeInfoPopup'];
 
           oldKeys.forEach(element => {
-            if (appSettings.behavior.workflow[element] != undefined) {
+            if (oldSettings.behavior.workflow[element] != undefined) {
               appSettings.interface.editorTools[element] = oldSettings.behavior.workflow[element];
               delete appSettings.behavior.workflow[element];
             }
@@ -1938,7 +1940,7 @@ app.ready = async () => {
           // also remove html script tag for JS Cookie
           Cookies.get().forEach(cookie => Cookies.remove(cookie));
         }
-        return oldSettings;
+        return appSettings;
       }
     },
     receiveDroppedFiles: async (event) => {
@@ -2128,9 +2130,19 @@ app.ready = async () => {
           // mergeDisplay: true,
           // debug: true,
           onChange: input => {
+            const
+              selectionStart = $groundTruthInputField[0].selectionStart,
+              selectionEnd = $groundTruthInputField[0].selectionEnd,
+              selectionLength = selectionEnd - selectionStart,
+              inputLength = input.length - $groundTruthInputField[0].value.length,
+              // newCursorPos = inputLength >= 0 ? selectionStart + 1 : selectionStart+1;
+              newCursorPos = virtualKeyboardBackspacePressed ? selectionStart - (selectionLength == 0 ? 1 : 0) : selectionStart + 1;
+            virtualKeyboardBackspacePressed = false;
             $groundTruthInputField[0].value = input;
             handler.update.colorizedBackground();
-            console.log("Input changed", input);
+            $groundTruthInputField[0].focus();
+            $groundTruthInputField[0].setSelectionRange(newCursorPos, newCursorPos);
+            // console.log("Input changed", input);
           },
           onInit: (keyboard) => $virtualKeyboard.find('.button').addClass('disabled'),
           onRender: (keyboard) => {
@@ -2266,6 +2278,7 @@ app.ready = async () => {
         });
       },
       keyboardShortcuts: () => {
+        $window.off('keyup');
         $window.keyup(event => {
           if (handler.keyboardShortcuts.isModifierKey(event.key)) {
             pressedModifiers[event.key] = false;
@@ -3056,6 +3069,13 @@ app.ready = async () => {
         selection = document.selection.createRange();
       }
 
+      // Firefox bug workaround
+      if (selection.toString().length == 0) {
+        const
+          startPosition = $groundTruthInputField[0].selectionStart,
+          endPosition = $groundTruthInputField[0].selectionEnd;
+        selection = $groundTruthInputField[0].value.substring(startPosition, endPosition);
+      }
       // if selection outside of ground truth field then close char info popup
       // if (!selection.anchorNode || !$.contains($groundTruthForm[0], selection.anchorNode)) {
       //   handler.close.popups();
@@ -3069,13 +3089,6 @@ app.ready = async () => {
       // if cmd/ctrl + a then select all text field
       if ((event.ctrlKey || event.metaKey) && event.keyCode == 65) { $groundTruthInputField.select(); }
 
-      // Firefox bug workaround
-      if (selection.toString().length == 0) {
-        const
-          startPosition = $groundTruthInputField[0].selectionStart,
-          endPosition = $groundTruthInputField[0].selectionEnd;
-        selection = $groundTruthInputField[0].value.substring(startPosition, endPosition);
-      }
       const results = handler.getUnicodeInfo(selection.toString());
       // TODO: replace max length with a programmatic solution
       if (results.length <= 0 || results.length > 15) {
