@@ -188,6 +188,7 @@ app.ready = async () => {
     suppressLogMessages = { 'recognizing text': false, },
     worker,
     virtualKeyboard,
+    virtualKeyboardBackspacePressed = false,
 
     appSettings = {
       localStorageKey: 'appSettings-boxEditor',
@@ -1371,6 +1372,10 @@ app.ready = async () => {
         keys = '';
 
       switch (key) {
+        case '{backspace}':
+        case '{bksp}':
+          virtualKeyboardBackspacePressed = true;
+          break;
         case '{shiftleft}':
         case '{shiftright}':
         case '{capslock}':
@@ -2128,9 +2133,19 @@ app.ready = async () => {
           // mergeDisplay: true,
           // debug: true,
           onChange: input => {
+            const
+              selectionStart = $groundTruthInputField[0].selectionStart,
+              selectionEnd = $groundTruthInputField[0].selectionEnd,
+              selectionLength = selectionEnd - selectionStart,
+              inputLength = input.length - $groundTruthInputField[0].value.length,
+              // newCursorPos = inputLength >= 0 ? selectionStart + 1 : selectionStart+1;
+              newCursorPos = virtualKeyboardBackspacePressed ? selectionStart - (selectionLength == 0 ? 1 : 0) : selectionStart + 1;
+            virtualKeyboardBackspacePressed = false;
             $groundTruthInputField[0].value = input;
             handler.update.colorizedBackground();
-            console.log("Input changed", input);
+            $groundTruthInputField[0].focus();
+            $groundTruthInputField[0].setSelectionRange(newCursorPos, newCursorPos);
+            // console.log("Input changed", input);
           },
           onInit: (keyboard) => $virtualKeyboard.find('.button').addClass('disabled'),
           onRender: (keyboard) => {
