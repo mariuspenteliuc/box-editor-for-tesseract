@@ -1413,8 +1413,6 @@ app.ready = async () => {
           break;
       }
 
-
-      console.log(currentLayout);
       if (currentLayout.includes('+')) {
         if (currentLayout.includes(newLayout)) {
           // remove current layout from string
@@ -1462,7 +1460,6 @@ app.ready = async () => {
       virtualKeyboard.setOptions({
         layoutName: toggle
       });
-      console.log("Switching to layout", toggle);
     },
     set: {
       virtualKeyboardInput: text => {
