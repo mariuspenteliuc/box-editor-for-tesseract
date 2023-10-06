@@ -2266,6 +2266,7 @@ app.ready = async () => {
         });
       },
       keyboardShortcuts: () => {
+        $window.off('keyup');
         $window.keyup(event => {
           if (handler.keyboardShortcuts.isModifierKey(event.key)) {
             pressedModifiers[event.key] = false;
