@@ -1,0 +1,43 @@
+{
+    "appSettings-boxEditor": {
+        "settings": {
+            "general": {
+                "title": "General Settings",
+                "saveButton": "Save Changes",
+                "cancelButton": "Cancel"
+            },
+            "notifications": {
+                "title": "Notification Settings",
+                "enableNotifications": "Enable Notifications",
+                "frequency": {
+                    "daily": "Daily",
+                    "weekly": "Weekly",
+                    "monthly": "Monthly"
+                }
+            }
+        },
+        "errors": {
+            "login": {
+                "invalidCredentials": "Invalid username or password",
+                "accountLocked": "Your account has been locked"
+            },
+            "server": {
+                "connection": "Unable to connect to the server",
+                "timeout": "Request timed out"
+            }
+        },
+        "notifications": {
+            "welcome": "Welcome to our app!",
+            "newMessage": "You have a new message"
+        },
+        "popups": {
+            "confirmDelete": "Are you sure you want to delete this item?"
+        },
+        "titles": {
+            "welcome": "Welcome to Our App",
+            "dashboard": "Dashboard",
+            "profile": "My Profile",
+            "contactUs": "Contact Us"
+        }
+    }
+}
