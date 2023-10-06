@@ -1909,7 +1909,7 @@ app.ready = async () => {
           const oldKeys = ['progressIndicator', 'positionSlider', 'formCoordinateFields', 'unicodeInfoPopup'];
 
           oldKeys.forEach(element => {
-            if (appSettings.behavior.workflow[element] != undefined) {
+            if (oldSettings.behavior.workflow[element] != undefined) {
               appSettings.interface.editorTools[element] = oldSettings.behavior.workflow[element];
               delete appSettings.behavior.workflow[element];
             }
@@ -1938,7 +1938,7 @@ app.ready = async () => {
           // also remove html script tag for JS Cookie
           Cookies.get().forEach(cookie => Cookies.remove(cookie));
         }
-        return oldSettings;
+        return appSettings;
       }
     },
     receiveDroppedFiles: async (event) => {
