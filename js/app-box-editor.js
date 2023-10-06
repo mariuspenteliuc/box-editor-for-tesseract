@@ -3057,6 +3057,13 @@ app.ready = async () => {
         selection = document.selection.createRange();
       }
 
+      // Firefox bug workaround
+      if (selection.toString().length == 0) {
+        const
+          startPosition = $groundTruthInputField[0].selectionStart,
+          endPosition = $groundTruthInputField[0].selectionEnd;
+        selection = $groundTruthInputField[0].value.substring(startPosition, endPosition);
+      }
       // if selection outside of ground truth field then close char info popup
       // if (!selection.anchorNode || !$.contains($groundTruthForm[0], selection.anchorNode)) {
       //   handler.close.popups();
@@ -3070,13 +3077,6 @@ app.ready = async () => {
       // if cmd/ctrl + a then select all text field
       if ((event.ctrlKey || event.metaKey) && event.keyCode == 65) { $groundTruthInputField.select(); }
 
-      // Firefox bug workaround
-      if (selection.toString().length == 0) {
-        const
-          startPosition = $groundTruthInputField[0].selectionStart,
-          endPosition = $groundTruthInputField[0].selectionEnd;
-        selection = $groundTruthInputField[0].value.substring(startPosition, endPosition);
-      }
       const results = handler.getUnicodeInfo(selection.toString());
       // TODO: replace max length with a programmatic solution
       if (results.length <= 0 || results.length > 15) {
