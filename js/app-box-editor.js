@@ -1375,6 +1375,7 @@ app.ready = async () => {
         case '{backspace}':
         case '{bksp}':
           virtualKeyboardBackspacePressed = true;
+          return false;
           break;
         case '{shiftleft}':
         case '{shiftright}':
