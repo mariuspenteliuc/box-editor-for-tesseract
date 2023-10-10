@@ -75,6 +75,8 @@
     "settingsMenuKeyboardShortcutsCheckboxUseShortcutsLabel": "Use keyboard shortcuts",
     "messageUpcomingFeatureHeader": "Upcoming Feature",
     "messageUpcomingFeatureKeyboardShortcutsDescription": "In a future update you will be able to add and customize the keyboard shortcuts. For now, you can usethesedefaults and swap them around.",
+    "messageKnwonIssueHeader": "Known Issue",
+    "messageKnownIssueRecognitionModelDescription": "Not all recognition models are fully supported yet. Right-to-left scripts do not properly display in the input field, especially when mixed with left-to-right text.",
     "settingsMenuRecognitionModelHeader": "Recognition Model",
     "settingsMenuRecognitionModelDescription": "Choose a language to use for OCR text suggestions.",
     "settingsMenuRTSKeyboardLayoutHeader": "RTS Keyboard Layout",
@@ -125,5 +127,79 @@
     "settingsMenuAcknowledgementDescription": "This work was supported by a grant from the Romanian Ministry of Research, Innovation andDigitization, CCCDI -UEFISCDI, project number PN-III-P2-2.1-PED-2021-0693, within PNCDI III.",
     "settingsMenuAboutSectionResetButtonHasMovedText": "Reset button has moved to the",
     "settingsMenuAboutSectionHelpPaneName": "Help pane.",
-    "settingsMenuOkButton": "OK"
+    "settingsMenuOkButton": "OK",
+
+    "settingsMenuAppLanguageHeader": "App Language",
+    "settingsMenuAppLanguageDescription": "Choose what language to use in the interface.",
+    "appLanguagePickerPrompt": "Choose a language",
+
+    "settingsMenuImageViewSliderLabelTiny": "Tiny",
+    "settingsMenuImageViewSliderLabelShort": "Short",
+    "settingsMenuImageViewSliderLabelNormal": "Normal",
+    "settingsMenuImageViewSliderLabelTall": "Tall",
+    "settingsMenuImageViewSliderLabelHuge": "Huge",
+    "settingsMenuImageViewSliderClippingWarning": "Some editor buttons will get clipped.",
+
+    "updateNotificationLabel": "new",
+
+    "keyboardShortcutsTableHeaderEnabled": "",
+    "keyboardShortcutsTableHeaderAction": "Action",
+    "keyboardShortcutsTableHeaderKeyCombo": "Key Combo",
+    "keyboardShortcutsTableHeaderDeleteButton": "",
+
+    "highlighterTableHeaderEnabled": "",
+    "highlighterTableHeaderName": "Name",
+    "highlighterTableHeaderColor": "Color",
+    "highlighterTableHeaderPattern": "Pattern",
+    "highlighterTableHeaderDeleteButton": "",
+
+    "keyboardShortcutsTableMoveToNextBox": "Move to next box",
+    "keyboardShortcutsTableMoveToPreviousBox": "Move to previous box",
+
+    "en-US": "English",
+    "ro-RO": "Romanian",
+
+    "red": "red",
+    "orange": "orange",
+    "yellow": "yellow",
+    "olive": "olive",
+    "green": "green",
+    "teal": "teal",
+    "blue": "blue",
+    "violet": "violet",
+    "purple": "purple",
+    "pink": "pink",
+    "brown": "brown",
+    "grey": "grey",
+
+    "notificationTypeFileDownloadedInfoTitle": "File downloaded!",
+    "notificationTypeNothingToDownloadWarningTitle": "Nothing To Download!",
+    "notificationTypeResetAppWarningTitle": "App Reset",
+    "notificationTypeResetAppWarningBody": "The app will reset it's settings and reload. Are you sure you want to continue?",
+    "notificationTypeReplacingTextWarningTitle": "Replacing Text",
+    "notificationTypeReplacingTextWarningBody": "Suggestions will be generated from the current lines. Do you want to continue?",
+    "notificationTypeNameMismatchErrorTitle": "File Names Mismatch",
+
+    "notificationTypeNameMismatchErrorBody1": "Expected box file with name '",
+    "notificationTypeNameMismatchErrorBody2": "'. Received ",
+    "notificationTypeNameMismatchErrorBody3": ".<br> Are you sure you want to continue?",
+
+
+
+    "notificationTypeOverridingUnsavedChangesWarningTitle": "Unsaved Changes",
+    "notificationTypeOverridingUnsavedChangesWarningBody": "You did not download current progress. Do you want to overwrite existing data?",
+    "notificationTypeUncommittedChangesWarningTitle": "Uncommitted Changes Warning",
+    "notificationTypeDifferentFileNameWarningTitle": "Different File Name Warning",
+    "notificationTypeNetworkErrorTitle": "Connection issue",
+    "notificationTypeIdenticalPatternNamesErrorTitle": "Identical Pattern Names",
+    "notificationTypeInvalidPatternsErrorTitle": "Invalid Pattern",
+    "notificationTypeCommitLineErrorTitle": "Commit Line Error",
+    "notificationTypeLoadingLanguageModelErrorTitle": "Language Model Error",
+    "notificationTypeInvalidFileTypeErrorTitle": "Invalid File Type",
+
+    "askUserConfirmText": "Yes",
+    "askUserDenyText": "No",
+    "askUserCancelText": "Cancel",
+    "askUserResetText": "Reset",
+    "askUserRetryText": "Try Again"
 }
