@@ -491,6 +491,26 @@
             </div>
           </div>
           <div class="item">
+            <div class="header" localization-key="settingsMenuAppLanguageHeader">App Language</div>
+            <div class="description" localization-key="settingsMenuAppLanguageDescription">Choose what language to use
+              in the interface.</div>
+          </div>
+          <div class="item">
+            <div id="appLanguageDropdownInSettings" name="interface.appLanguage.appLanguageDropdown"
+              class="ui floating compact dropdown labeled search icon button" spellcheck="false">
+              <i class="translate icon"></i>
+              <span class="text">English</span>
+              <div class="menu">
+                <div class="header" localization-key="appLanguagePickerPrompt">
+                  Choose a language...
+                </div>
+                <div class="divider"></div>
+                <div class="item" data-value="en-US" localization-key="en-US">English</div>
+                <div class="item" data-value="ro-RO" localization-key="ro-RO">Română</div>
+              </div>
+            </div>
+          </div>
+          <div class="item">
             <div class="header" localization-key="settingsMenuToolbarActionsHeader">Toolbar Actions</div>
             <div class="description" localization-key="settingsMenuToolbarActionsDescription">
               Choose actions to display in the toolbar.
@@ -584,38 +604,44 @@
               <div class="item">
                 <div class="ui checkbox">
                   <input type="checkbox" name="interface.editorTools.virtualKeyboard">
-                  <label><span localization-key="settingsMenuEditorToolsCheckboxVirtualKeyboard">Use cyrillic virtual keyboard</span> <span class="ui small italic orange text updateNotification"
-                      data-release-date="2023-09-30" data-expire-notification="14">new</span></label>
+                  <label><span localization-key="settingsMenuEditorToolsCheckboxVirtualKeyboard">Use cyrillic virtual
+                      keyboard</span> <span class="ui small italic orange text updateNotification"
+                      data-release-date="2023-09-30" data-expire-notification="14" localization-key="updateNotificationLabel">new</span></label>
                 </div>
               </div>
               <div class="item">
                 <div class="ui checkbox">
                   <input type="checkbox" name="interface.editorTools.progressIndicator">
-                  <label localization-key="settingsMenuEditorToolsCheckboxProgressIndicatorLabel">Indicate task progress</label>
+                  <label localization-key="settingsMenuEditorToolsCheckboxProgressIndicatorLabel">Indicate task
+                    progress</label>
                 </div>
               </div>
               <div class="item">
                 <div class="ui checkbox">
                   <input type="checkbox" name="interface.editorTools.positionSlider">
-                  <label localization-key="settingsMenuEditorToolsCheckboxPositionSliderLabel">Show interactive position slider</label>
+                  <label localization-key="settingsMenuEditorToolsCheckboxPositionSliderLabel">Show interactive position
+                    slider</label>
                 </div>
               </div>
               <div class="item">
                 <div class="ui checkbox">
                   <input type="checkbox" name="interface.editorTools.formCoordinateFields">
-                  <label localization-key="settingsMenuEditorToolsCheckboxCoordinateFieldsLabel">Display coordinate fields in form</label>
+                  <label localization-key="settingsMenuEditorToolsCheckboxCoordinateFieldsLabel">Display coordinate
+                    fields in form</label>
                 </div>
               </div>
               <div class="item">
                 <div class="ui checkbox">
                   <input type="checkbox" name="interface.editorTools.unicodeInfoPopup">
-                  <label localization-key="settingsMenuEditorToolsCheckboxCharInfoPopupLabel">Show Unicode info popup for selected characters</label>
+                  <label localization-key="settingsMenuEditorToolsCheckboxCharInfoPopupLabel">Show Unicode info popup
+                    for selected characters</label>
                 </div>
               </div>
               <div class="item">
                 <div class="ui checkbox">
                   <input type="checkbox" name="interface.editorTools.confidenceScoreEnabled">
-                  <label localization-key="settingsMenuEditorToolsCheckboxConfidenceScoreLabel">Display confidence score for text suggestions
+                  <label localization-key="settingsMenuEditorToolsCheckboxConfidenceScoreLabel">Display confidence score
+                    for text suggestions
                   </label>
                 </div>
               </div>
@@ -634,13 +660,15 @@
               <div class="item">
                 <div class="ui master checkbox">
                   <input type="checkbox" name="behavior.onImageLoad.detectAllLines">
-                  <label localization-key="settingsMenuOnImageLoadCheckboxDetectAllLines">Detect all lines of text</label>
+                  <label localization-key="settingsMenuOnImageLoadCheckboxDetectAllLines">Detect all lines of
+                    text</label>
                 </div>
               </div>
               <div class="item">
                 <div class="ui child checkbox">
                   <input type="checkbox" name="behavior.onImageLoad.includeTextForDetectedLines">
-                  <label localization-key="settingsMenuOnImageLoadCheckboxIncludeTextSuggestions">Include text suggestions for detected lines</label>
+                  <label localization-key="settingsMenuOnImageLoadCheckboxIncludeTextSuggestions">Include text
+                    suggestions for detected lines</label>
                 </div>
               </div>
             </div>
@@ -654,19 +682,22 @@
               <div class="item">
                 <div class="ui checkbox">
                   <input type="checkbox" name="behavior.alerting.enableWarrningMessagesForDifferentFileNames">
-                  <label localization-key="settingsMenuAlertsAndWarningsCheckboxFilenameNotMatchingLabel">Box and image file names do not match</label>
+                  <label localization-key="settingsMenuAlertsAndWarningsCheckboxFilenameNotMatchingLabel">Box and image
+                    file names do not match</label>
                 </div>
               </div>
               <div class="item">
                 <div class="ui checkbox">
                   <input type="checkbox" name="behavior.alerting.enableWarrningMessagesForUncommittedChanges">
-                  <label localization-key="settingsMenuAlertsAndWarningsCheckboxChangesNotSavedLabel">Leaving or loading an image without first downloading</label>
+                  <label localization-key="settingsMenuAlertsAndWarningsCheckboxChangesNotSavedLabel">Leaving or loading
+                    an image without first downloading</label>
                 </div>
               </div>
               <div class="item">
                 <div class="ui checkbox">
                   <input type="checkbox" name="behavior.alerting.enableWarrningMessagesForOverwritingDirtyData">
-                  <label localization-key="settingsMenuAlertsAndWarningsCheckboxOverwritingUnsavedLabel">Overwriting unsaved (not downloaded) data
+                  <label localization-key="settingsMenuAlertsAndWarningsCheckboxOverwritingUnsavedLabel">Overwriting
+                    unsaved (not downloaded) data
                   </label>
                 </div>
               </div>
@@ -693,13 +724,15 @@
               <div class="item">
                 <div class="ui checkbox">
                   <input type="checkbox" name="behavior.workflow.autoDownloadBoxFileOnAllLinesComitted">
-                  <label localization-key="settingsMenuWorkflowCheckboxAutoDownloadBoxFileLabel">Auto-download box file when all lines committed</label>
+                  <label localization-key="settingsMenuWorkflowCheckboxAutoDownloadBoxFileLabel">Auto-download box file
+                    when all lines committed</label>
                 </div>
               </div>
               <div class="item">
                 <div class="ui checkbox">
                   <input type="checkbox" name="behavior.workflow.autoDownloadGroundTruthFileOnAllLinesComitted">
-                  <label localization-key="settingsMenuWorkflowCheckboxAutoDownloadGroundTruthFileLabel">Auto-download ground truth file when all lines committed</label>
+                  <label localization-key="settingsMenuWorkflowCheckboxAutoDownloadGroundTruthFileLabel">Auto-download
+                    ground truth file when all lines committed</label>
                 </div>
               </div>
             </div>
@@ -713,7 +746,8 @@
               <div class="item">
                 <div class="ui disabled checkbox">
                   <input disabled type="checkbox" name="behavior.keyboardShortcuts.keyboardShortcutsEnabled">
-                  <label localization-key="settingsMenuKeyboardShortcutsCheckboxUseShortcutsLabel">Use keyboard shortcuts</label>
+                  <label localization-key="settingsMenuKeyboardShortcutsCheckboxUseShortcutsLabel">Use keyboard
+                    shortcuts</label>
                 </div>
               </div>
             </div>
@@ -728,7 +762,8 @@
                 <div class="header" localization-key="messageUpcomingFeatureHeader">
                   Upcoming Feature
                 </div>
-                <p localization-key="messageUpcomingFeatureKeyboardShortcutsDescription">In a future update you will be able to add and customize the keyboard shortcuts. For now, you can use
+                <p localization-key="messageUpcomingFeatureKeyboardShortcutsDescription">In a future update you will be
+                  able to add and customize the keyboard shortcuts. For now, you can use
                   these
                   defaults and swap them around.</p>
               </div>
@@ -868,10 +903,11 @@
             <div class="ui tiny icon message">
               <i class="align right icon"></i>
               <div class="content">
-                <div class="header" localizationKey="messageKnwonIssueHeader">
+                <div class="header" localization-key="messageKnwonIssueHeader">
                   Known Issue
                 </div>
-                <p localizationKey="messageKnownIssueRecognitionModelDescription">Not all recognition models are fully supported yet. Right-to-left scripts do not properly display in
+                <p localization-key="messageKnownIssueRecognitionModelDescription">Not all recognition models are fully
+                  supported yet. Right-to-left scripts do not properly display in
                   the input field, especially when mixed with left-to-right text.
                 </p>
               </div>
@@ -915,7 +951,8 @@
               <div class="item">
                 <div class="ui checkbox">
                   <input type="checkbox" name="highlighter.textHighlighting.textHighlightingEnabled">
-                  <label localization-key="settingsMenuTextHighlightingCheckboxUseHighlighting">Use text highlighting</label>
+                  <label localization-key="settingsMenuTextHighlightingCheckboxUseHighlighting">Use text
+                    highlighting</label>
                 </div>
               </div>
             </div>
@@ -940,7 +977,8 @@
               <div id="myPreviewBackground" class="no-kerning colorized-output-field">&nbsp;</div>
             </div>
             <div class="field">
-              <label class="col-sm-2 control-label" for="previewText" id="previewLabel" localization-key="settingsMenuTextHighlightingPreviewLabel">Preview</label>
+              <label class="col-sm-2 control-label" for="previewText" id="previewLabel"
+                localization-key="settingsMenuTextHighlightingPreviewLabel">Preview</label>
               <input type="text" id="previewText" class="no-kerning colorized-input-field"
                 value="1 colored sample here...">
             </div>
@@ -1050,8 +1088,10 @@
           <div class="ui divider"></div>
           <div class="item">
             <h3 class="ui header" localization-key="settingsMenuHelpResetHeader">Reset</h3>
-            <p localization-key="settingsMenuHelpResetDescription">In case of unexpected behavior, you can reset all settings to their default values.</p>
-            <button id="resetAppSettings" class="ui left floating negative button" localization-key="settingsMenuHelpResetButtonLabel">Reset App...</button>
+            <p localization-key="settingsMenuHelpResetDescription">In case of unexpected behavior, you can reset all
+              settings to their default values.</p>
+            <button id="resetAppSettings" class="ui left floating negative button"
+              localization-key="settingsMenuHelpResetButtonLabel">Reset App...</button>
             <a class="ui right labeled icon button" target="_blank"
               href="https://github.com/mariuspenteliuc/box-editor-for-tesseract/issues/new">
               <i class="github icon"></i>
@@ -1066,7 +1106,8 @@
         <div class="ui very relaxed list">
           <div class="item">
             <h3 class="ui header" localization-key="settingsMenuAboutHeader">About</h3>
-            <p localization-key="settingsMenuAboutDescription">This is a powerful Box Editor for Tesseract allowing for efficient generation, editing, and managing text
+            <p localization-key="settingsMenuAboutDescription">This is a powerful Box Editor for Tesseract allowing for
+              efficient generation, editing, and managing text
               boxes in WordStr format. The tool uses a custom trained model for authoring the Romanian Transitional
               Script.
             </p>
@@ -1097,8 +1138,8 @@
                 <tr>
                   <td localization-key="sourceCodeWithCollon">Source Code:</td>
                   <td class="right aligned"><a class=""
-                      href="https://github.com/mariuspenteliuc/box-editor-for-tesseract" target="_blank"
-                      title="GitHub" localization-key="githubRepository">GitHub Repository</a></td>
+                      href="https://github.com/mariuspenteliuc/box-editor-for-tesseract" target="_blank" title="GitHub"
+                      localization-key="githubRepository">GitHub Repository</a></td>
                 </tr>
                 <tr>
                   <td localization-key="projectWebsiteWithCollon">Project Website:</td>
@@ -1126,7 +1167,8 @@
               </span>
               <i class="ro flag"></i>
             </h3>
-            <p localization-key="settingsMenuAcknowledgementDescription">This work was supported by a grant from the Romanian Ministry of Research, Innovation and
+            <p localization-key="settingsMenuAcknowledgementDescription">This work was supported by a grant from the
+              Romanian Ministry of Research, Innovation and
               Digitization, CCCDI -
               UEFISCDI, project number PN-III-P2-2.1-PED-2021-0693, within PNCDI III.</p>
           </div>
@@ -1140,10 +1182,11 @@
             </div>
           </div> -->
           <p><span class="ui grey text">
-            <span localization-key="settingsMenuAboutSectionResetButtonHasMovedText">
-              Reset button has moved to the
-            </span>
-              <a onclick="app.handler.open.settingsModal('help-section')" class="more" localization-key="settingsMenuAboutSectionHelpPaneName">Help pane.</a>
+              <span localization-key="settingsMenuAboutSectionResetButtonHasMovedText">
+                Reset button has moved to the
+              </span>
+              <a onclick="app.handler.open.settingsModal('help-section')" class="more"
+                localization-key="settingsMenuAboutSectionHelpPaneName">Help pane.</a>
             </span></p>
         </div>
       </div>
