@@ -77,11 +77,14 @@
           <a href="../../module/words-pairing" class="item" localization-key="appNameWordsPairing">
             Words Pairing
           </a>
-          <a id="settingsButton" class="item" data-tooltip="Open Settings" data-position="bottom center">
+          <a id="settingsButton" data-variation="basic" data-position="bottom center" class="item tooltip-trigger">
             <i class="fitted icons">
               <i class="large fitted cog icon"></i>
             </i>
           </a>
+          <div class="ui flowing popup">
+            <p localization-key="tooltipOpenSettings"></p>
+          </div>
         </div>
       </div>
     </div>
@@ -140,8 +143,10 @@
             <span localization-key="downloadDocumentsSectionHeader">
               Download Documents
             </span>
-            <span data-tooltip="You have unsaved changes" data-position="right center"><i id="unsavedChanges"
-                class="ui tiny red asterisk icon"></i></span>
+            <span class="tooltip-trigger" data-position="right center">
+              <i id="unsavedChanges" class="ui tiny red asterisk icon"></i>
+            </span>
+            <div class="ui popup" localization-key="tooltipUnsavedChanges"></div>
           </h4>
           <form class="ui equal width form">
             <div class="two fields">
@@ -172,28 +177,40 @@
     <div id="taggingSegment" class="ui disable secondary segment">
       <div id="custom-controls" class="ui basic fitted vertical segment">
         <div class="ui wrapping spaced buttons">
-          <button id="invisiblesToggle" name="interface.toolbarActions.invisiblesToggle" class="ui compact icon button"
-            title="Toggle Invisibles" tabindex="0" data-tooltip="Toggle invisibles" data-position="top left">
+          <button id="invisiblesToggle" name="interface.toolbarActions.invisiblesToggle"
+            class="ui compact icon button tooltip-trigger" tabindex="0">
             <i class="paragraph icon"></i>
           </button>
+          <div class="ui popup">
+            <span localization-key="tooltipInvisiblesToggle"></span>
+          </div>
           <button id="redetectAllBoxes" name="interface.toolbarActions.detectAllLines"
-            class="ui compact icon disabled button" title="Find all text in image" tabindex="0"
-            data-tooltip="Find all text" data-position="top left">
+            class="ui compact icon disabled button tooltip-trigger" tabindex="0"
+            data-position="top left">
             <i class="magic icon"></i>
           </button>
+          <div class="ui popup">
+            <span localization-key="tooltipRedetectAllBoxes"></span>
+          </div>
           <button id="regenerateTextSuggestions" name="interface.toolbarActions.detectAllBoxes"
-            class="ui compact icon disabled button" title="Regenerate Text Suggestions" tabindex="0"
-            data-tooltip="Recognize all boxes" data-position="top left">
+            class="ui compact icon disabled button tooltip-trigger" tabindex="0"
+            data-position="top left">
             <i class="sync icon"></i>
           </button>
+          <div class="ui popup">
+            <span localization-key="tooltipRegenerateTextSuggestions"></span>
+          </div>
           <button id="regenerateTextSuggestionForSelectedBox" name="interface.toolbarActions.detectSelectedBox"
-            class="ui compact icon disabled button" title="Regenerate Text Suggestion for Selected Box" tabindex="0"
-            data-tooltip="Recognize current box" data-position="top left">
+            class="ui compact icon disabled button tooltip-trigger" tabindex="0"
+            data-position="top left">
             <i class="redo icon"></i>
           </button>
+          <div class="ui popup">
+            <span localization-key="tooltipRegenerateTextSuggestionForSelectedBox"></span>
+          </div>
           <div id="ocrModelDropdown" name="interface.toolbarActions.languageModelDropdown"
-            class="ui floating compact dropdown labeled search icon button" spellcheck="false"
-            data-tooltip="Choose a language model" data-position="top left">
+            class="ui floating compact dropdown labeled search icon button tooltip-trigger" spellcheck="false"
+            data-position="top left">
             <i class="world icon"></i>
             <span class="text" localization-key="languageModelRTS">Romanian Transitional Script</span>
             <div class="menu">
@@ -308,6 +325,9 @@
               <div class="item" data-value="vie">Vietnamese</div>
               <div class="item" data-value="yid">Yiddish</div>
             </div>
+          </div>
+          <div class="ui popup">
+            <span localization-key="tooltipOcrModelDropdown"></span>
           </div>
         </div>
       </div>
@@ -505,6 +525,7 @@
                   Choose a language...
                 </div>
                 <div class="divider"></div>
+                <div class="item" data-value="system-lang" localization-key="system-lang">Auto</div>
                 <div class="item" data-value="en-US" localization-key="en-US">English</div>
                 <div class="item" data-value="ro-RO" localization-key="ro-RO">Română</div>
               </div>
@@ -606,7 +627,8 @@
                   <input type="checkbox" name="interface.editorTools.virtualKeyboard">
                   <label><span localization-key="settingsMenuEditorToolsCheckboxVirtualKeyboard">Use cyrillic virtual
                       keyboard</span> <span class="ui small italic orange text updateNotification"
-                      data-release-date="2023-09-30" data-expire-notification="14" localization-key="updateNotificationLabel">new</span></label>
+                      data-release-date="2023-09-30" data-expire-notification="14"
+                      localization-key="updateNotificationLabel">new</span></label>
                 </div>
               </div>
               <div class="item">

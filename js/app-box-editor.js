@@ -88,6 +88,7 @@ app.ready = async () => {
     $settingsModalStatusMessage = $settingsModalStatus.find('.ui.disabled.tertiary.button'),
     $settingsModalContent = $settingsModal.find('.content'),
     $map = $('#mapid'),
+    $tooltipTriggers = $('.tooltip-trigger'),
     $boxFileInput = $('#boxFile'),
     $imageFileInput = $('#imageFile'),
     $imageFileInputButton = $('#imageFileButton'),
@@ -260,6 +261,7 @@ app.ready = async () => {
         differentFileNameWarning: { title: 'notificationTypeDifferentFileNameWarningTitle', type: 'differentFileNameWarning', class: 'warning' },
       },
       error: {
+        loadingTranslationsError: { title: 'notificationTypeLoadingTranslationsErrorTitle', type: 'loadingTranslationsError', class: 'error' },
         networkError: { title: 'notificationTypeNetworkErrorTitle', type: 'networkError', class: 'error' },
         identicalPatternNamesError: { title: 'notificationTypeIdenticalPatternNamesErrorTitle', type: 'identicalPatternNamesError', class: 'error' },
         invalidPatternsError: { title: 'notificationTypeInvalidPatternsErrorTitle', type: 'invalidPatternsError', class: 'error' },
@@ -608,7 +610,7 @@ app.ready = async () => {
         showProgress: 'top',
         position: 'top right',
         classProgress: object.color,
-        message: object.message,
+        message: appTranslations[object.message] || object.message,
         minDisplayTime: 3000,
         actions: object.actions ? object.actions : false,
       });
@@ -705,8 +707,9 @@ app.ready = async () => {
 
         if (handler.keyboardShortcuts.has(key)) {
           handler.notifyUser({
-            title: 'Shorcut Exists',
-            message: `Shortcut <strong>${key}</strong> has already been registered.`,
+            title: appTranslations['notificationTypeShortcutExistsWarningTitle'],
+            message: appTranslations['notificationTypeShortcutExistsWarningBody']
+              .replace('${key}', `${key}`),
             type: 'warning',
           })
           return;
@@ -923,8 +926,8 @@ app.ready = async () => {
         row.classList.add('two', 'column', 'stretched', 'row');
         leftColumn.classList.add('twelve', 'wide', 'left', 'floated', 'column');
         rightColumn.classList.add('four', 'wide', 'right', 'floated', 'column', 'text', 'right', 'aligned');
-        leftHeader.textContent = 'Name';
-        rightHeader.textContent = 'Char';
+        leftHeader.textContent = appTranslations['tooltipUnicodeInfoNameColumn'];
+        rightHeader.textContent = appTranslations['tooltipUnicodeInfoCharColumn'];
 
         leftColumn.appendChild(leftHeader);
         rightColumn.appendChild(rightHeader);
@@ -1275,7 +1278,7 @@ app.ready = async () => {
     addNewHighlighterPattern: () => {
       const
         tableBody = $highlighterTableBody[0],
-        row = handler.create.highlighterRow(true, 'New Highlighter', false, '.');
+        row = handler.create.highlighterRow(true, appTranslations['highlighterTableDefaultName'], false, '.');
       tableBody.append(row);
       // update selectors
       $highlighterTableBody = $highlighterTableContainer.find('.ui.celled.table tbody');
@@ -1596,6 +1599,7 @@ app.ready = async () => {
         await handler.load.translations(lang);
         await handler.translatePage();
         await handler.load.sliders();
+        if (selectedBox) handler.update.confidenceScoreField(selectedBox);
       },
       settingsModal: async () => {
         // Toolbar Actions
@@ -1702,7 +1706,7 @@ app.ready = async () => {
             $progressSlider.progress({
               value: modifiedLines.length,
               total: boxData.length,
-              text: { active: 'Updating: {value} out of {total} / {percent}%', }
+              text: { active: appTranslations['progressIndicatorUpdatingText'], }
             })
           } else {
             $progressSlider.removeClass('active indicating');
@@ -1711,7 +1715,7 @@ app.ready = async () => {
             $progressSlider.progress({
               value: textLines.length,
               total: boxData.length,
-              text: { active: 'Tagging: {value} out of {total} / {percent}%', }
+              text: { active: appTranslations['progressIndicatorTaggingText'], }
             });
           }
           return;
@@ -1721,7 +1725,7 @@ app.ready = async () => {
             $progressSlider.progress({
               value: options.progress,
               total: 1,
-              text: { active: 'Analyzing Image: {percent}%', }
+              text: { active: appTranslations['progressIndicatorAnalyzingText'], }
             });
           } else if (/initializingWorker/.test(options.type)) {
             $progressSlider.progress({
@@ -1733,7 +1737,7 @@ app.ready = async () => {
             $progressSlider.progress({
               value: options.value,
               total: options.total,
-              text: { active: 'Regenerating Text Data…', }
+              text: { active: appTranslations['progressIndicatorRegeneratingText'], }
             });
           }
           return;
@@ -1815,7 +1819,7 @@ app.ready = async () => {
       confidenceScoreField: async (box) => {
         $modelConfidenceScoreDetail.text('');
         if ($modelConfidenceScoreEnabledCheckbox[0].checked && box.isModelGeneratedText) {
-          $modelConfidenceScoreDetail.text(`Suggestion Confidence: ${Math.round(box.modelConfidenceScore)}%`);
+          $modelConfidenceScoreDetail.text(`${appTranslations['formGroundTruthConfidenceLabel']}: ${Math.round(box.modelConfidenceScore)}%`);
           // colorize if low confidence
           const colorMap = {
             70: 'red',
@@ -1979,16 +1983,16 @@ app.ready = async () => {
     receiveDroppedFiles: async (event) => {
       if (event.length > 2) {
         handler.notifyUser({
-          title: 'Too many files',
-          message: 'Upload an image and, optionally, a box file.',
+          title: appTranslations['notificationTypeTooManyFilesWarningTitle'],
+          message: appTranslations['notificationTypeTooManyFilesWarningBody'],
           type: 'error',
         });
         return;
       }
       if (event.length < 1) {
         notifyUser({
-          title: 'No files',
-          message: 'You need to drop at least one file.',
+          title: appTranslations['notificationTypeTooNoFilesTitle'],
+          message: appTranslations['notificationTypeTooNoFilesBody'],
           type: 'error',
         });
         return;
@@ -2002,8 +2006,8 @@ app.ready = async () => {
           boxFile = file;
         } else {
           handler.notifyUser({
-            title: 'Invalid File Type',
-            message: 'You can only upload an image and a box file.',
+            title: appTranslations['notificationTypeInvalidFileTypeTitle'],
+            message: appTranslations['notificationTypeInvalidFileTypeBody'],
             type: 'error',
           });
           return;
@@ -2012,8 +2016,8 @@ app.ready = async () => {
 
       if (!imageFile && !imageFileInfo.isProcessed()) {
         handler.notifyUser({
-          title: 'No image file',
-          message: 'You need at least one image file.',
+          title: appTranslations['notificationTypeNoImageFileTitle'],
+          message: appTranslations['notificationTypeNoImageFileBody'],
           type: 'error',
         });
         return;
@@ -2155,9 +2159,24 @@ app.ready = async () => {
     },
     load: {
       translations: async (lang) => {
-        const response = await fetch(`../../js/lang/${lang}.json`);
-        const data = await response.json();
-        appTranslations = data;
+        try {
+          const response = await fetch(`../../js/lang/${lang}.json`);
+          const data = await response.json();
+          appTranslations = data;
+        } catch (error) {
+          console.error(error);
+          const response = await fetch(`../../js/lang/${appSettings.interface.appLanguage}.json`);
+          const data = await response.json();
+          appTranslations = data;
+          handler.notifyUser({
+            title: notificationTypes.error.loadingTranslationsError.title,
+            message: appTranslations['notificationTypeLoadingTranslationsErrorBody']
+              .replace('${lang}', `${lang}`)
+              .replace('${original}', `${appSettings.interface.appLanguage}`),
+            type: notificationTypes.error.loadingTranslationsError.type,
+            class: notificationTypes.error.loadingTranslationsError.class,
+          });
+        }
       },
       virtualKeyboard: () => {
         virtualKeyboard = new Keyboard({
@@ -2252,7 +2271,8 @@ app.ready = async () => {
             console.log(error);
             handler.notifyUser({
               title: notificationTypes.error.loadingLanguageModelError.title,
-              message: `Failed to load selected language model ${appSettings.language.recognitionModel}. Loading default RTS instead.`,
+              message: appTranslations['notificationTypeLoadingLanguageModelErrorBody']
+                .replace('${appSettings.language.recognitionModel}', `${appSettings.language.recognitionModel}`),
               type: notificationTypes.error.loadingLanguageModelError.type,
               class: notificationTypes.error.loadingLanguageModelError.class,
             });
@@ -2263,7 +2283,7 @@ app.ready = async () => {
             console.log(error);
             handler.notifyUser({
               title: notificationTypes.error.networkError.title,
-              message: 'Failed to load language model. You may not be connected to the internet.',
+              message: 'notificationTypeNetworkErrorBody',
               type: notificationTypes.error.networkError.type,
               class: notificationTypes.error.networkError.class,
             });
@@ -2277,11 +2297,11 @@ app.ready = async () => {
         $appLanguageDropdownInSettings.dropdown({
           onChange: async (value, text, $selectedItem) => {
             handler.set.loadingState({ buttons: true });
-            appSettings.interface.appLanguage = value;
-            await handler.update.interfaceLanguage(value);
+            appSettings.interface.appLanguage = /system-lang/.test(value) ? navigator.language : value;
+            await handler.update.interfaceLanguage(appSettings.interface.appLanguage);
             handler.update.localStorage();
             handler.set.loadingState({ buttons: false });
-            $appLanguageDropdownInSettings.dropdown('set selected', appSettings.interface.appLanguage, true);
+            $appLanguageDropdownInSettings.dropdown('set selected', value, true);
           }
         });
         $ocrModelDropdown.dropdown({
@@ -2446,7 +2466,7 @@ app.ready = async () => {
             if (invalidPatterns || identicalPatternNames) {
               const
                 title = invalidPatterns ? notificationTypes.error.invalidPatternsError.title : notificationTypes.error.identicalPatternNamesError.title,
-                message = invalidPatterns ? 'Some enabled highlighters have invalid patterns. Please fix them or disable the highlighters.' : 'Some highlighter names are the same. Please give them different names.',
+                message = invalidPatterns ? 'notificationTypeInvalidPatternsErrorBody' : 'notificationTypeIdenticalPatternNamesErrorBody',
                 type = invalidPatterns ? notificationTypes.error.invalidPatternsError.type : notificationTypes.error.identicalPatternNamesError.type,
                 classType = invalidPatterns ? notificationTypes.error.invalidPatternsError.class : notificationTypes.error.identicalPatternNamesError.class;
               handler.notifyUser({
@@ -2455,7 +2475,7 @@ app.ready = async () => {
                 type: type,
                 class: classType,
                 actions: [{
-                  text: 'Fix now',
+                  text: appTranslations['askUserFixNowText'],
                   click: handler.open.settingsModal.bind(handler.open, 'highlighter-settings'),
                 }]
               });
@@ -2477,14 +2497,18 @@ app.ready = async () => {
           handler.update.settingsModal();
         }
       },
-      popups: () => $imageFileInputButton.popup({
-        popup: $useSamplePopup,
-        position: 'top left',
-        hoverable: true,
-        delay: {
-          hide: 800,
-        }
-      }),
+      popups: () => {
+        $imageFileInputButton
+          .popup({
+            popup: $useSamplePopup,
+            position: 'top left',
+            hoverable: true,
+            delay: {
+              hide: 800,
+            }
+          });
+        $tooltipTriggers.popup();
+      },
       unicodeData: async () => {
         await $.ajax({
           url: '../../assets/unicodeData.csv',
@@ -2575,7 +2599,8 @@ app.ready = async () => {
         if (!'box'.includes(fileExtension)) {
           handler.notifyUser({
             title: notificationTypes.error.invalidFileTypeError.title,
-            message: 'Expected box file. Received ' + fileExtension + ' file.',
+            message: appTranslations['notificationTypeInvalidFileTypeErrorBody']
+              .replace('${fileExtension}', `${fileExtension}`),
             type: notificationTypes.error.invalidFileTypeError.type,
             class: notificationTypes.error.invalidFileTypeError.class,
           });
@@ -2584,7 +2609,9 @@ app.ready = async () => {
           const
             response = await handler.askUser({
               title: notificationTypes.warning.nameMismatchError.title,
-              message: appTranslations['notificationTypeNameMismatchErrorBody1'] + file.name + appTranslations['notificationTypeNameMismatchErrorBody2'] + imageFileName + appTranslations['notificationTypeNameMismatchErrorBody3'],
+              message: appTranslations['notificationTypeNameMismatchErrorBody']
+                .replace('${file.name}', `${file.name}`)
+                .replace('${imageFileName}', `${imageFileName}`),
               type: notificationTypes.warning.nameMismatchError.type,
               actions: [{
                 text: appTranslations['askUserDenyText'],
@@ -2681,7 +2708,8 @@ app.ready = async () => {
             const fileExtension = file.name.split('.').pop();
             handler.notifyUser({
               title: notificationTypes.error.invalidFileTypeError.title,
-              message: 'Expected image file. Received ' + fileExtension + ' file.',
+              message: appTranslations['notificationTypeInvalidFileTypeErrorBody']
+                .replace('${fileExtension}', `${fileExtension}`),
               type: notificationTypes.error.invalidFileTypeError.type,
               class: notificationTypes.error.invalidFileTypeError.class,
             });
@@ -2836,7 +2864,7 @@ app.ready = async () => {
         if (!boxData.length) {
           handler.notifyUser({
             title: notificationTypes.warning.nothingToDownloadWarning.title,
-            message: 'There is nothing to download!',
+            message: 'notificationTypeNothingToDownloadWarningBody',
             type: notificationTypes.warning.nothingToDownloadWarning.type,
             class: notificationTypes.warning.nothingToDownloadWarning.class,
           });
@@ -2845,7 +2873,7 @@ app.ready = async () => {
         if (lineDataInfo.isDirty()) {
           handler.notifyUser({
             title: notificationTypes.error.commitLineError.title,
-            message: 'Please commit the current line first.',
+            message: 'notificationTypeCommitLineErrorBody',
             type: notificationTypes.error.commitLineError.type,
             class: notificationTypes.error.commitLineError.class,
           });
@@ -2880,7 +2908,9 @@ app.ready = async () => {
         document.body.removeChild(downloadAnchor);
         handler.notifyUser({
           title: notificationTypes.info.fileDownloadedInfo.title,
-          message: 'Downloaded file ' + imageFileName + '.' + fileExtension,
+          message: appTranslations['notificationTypeFileDownloadedInfoBody']
+            .replace('${imageFileName}', `${imageFileName}`)
+            .replace('${fileExtension}', `${fileExtension}`),
           type: notificationTypes.info.fileDownloadedInfo.type,
           class: notificationTypes.info.fileDownloadedInfo.class,
         });
