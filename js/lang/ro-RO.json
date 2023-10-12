@@ -217,7 +217,6 @@
     "notificationTypeNoImageFileTitle": "Nicio Imagine",
     "notificationTypeNoImageFileBody": "Trebuie să încărcați cel puțin o imagine.",
     "notificationTypeLoadingTranslationsErrorTitle": "Traducere Lipsă",
-
     "notificationTypeLoadingTranslationsErrorBody": "Traducerea pentru <strong>\"${lang}\"</strong> nu este disponibilă. Se revine la ${original}.",
 
     "askUserConfirmText": "Da",
@@ -235,5 +234,17 @@
     "tooltipRegenerateTextSuggestionForSelectedBox": "Sugerează text pentru caseta selectată",
     "tooltipOcrModelDropdown": "Alegeți modelul OCR folosit pentru sugestii de text",
     "tooltipUnicodeInfoNameColumn": "Nume",
-    "tooltipUnicodeInfoCharColumn": "Caracter"
+    "tooltipUnicodeInfoCharColumn": "Caracter",
+
+    "virtualKeyboardBackspaceKeyLabel": "ștergere ⌫",
+    "virtualKeyboardEnterKeyLabel": "retur ↵",
+    "virtualKeyboardCapsLockKeyLabel": "majuscule ⇪",
+    "virtualKeyboardShiftKeyLabel": "shift ⇧",
+    "virtualKeyboardAltKeyLabel": "alternative ⌥",
+    "virtualKeyboardSpaceKeyLabel": "spațiu",
+    "virtualKeyboardGraveKeyLabel": "grav  ̀",
+    "virtualKeyboardAcuteKeyLabel": "ascuțit  ́",
+    "virtualKeyboardKavykaKeyLabel": "kavyka  ꙼",
+    "virtualKeyboardCyrillicKeyLabel": "Chirilic",
+    "virtualKeyboardLatinKeyLabel": "Latin"
 }

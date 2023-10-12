@@ -1599,6 +1599,7 @@ app.ready = async () => {
         await handler.load.translations(lang);
         await handler.translatePage();
         await handler.load.sliders();
+        handler.load.virtualKeyboard();
         if (selectedBox) handler.update.confidenceScoreField(selectedBox);
       },
       settingsModal: async () => {
@@ -2179,6 +2180,7 @@ app.ready = async () => {
         }
       },
       virtualKeyboard: () => {
+        if (virtualKeyboard !== undefined) virtualKeyboard.destroy();
         virtualKeyboard = new Keyboard({
           theme: "simple-keyboard hg-theme-default hg-layout-default",
           layout: virtualKeyboardLayouts['rts'],
@@ -2215,23 +2217,23 @@ app.ready = async () => {
           display: {
             "{escape}": "esc ⎋",
             "{tab}": "tab ⇥",
-            "{backspace}": "backspace ⌫",
-            "{enter}": "enter ↵",
-            "{capslock}": "caps lock ⇪",
+            "{backspace}": appTranslations['virtualKeyboardBackspaceKeyLabel'],
+            "{enter}": appTranslations['virtualKeyboardEnterKeyLabel'],
+            "{capslock}": appTranslations['virtualKeyboardCapsLockKeyLabel'],
             "{shiftleft}": "shift ⇧",
             "{shiftright}": "shift ⇧",
             "{controlleft}": "ctrl ⌃",
             "{controlright}": "ctrl ⌃",
-            "{altleft}": "alt ⌥",
-            "{altright}": "alt ⌥",
+            "{altleft}": appTranslations['virtualKeyboardAltKeyLabel'],
+            "{altright}": appTranslations['virtualKeyboardAltKeyLabel'],
             "{metaleft}": "cmd ⌘",
             "{metaright}": "cmd ⌘",
-            '{space}': 'space',
-            '{grave}': 'grave  ̀',
-            '{acute}': 'acute  ́',
-            '{kavyka}': 'kavyka  ꙼',
-            '{cyrillic}': ' Cyrillic',
-            '{latin}': ' Latin',
+            '{space}': appTranslations['virtualKeyboardSpaceKeyLabel'],
+            '{grave}': appTranslations['virtualKeyboardGraveKeyLabel'],
+            '{acute}': appTranslations['virtualKeyboardAcuteKeyLabel'],
+            '{kavyka}': appTranslations['virtualKeyboardKavykaKeyLabel'],
+            '{cyrillic}': appTranslations['virtualKeyboardCyrillicKeyLabel'],
+            '{latin}': appTranslations['virtualKeyboardLatinKeyLabel'],
           }
         });
       },

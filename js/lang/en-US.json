@@ -234,5 +234,17 @@
     "tooltipRegenerateTextSuggestionForSelectedBox": "Recognize current box",
     "tooltipOcrModelDropdown": "Choose a language model",
     "tooltipUnicodeInfoNameColumn": "Name",
-    "tooltipUnicodeInfoCharColumn": "Char"
+    "tooltipUnicodeInfoCharColumn": "Char",
+
+    "virtualKeyboardBackspaceKeyLabel": "backspace ⌫",
+    "virtualKeyboardEnterKeyLabel": "return ↵",
+    "virtualKeyboardCapsLockKeyLabel": "caps lock ⇪",
+    "virtualKeyboardShiftKeyLabel": "shift ⇧",
+    "virtualKeyboardAltKeyLabel": "alternative ⌥",
+    "virtualKeyboardSpaceKeyLabel": "space",
+    "virtualKeyboardGraveKeyLabel": "grave  ̀",
+    "virtualKeyboardAcuteKeyLabel": "acute  ́",
+    "virtualKeyboardKavykaKeyLabel": "kavyka  ꙼",
+    "virtualKeyboardCyrillicKeyLabel": "Cyrillic",
+    "virtualKeyboardLatinKeyLabel": "Latin"
 }
