@@ -1,4 +1,6 @@
 {
+    "locale": "ro-RO",
+
     "webpageTitle": "Editor de Casete | Tranliterare RTS la Latin",
     "webpageHeroHeading": "RTS la Latin",
     "webpageHeroHeadingSubHeader": "Serviciu de Transliterație",
@@ -35,7 +37,7 @@
     "bylineWithCollon": "De: ",
 
     "settingsMenuHeroHeader": "Setările Editorului de Casete",
-    "settingsMenuSidebarInterfaceLabel": "Intefată",
+    "settingsMenuSidebarInterfaceLabel": "Interfață",
     "settingsMenuSidebarBehaviorLabel": "Comportament",
     "settingsMenuSidebarLanguageModelsLabel": "Modele de Limbă",
     "settingsMenuSidebarHighlighterLabel": "Evidențiare Text",
@@ -161,7 +163,7 @@
     "highlighterTableDefaultName": "Evidențiator Nou",
 
     "keyboardShortcutsTableMoveToNextBox": "Săriți la caseta următoare",
-    "keyboardShortcutsTableMoveToPreviousBox": "Move to previous box",
+    "keyboardShortcutsTableMoveToPreviousBox": "Săriți la caseta precedentă",
 
     "system-lang": "Automat",
     "en-US": "Engleză",

@@ -196,7 +196,7 @@ app.ready = async () => {
       localStorageKey: 'appSettings-boxEditor',
       appVersion: null,
       interface: {
-        appLanguage: 'en-US',
+        appLanguage: 'system-lang',
         appearance: 'match-device',
         toolbarActions: {
           detectAllLines: true,
@@ -569,14 +569,14 @@ app.ready = async () => {
             handler.unhighlightCell(elem.querySelector('td:nth-child(2)'));
             const
               enabled = elem.querySelector('td:nth-child(1) .checkbox input').checked,
-              name = elem.querySelector('td:nth-child(2) input[name=action]').value,
+              localizationKey = elem.querySelector('td:nth-child(2) input[name=action]').value,
               keyCombo = elem.querySelector('td:nth-child(3)').innerText,
-              action = availableShortcutActions.find(action => action.name === name).action;
+              action = availableShortcutActions.find(action => action.localizationKey === localizationKey).action;
             try {
               shortcuts.push({
                 enabled: enabled,
                 keyCombo: keyCombo,
-                name: name,
+                localizationKey: localizationKey,
                 action: action,
                 // target: target,
               });
@@ -831,17 +831,17 @@ app.ready = async () => {
           const localStorageSettings = JSON.parse(localStorageValue);
           const shortcuts = localStorageSettings?.behavior?.keyboardShortcuts?.shortcuts;
           shortcuts.forEach(shortcut => {
-            const row = handler.create.keyboardShortcutRow(shortcut.enabled, shortcut.keyCombo, shortcut.name);
+            const row = handler.create.keyboardShortcutRow(shortcut.enabled, shortcut.keyCombo, shortcut.localizationKey);
             tbody.appendChild(row);
           });
 
           if (!localStorageValue || shortcuts.length == 0) {
             const rows = [
-              { enabled: true, keyCombo: 'ENTER', name: appTranslations['keyboardShortcutsTableMoveToNextBox'] },
-              { enabled: true, keyCombo: 'Shift + ENTER', name: appTranslations['keyboardShortcutsTableMoveToNextBox'] },
+              { enabled: true, keyCombo: 'ENTER', localizationKey: 'keyboardShortcutsTableMoveToNextBox' },
+              { enabled: true, keyCombo: 'Shift + ENTER', localizationKey: 'keyboardShortcutsTableMoveToPreviousBox' },
             ];
             rows.forEach(row => {
-              const rowElement = handler.create.keyboardShortcutRow(row.enabled, row.keyCombo, row.name);
+              const rowElement = handler.create.keyboardShortcutRow(row.enabled, row.keyCombo, row.localizationKey);
               tbody.appendChild(rowElement);
             });
           }
@@ -970,11 +970,11 @@ app.ready = async () => {
 
         return row;
       },
-      keyboardShortcutRow: (enabled, keyCombo, name) => {
+      keyboardShortcutRow: (enabled, keyCombo, localizationKey) => {
         const
           row = document.createElement('tr'),
           checkboxCell = handler.create.checkboxCell(keyCombo, { onChange: handler.saveKeyboardShortcutsToSettings }),
-          shortcutsActionCell = handler.create.shortcutActionCell(name, { onChange: handler.saveKeyboardShortcutsToSettings }),
+          shortcutsActionCell = handler.create.shortcutActionCell(localizationKey, { onChange: handler.saveKeyboardShortcutsToSettings }),
           keyComboCell = handler.create.editableTextCell(keyCombo, { onChange: handler.saveKeyboardShortcutsToSettings }),
           actionsCell = handler.create.actionsCell({ onChange: handler.saveKeyboardShortcutsToSettings });
         row.appendChild(checkboxCell);
@@ -1084,9 +1084,9 @@ app.ready = async () => {
             actionIcon = document.createElement('i'),
             actionText = document.createElement('span');
           itemDiv.className = 'item';
-          itemDiv.setAttribute('data-value', action.name);
+          itemDiv.setAttribute('data-value', action.localizationKey);
           actionIcon.className = `ui small ${action.icon} icon`;
-          actionText.textContent = action.name;
+          actionText.textContent = appTranslations[action.localizationKey];
           actionText.setAttribute('localization-key', action.localizationKey);
           itemDiv.appendChild(actionIcon);
           itemDiv.appendChild(actionText);
@@ -1596,7 +1596,14 @@ app.ready = async () => {
     },
     update: {
       interfaceLanguage: async (lang) => {
-        await handler.load.translations(lang);
+        await handler.load.translations(lang);//.then(translationData => {
+        // Use the translation data as needed
+        //   appTranslations = translationData;
+        //   appSettings.interface.appLanguage = languageToUse;
+        //   console.info('loaded', appTranslations['locale'], appSettings.interface.appLanguage);
+        // }).catch(error => {
+        //   console.error('Error loading translation:', error);
+        // });;
         await handler.translatePage();
         await handler.load.sliders();
         handler.load.virtualKeyboard();
@@ -1616,8 +1623,8 @@ app.ready = async () => {
           }
         }
         // App Language Dropdown
-        await handler.load.translations(appSettings.interface.appLanguage);
-        $appLanguageDropdownInSettings.dropdown('set selected', appSettings.interface.appLanguage, true);
+        handler.load.translations(appSettings.interface.appLanguage);
+        // $appLanguageDropdownInSettings.dropdown('set selected', appSettings.interface.appLanguage, true);
         // Appearance
         const appearancePath = 'interface.appearance';
         document.querySelector(`input[name='${appearancePath}'][value='${appSettings.interface.appearance}']`).checked = true;
@@ -2158,26 +2165,101 @@ app.ready = async () => {
       const formattedDate = dateString.replace(/\d+/, day + daySuffix);
       return formattedDate;
     },
-    load: {
-      translations: async (lang) => {
+    get: {
+      availableTranslations: async () => {
+        // return all filenames in lang directory
+        const langFiles = [];
+        await $.ajax({
+          url: '../../js/lang',
+          context: document.body,
+          success: function (data) {
+            $(data).find('a:contains(".json")').each(function () {
+              langFiles.push(this.href.replace(window.location.host, '').replace('https:///', '').replace('http:', ''));
+            });
+          }
+        });
+        return langFiles.map(x => x.replace('.json', '').replace(/\/.*\//, ''));
+      },
+    },
+    check: {
+      translationExists: async (lang) => {
         try {
-          const response = await fetch(`../../js/lang/${lang}.json`);
-          const data = await response.json();
-          appTranslations = data;
+          const response = await fetch(`../../js/lang/${lang}.json`, { method: "GET" });
+
+          if (response.ok) {
+            // File found, do something with the response
+            const translationData = await response.json();
+            console.log('Translation data:', translationData);
+            return true;
+          } else {
+            // File not found, load default file
+            const defaultResponse = await fetch(`../../js/lang/en-US.json`);
+            if (defaultResponse.ok) {
+              const defaultTranslationData = await defaultResponse.json();
+              console.log('Default translation data:', defaultTranslationData);
+            } else {
+              console.error('Default translation file not found');
+            }
+            return false;
+          }
         } catch (error) {
-          console.error(error);
-          const response = await fetch(`../../js/lang/${appSettings.interface.appLanguage}.json`);
-          const data = await response.json();
-          appTranslations = data;
-          handler.notifyUser({
-            title: notificationTypes.error.loadingTranslationsError.title,
-            message: appTranslations['notificationTypeLoadingTranslationsErrorBody']
-              .replace('${lang}', `${lang}`)
-              .replace('${original}', `${appSettings.interface.appLanguage}`),
-            type: notificationTypes.error.loadingTranslationsError.type,
-            class: notificationTypes.error.loadingTranslationsError.class,
-          });
+          // Handle the error without logging to the console
+          console.error('An unexpected error occurred:', error);
+          return false;
         }
+      }
+    },
+    load: {
+      translations: async (language) => {
+        var translationData = null;
+        var languageToUse = language;
+        // for (const lang of languages) {
+        const languages = /system-lang/.test(language) ? navigator.languages: [language]
+        for (const lang of languages) {
+          try {
+            const response = await fetch(`../../js/lang/${lang}.json`);
+
+            if (response.status === 200) {
+              translationData = await response.json();
+              console.log(`Translation data loaded for ${lang}:`, translationData);
+              break;
+              // return translationData; // Use the loaded translation
+            }
+          } catch (error) {
+            console.error(`Error loading translation for ${lang}:`, error);
+          }
+        }
+
+        // Fallback to 'en-US' if no preferred language files are found
+        if (translationData == null) {
+
+          try {
+            languageToUse = 'en-US';
+            const response = await fetch(`../../js/lang/${languageToUse}.json`);
+
+            if (response.status === 200) {
+              translationData = await response.json();
+              console.log('Fallback to en-US - Translation data:', translationData);
+              // return translationData; // Use the fallback translation
+            } else {
+              console.error('Fallback translation file not found');
+            }
+          } catch (error) {
+            console.error('An unexpected error occurred while loading the fallback translation:', error);
+          }
+        }
+
+        appTranslations = translationData;
+        // console.info('loaded', appTranslations['locale'], appSettings.interface.appLanguage);
+        ///////
+        // const response = await fetch(`../../js/lang/${languageToUse}.json`);
+        // const data = await response.json();
+        // appTranslations = data;
+        // appSettings.interface.appLanguage = languageToUse;
+        // console.info('loaded', appTranslations['locale'], appSettings.interface.appLanguage);
+        const dropdownSelection = /system-lang/.test(language) ? language : languageToUse;
+        appSettings.interface.appLanguage = dropdownSelection;
+        $appLanguageDropdownInSettings.dropdown('set selected', dropdownSelection, true);
       },
       virtualKeyboard: () => {
         if (virtualKeyboard !== undefined) virtualKeyboard.destroy();
@@ -2299,8 +2381,8 @@ app.ready = async () => {
         $appLanguageDropdownInSettings.dropdown({
           onChange: async (value, text, $selectedItem) => {
             handler.set.loadingState({ buttons: true });
-            appSettings.interface.appLanguage = /system-lang/.test(value) ? navigator.language : value;
-            await handler.update.interfaceLanguage(appSettings.interface.appLanguage);
+            // const newLanguage = /system-lang/.test(value) ? navigator.languages : value;
+            await handler.update.interfaceLanguage(value);
             handler.update.localStorage();
             handler.set.loadingState({ buttons: false });
             $appLanguageDropdownInSettings.dropdown('set selected', value, true);
@@ -2419,7 +2501,7 @@ app.ready = async () => {
           "settingsMenuImageViewSliderLabelNormal",
           "settingsMenuImageViewSliderLabelTall",
           "settingsMenuImageViewSliderLabelHuge"];
-        await handler.load.translations(appSettings.interface.appLanguage);
+        // await handler.load.translations(appSettings.interface.appLanguage);
         const labels = sizes.map(size => appTranslations[size]);
         $imageViewHeightSlider.slider({
           min: 100,
@@ -3279,12 +3361,13 @@ app.ready = async () => {
 
       handler.delete.expiredNotifications();
       balanceText($balancedText, { watch: true });
-      handler.hideSplashScreen();
+      await handler.hideSplashScreen();
 
     },
-    hideSplashScreen: () => {
+    hideSplashScreen: async () => {
       let lang = appSettings.interface.appLanguage;
-      handler.update.interfaceLanguage(lang);
+      // let lang = $appLanguageDropdownInSettings.dropdown('get value');
+      await handler.update.interfaceLanguage(lang);
       $body[0].style.transition = "opacity 0.5s ease-in-out";
       $body[0].style.opacity = "1";
     },
@@ -3294,14 +3377,14 @@ app.ready = async () => {
     {
       // target: $window,
       icon: 'arrow right',
-      name: 'Move to next box',
+      // name: 'Move to next box',
       localizationKey: 'keyboardShortcutsTableMoveToNextBox',
       action: handler.getNextBoxContentAndFill,
     },
     {
       // target: $window,
       icon: 'arrow left',
-      name: 'Move to previous box',
+      // name: 'Move to previous box',
       localizationKey: 'keyboardShortcutsTableMoveToPreviousBox',
       action: handler.getPreviousBoxContentAndFill,
     },
