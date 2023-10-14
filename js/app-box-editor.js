@@ -213,7 +213,7 @@ app.ready = async () => {
           unicodeInfoPopup: true,
           confidenceScoreEnabled: true,
         },
-        imageView: 'medium',
+        imageView: 500,
         showInvisibles: false,
       },
       behavior: {
@@ -957,7 +957,7 @@ app.ready = async () => {
       highlighterRow: (enabled, name, color, pattern) => {
         const
           row = document.createElement('tr'),
-          checkboxCell = handler.create.checkboxCell(name, { onChange: handler.saveHighlightsToSettings }),
+          checkboxCell = handler.create.checkboxCell(name, enabled, { onChange: handler.saveHighlightsToSettings }),
           nameCell = handler.create.editableTextCell(name, { onChange: handler.saveHighlightsToSettings }),
           colorCell = handler.create.colorCell(color, { onChange: handler.saveHighlightsToSettings }),
           patternCell = handler.create.editableTextCell(pattern, { onChange: handler.saveHighlightsToSettings }),
@@ -973,7 +973,7 @@ app.ready = async () => {
       keyboardShortcutRow: (enabled, keyCombo, localizationKey) => {
         const
           row = document.createElement('tr'),
-          checkboxCell = handler.create.checkboxCell(keyCombo, { onChange: handler.saveKeyboardShortcutsToSettings }),
+          checkboxCell = handler.create.checkboxCell(keyCombo, enabled, { onChange: handler.saveKeyboardShortcutsToSettings }),
           shortcutsActionCell = handler.create.shortcutActionCell(localizationKey, { onChange: handler.saveKeyboardShortcutsToSettings }),
           keyComboCell = handler.create.editableTextCell(keyCombo, { onChange: handler.saveKeyboardShortcutsToSettings }),
           actionsCell = handler.create.actionsCell({ onChange: handler.saveKeyboardShortcutsToSettings });
@@ -984,7 +984,7 @@ app.ready = async () => {
 
         return row;
       },
-      checkboxCell: (name, params = {}) => {
+      checkboxCell: (name, enabled, params = {}) => {
         const
           cell = document.createElement('td'),
           div = document.createElement('div'),
@@ -993,7 +993,7 @@ app.ready = async () => {
         div.className = 'ui fitted checkbox text-highlighter-checkbox';
         input.type = 'checkbox';
         input.name = name;
-        input.checked = true;
+        input.checked = enabled;
 
         div.appendChild(input);
         $(div).checkbox({
@@ -1945,45 +1945,34 @@ app.ready = async () => {
         if (oldSettings.appVersion == 0) {
           return appSettings;
         }
-        // Upgrading settings
 
-        if (handler.compareVersions(oldSettings.appVersion, '1.7.0') < 0) {
+        appSettings = oldSettings;
+
+        // Upgrading settings
+        if (handler.compareVersions(oldSettings.appVersion, '1.7.3') < 0) {
+          console.info('[Migration]', 'Migrating from', oldSettings.appVersion, 'to', '1.7.3');
 
           // add new setting
-          appSettings.interface.editorTools.virtualKeyboard = false;
+          appSettings.interface.appLanguage = 'system-lang';
 
-          // move behavior workflow settings to interface editor tools settings
-          const oldKeys = ['progressIndicator', 'positionSlider', 'formCoordinateFields', 'unicodeInfoPopup'];
-
-          oldKeys.forEach(element => {
-            if (oldSettings.behavior.workflow[element] != undefined) {
-              appSettings.interface.editorTools[element] = oldSettings.behavior.workflow[element];
-              delete appSettings.behavior.workflow[element];
+          // update keyboard shortcuts
+          oldSettings.behavior.keyboardShortcuts.shortcuts.forEach(key => {
+            switch (key.name) {
+              case "Move to next box":
+                key.localizationKey = "keyboardShortcutsTableMoveToNextBox";
+                delete key.name;
+                break;
+              case "Move to previous box":
+                key.localizationKey = "keyboardShortcutsTableMoveToPreviousBox";
+                delete key.name;
+                break;
+              // add more cases here as needed
+              default:
+                // handle default case here
+                break;
             }
           });
-        }
-
-
-        if (handler.compareVersions(oldSettings.appVersion, '1.6.2') < 0) {
-          // migrate map height labels to numbers
-          const oldHeightLabels = {
-            'short': 300,
-            'medium': 500,
-            'tall': 700
-          };
-          // if oldSettings.interface.imageView is not undefined
-          if (oldSettings.interface?.imageView) {
-            appSettings.interface.imageView = oldHeightLabels[oldSettings.interface.imageView]
-          } else {
-            appSettings.interface.imageView = 500;
-          }
-          appSettings.behavior.alerting.enableWarrningMessagesForOverwritingDirtyData = true;
-        }
-
-        if (handler.compareVersions(oldSettings.appVersion, '1.6.0') < 0) {
-          // clear cookies set by versions prior to 1.6.0
-          // also remove html script tag for JS Cookie
-          Cookies.get().forEach(cookie => Cookies.remove(cookie));
+          appSettings.behavior.keyboardShortcuts.shortcuts = oldSettings.behavior.keyboardShortcuts.shortcuts;
         }
         return appSettings;
       }
@@ -2428,6 +2417,7 @@ app.ready = async () => {
             handler.update.localStorage();
           }
         });
+        $ocrModelDropdownInSettings.dropdown('set selected', appSettings.language.recognitionModel, true);
       },
       keyboardShortcuts: () => {
         $window.off('keyup');
