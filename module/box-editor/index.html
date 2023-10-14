@@ -528,6 +528,7 @@
                 <div class="item" data-value="system-lang" localization-key="system-lang">Auto</div>
                 <div class="item" data-value="en-US" localization-key="en-US">English</div>
                 <div class="item" data-value="ro-RO" localization-key="ro-RO">Română</div>
+                <div class="item" data-value="rts-RO" localization-key="rts-RO">Română (RTS)</div>
               </div>
             </div>
           </div>
@@ -670,11 +671,13 @@
               <div class="ui tiny icon message">
                 <i class="keyboard icon"></i>
                 <div class="content">
-                  <div class="header">
+                  <div class="header" localization-key="messageMacOSKeyboardLayoutHeader">
                     macOS Keyboard Layout
             </div>
-                  <p>Users on macOS can download and install a keyboard layout made for them. Download it from the
-                    <a onclick="app.handler.open.settingsModal('language-settings')">Language Models</a> section.</p>
+                  <p>
+                    <span localization-key="messageMacOSKeyboardLayoutDescription1">
+                      Users on macOS can download and install a keyboard layout made for them. Download it from the </span>
+                    <a onclick="app.handler.open.settingsModal('language-settings')" localization-key="messageMacOSKeyboardLayoutDescription2">Language Models</a> <span localization-key="messageMacOSKeyboardLayoutDescription3">section</span></p>
                 </div>
               </div>
             </div>

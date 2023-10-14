@@ -81,6 +81,10 @@
     "settingsMenuKeyboardShortcutsHeader": "Keyboard Shortcuts",
     "settingsMenuKeyboardShortcutsDescription": "Customize the keyboard shortcuts for frequently used actions.",
     "settingsMenuKeyboardShortcutsCheckboxUseShortcutsLabel": "Use keyboard shortcuts",
+    "messageMacOSKeyboardLayoutHeader": "macOS Keyboard Layout",
+    "messageMacOSKeyboardLayoutDescription1": "Users on macOS can download and install a keyboard layout made for them. Download it from the ",
+    "messageMacOSKeyboardLayoutDescription2": "Language Models",
+    "messageMacOSKeyboardLayoutDescription3": " section.",
     "messageUpcomingFeatureHeader": "Upcoming Feature",
     "messageUpcomingFeatureKeyboardShortcutsDescription": "In a future update you will be able to add and customize the keyboard shortcuts. For now, you can usethesedefaults and swap them around.",
     "messageKnwonIssueHeader": "Known Issue",
@@ -169,6 +173,7 @@
     "system-lang": "Automatic",
     "en-US": "English",
     "ro-RO": "Romanian",
+    "rts-RO": "Romanian (RTS)",
 
     "red": "red",
     "orange": "orange",
