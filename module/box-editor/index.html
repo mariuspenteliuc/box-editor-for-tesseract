@@ -100,7 +100,7 @@
       </div>
       <div class="ui two column stackable grid">
         <div class="eight wide column">
-          <h4 class="ui dividing header" localization-key="uploadDocumentsSectionHeader">Upload Documents</h4>
+          <h4 class="ui dividing header" localization-key="uploadFilesSectionHeader">Upload Files</h4>
           <form class="ui form">
             <div class="two fields">
               <div class="field">
@@ -115,22 +115,22 @@
                     </a>
                   </div>
                 </div>
-                <label for="imageFile" localization-key="uploadDocumentsSectionImageLabel">Image</label>
+                <label for="imageFile" localization-key="uploadFilesSectionImageLabel">Image</label>
                 <input class="ui invisible file input form-control" type="file" disabled id="imageFile" name="imageFile"
                   accept="image/*" />
                 <label for="imageFile" class="ui small fluid button" id="imageFileButton">
                   <i class="file upload icon"></i>
-                  <span localization-key="uploadDocumentsSectionChooseFileButtonLabel">
+                  <span localization-key="uploadFilesSectionChooseFileButtonLabel">
                     Choose File
                   </span>
                 </label>
               </div>
               <div class="field">
-                <label for="boxFile" localization-key="uploadDocumentsSectionBoxFileLabel">Box File</label>
+                <label for="boxFile" localization-key="uploadFilesSectionBoxFileLabel">Box File</label>
                 <input class="ui invisible file input" type="file" disabled id="boxFile" name="boxFile" accept=".box" />
                 <label for="boxFile" class="ui disabled small fluid button" id="boxFileButton">
                   <i class="file upload icon"></i>
-                  <span localization-key="uploadDocumentsSectionChooseFileButtonLabel">
+                  <span localization-key="uploadFilesSectionChooseFileButtonLabel">
                     Choose File
                   </span>
                 </label>
@@ -140,8 +140,8 @@
         </div>
         <div class="eight wide column">
           <h4 class="ui dividing header">
-            <span localization-key="downloadDocumentsSectionHeader">
-              Download Documents
+            <span localization-key="downloadFilesSectionHeader">
+              Download Files
             </span>
             <span class="tooltip-trigger" data-position="right center">
               <i id="unsavedChanges" class="ui tiny red asterisk icon"></i>
@@ -151,20 +151,20 @@
           <form class="ui equal width form">
             <div class="two fields">
               <div class="field">
-                <label for="download" localization-key="downloadDocumentsSectionBoxFileLabel">Box File</label>
+                <label for="download" localization-key="downloadFilesSectionBoxFileLabel">Box File</label>
                 <button id="downloadBoxFileButton" name="download" tabindex="0" class="disabled small fluid ui button">
                   <i class="file download icon"></i>
-                  <span localization-key="downloadDocumentsSectionDownloadButtonLabel">
+                  <span localization-key="downloadFilesSectionDownloadButtonLabel">
                     Download
                   </span>
                 </button>
               </div>
               <div class="field">
-                <label for="download" localization-key="downloadDocumentsSectionGroundTruthLabel">Ground Truth</label>
+                <label for="download" localization-key="downloadFilesSectionGroundTruthLabel">Ground Truth</label>
                 <button id="downloadGroundTruthButton" name="download" tabindex="0"
                   class="disabled small fluid ui button">
                   <i class="file download icon"></i>
-                  <span localization-key="downloadDocumentsSectionDownloadButtonLabel">
+                  <span localization-key="downloadFilesSectionDownloadButtonLabel">
                     Download
                   </span>
                 </button>
@@ -1024,11 +1024,6 @@
             <p localization-key="settingsMenuHelpDescription3">
               When the document is complete, download the <code>.box</code> file and <code>.gt.txt</code> files and use
               them to train your OCR model.
-            </p>
-            <p localization-key="settingsMenuHelpDescription4">
-              The progress bar shows the progress of the tagging. When done, download the <code>.box</code> file and
-              the
-              <code>.gt.txt</code> file to use in Tesseract.
             </p>
             <button tabindex="0" id="useSampleImage" class="ui right labeled basic icon button">
               <i class="right arrow icon"></i>

@@ -1896,7 +1896,7 @@ app.ready = async () => {
           button.tabIndex = '0';
           button.innerText = 'OK';
           status.className = 'ui disabled tertiary button';
-          status.innerText = 'Settings saved!';
+          status.innerText = appTranslations['settingsMenuSavedSuccessfullyText'];
           inlineLoader.className = 'ui tiny active grey fast inline double loader';
 
           setTimeout(() => {
