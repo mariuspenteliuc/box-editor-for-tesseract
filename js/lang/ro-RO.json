@@ -21,7 +21,7 @@
     "downloadFilesSectionGroundTruthLabel": "Text de Referință",
     "languageModelRTS": "Script Român de Tranziție (RTS)",
     "languageModelCustomLabel": "personalizat",
-    "languageModelPickerPrompt": "Alege un Model de Limbă",
+    "languageModelPickerPrompt": "Alegeți un Model de Limbă",
     "progressIndicatorUpdatingText": "Modificate: {value} din {total} / {percent}%",
     "progressIndicatorTaggingText": "Etichetate: {value} din {total} / {percent}%",
     "progressIndicatorAnalyzingText": "Analizare Imagine: {percent}%",
