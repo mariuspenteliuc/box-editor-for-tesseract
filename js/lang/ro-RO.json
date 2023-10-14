@@ -103,7 +103,7 @@
     "settingsMenuHelpUseSampleLabel": "Utilizați exemplul",
     "settingsMenuHelpToolbarActionsHeader": "Acțiuni în Zona de Control:",
     "settingsMenuHelpToolbarActionsInvisiblesLabel": "Afișează sau ascunde caracterele invizibile.",
-    "settingsMenuHelpToolbarActionsDetectAllLinesLabel": "Generează o casetă pentru fiecare rând de text vizibile în imagine.",
+    "settingsMenuHelpToolbarActionsDetectAllLinesLabel": "Generează o casetă pentru fiecare rând de text vizibil în imagine.",
     "settingsMenuHelpToolbarActionsRedetectAllBoxesLabel": "Redetectează toate rândurile vizibile și regenerează toate casetele.",
     "settingsMenuHelpToolbarActionsRedectedSelectedBoxLabel": "Redetectează rândul selectat și regenerează caseta.",
     "settingsMenuHelpToolbarActionsLanguageModelDropdownLabel": "Schimbă modelul de limbă folosit pentru sugestiile de text.",
