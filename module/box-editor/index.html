@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en-US">
 
 <head>
   <meta charset="utf-8" class="force-dark-theme">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Box Editor | RTS to Latin Transliteration</title>
+  <title localization-key="webpageTitle">Box Editor | RTS to Latin Transliteration</title>
 
   <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
   <!-- <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script> -->
@@ -62,26 +62,29 @@
     <div class="ui basic horizontal segments">
       <div class="ui basic horizontally fitted segment">
         <h1 class="ui header">
-          RTS to Latin
-          <div class="sub header">Transliteration Service</div>
+          <span localization-key="webpageHeroHeading">RTS to Latin</span>
+          <div class="sub header" localization-key="webpageHeroHeadingSubHeader">Transliteration Service</div>
         </h1>
       </div>
       <div class="ui basic horizontally fitted compact segment">
         <div id="navigationMenu" class="ui right secondary menu">
-          <a href="../../module/playground" class="item">
+          <a href="../../module/playground" class="item" localization-key="appNamePalayground">
             Playground
           </a>
-          <a class="active item">
+          <a class="active item" localization-key="appNameBoxEditor">
             Box Editor
           </a>
-          <a href="../../module/words-pairing" class="item">
+          <a href="../../module/words-pairing" class="item" localization-key="appNameWordsPairing">
             Words Pairing
           </a>
-          <a id="settingsButton" class="item" data-tooltip="Open Settings" data-position="bottom center">
+          <a id="settingsButton" data-variation="basic" data-position="bottom center" class="item tooltip-trigger">
             <i class="fitted icons">
               <i class="large fitted cog icon"></i>
             </i>
           </a>
+          <div class="ui flowing popup">
+            <p localization-key="tooltipOpenSettings"></p>
+          </div>
         </div>
       </div>
     </div>
@@ -91,41 +94,45 @@
         <div class="content">
           <h2 class="ui inverted icon header">
             <i class="file upload icon"></i>
-            Drop the image / box pair here!
+            <span localization-key="dimmerDropzoneHeader">Drop the image / box pair here!</span>
           </h2>
         </div>
       </div>
       <div class="ui two column stackable grid">
         <div class="eight wide column">
-          <h4 class="ui dividing header">Upload Documents</h4>
+          <h4 class="ui dividing header" localization-key="uploadFilesSectionHeader">Upload Files</h4>
           <form class="ui form">
             <div class="two fields">
               <div class="field">
                 <div class="ui useSampleImage flowing center aligned popup">
-                  <h4 class="ui header">Use Sample Image</h4>
+                  <h4 class="ui header" localization-key="useSamplePopupHeader">Use Sample Image</h4>
                   <div>
                     <a class="helpSettingsPopup">
                       <i class="fitted cog circle icon"></i>
-                      Settings
+                      <span localization-key="settingsName">Settings</span>
                       <i class="fitted caret right icon"></i>
-                      Help
+                      <span localization-key="settingsHelpPaneName">Help</span>
                     </a>
                   </div>
                 </div>
-                <label for="imageFile">Image</label>
+                <label for="imageFile" localization-key="uploadFilesSectionImageLabel">Image</label>
                 <input class="ui invisible file input form-control" type="file" disabled id="imageFile" name="imageFile"
                   accept="image/*" />
                 <label for="imageFile" class="ui small fluid button" id="imageFileButton">
                   <i class="file upload icon"></i>
-                  Choose File
+                  <span localization-key="uploadFilesSectionChooseFileButtonLabel">
+                    Choose File
+                  </span>
                 </label>
               </div>
               <div class="field">
-                <label for="boxFile">Box File</label>
+                <label for="boxFile" localization-key="uploadFilesSectionBoxFileLabel">Box File</label>
                 <input class="ui invisible file input" type="file" disabled id="boxFile" name="boxFile" accept=".box" />
                 <label for="boxFile" class="ui disabled small fluid button" id="boxFileButton">
                   <i class="file upload icon"></i>
-                  Choose File
+                  <span localization-key="uploadFilesSectionChooseFileButtonLabel">
+                    Choose File
+                  </span>
                 </label>
               </div>
             </div>
@@ -133,25 +140,33 @@
         </div>
         <div class="eight wide column">
           <h4 class="ui dividing header">
-            Download Documents
-            <span data-tooltip="You have unsaved changes" data-position="right center"><i id="unsavedChanges"
-                class="ui tiny red asterisk icon"></i></span>
+            <span localization-key="downloadFilesSectionHeader">
+              Download Files
+            </span>
+            <span class="tooltip-trigger" data-position="right center">
+              <i id="unsavedChanges" class="ui tiny red asterisk icon"></i>
+            </span>
+            <div class="ui popup" localization-key="tooltipUnsavedChanges"></div>
           </h4>
           <form class="ui equal width form">
             <div class="two fields">
               <div class="field">
-                <label for="download">Box File</label>
+                <label for="download" localization-key="downloadFilesSectionBoxFileLabel">Box File</label>
                 <button id="downloadBoxFileButton" name="download" tabindex="0" class="disabled small fluid ui button">
                   <i class="file download icon"></i>
-                  Download
+                  <span localization-key="downloadFilesSectionDownloadButtonLabel">
+                    Download
+                  </span>
                 </button>
               </div>
               <div class="field">
-                <label for="download">Ground Truth</label>
+                <label for="download" localization-key="downloadFilesSectionGroundTruthLabel">Ground Truth</label>
                 <button id="downloadGroundTruthButton" name="download" tabindex="0"
                   class="disabled small fluid ui button">
                   <i class="file download icon"></i>
-                  Download
+                  <span localization-key="downloadFilesSectionDownloadButtonLabel">
+                    Download
+                  </span>
                 </button>
               </div>
             </div>
@@ -162,38 +177,50 @@
     <div id="taggingSegment" class="ui disable secondary segment">
       <div id="custom-controls" class="ui basic fitted vertical segment">
         <div class="ui wrapping spaced buttons">
-          <button id="invisiblesToggle" name="interface.toolbarActions.invisiblesToggle" class="ui compact icon button"
-            title="Toggle Invisibles" tabindex="0" data-tooltip="Toggle invisibles" data-position="top left">
+          <button id="invisiblesToggle" name="interface.toolbarActions.invisiblesToggle"
+            class="ui compact icon button tooltip-trigger" tabindex="0">
             <i class="paragraph icon"></i>
           </button>
+          <div class="ui popup">
+            <span localization-key="tooltipInvisiblesToggle"></span>
+          </div>
           <button id="redetectAllBoxes" name="interface.toolbarActions.detectAllLines"
-            class="ui compact icon disabled button" title="Find all text in image" tabindex="0"
-            data-tooltip="Find all text" data-position="top left">
+            class="ui compact icon disabled button tooltip-trigger" tabindex="0"
+            data-position="top left">
             <i class="magic icon"></i>
           </button>
+          <div class="ui popup">
+            <span localization-key="tooltipRedetectAllBoxes"></span>
+          </div>
           <button id="regenerateTextSuggestions" name="interface.toolbarActions.detectAllBoxes"
-            class="ui compact icon disabled button" title="Regenerate Text Suggestions" tabindex="0"
-            data-tooltip="Recognize all boxes" data-position="top left">
+            class="ui compact icon disabled button tooltip-trigger" tabindex="0"
+            data-position="top left">
             <i class="sync icon"></i>
           </button>
+          <div class="ui popup">
+            <span localization-key="tooltipRegenerateTextSuggestions"></span>
+          </div>
           <button id="regenerateTextSuggestionForSelectedBox" name="interface.toolbarActions.detectSelectedBox"
-            class="ui compact icon disabled button" title="Regenerate Text Suggestion for Selected Box" tabindex="0"
-            data-tooltip="Recognize current box" data-position="top left">
+            class="ui compact icon disabled button tooltip-trigger" tabindex="0"
+            data-position="top left">
             <i class="redo icon"></i>
           </button>
+          <div class="ui popup">
+            <span localization-key="tooltipRegenerateTextSuggestionForSelectedBox"></span>
+          </div>
           <div id="ocrModelDropdown" name="interface.toolbarActions.languageModelDropdown"
-            class="ui floating compact dropdown labeled search icon button" spellcheck="false"
-            data-tooltip="Choose a language model" data-position="top left">
+            class="ui floating compact dropdown labeled search icon button tooltip-trigger" spellcheck="false"
+            data-position="top left">
             <i class="world icon"></i>
-            <span class="text">Romanian Transitional Script</span>
+            <span class="text" localization-key="languageModelRTS">Romanian Transitional Script</span>
             <div class="menu">
-              <div class="header">
+              <div class="header" localization-key="languageModelPickerPrompt">
                 Choose a language model
               </div>
               <div class="divider"></div>
               <div class="item active selected" data-value="RTS_from_Cyrillic">
-                <span class="description">custom</span>
-                <span class="text">Romanian Transitional Script</span>
+                <span class="description" localization-key="languageModelCustomLabel">custom</span>
+                <span class="text" localization-key="languageModelRTS">Romanian Transitional Script</span>
               </div>
               <div class="item" data-value="afr">Afrikaans</div>
               <div class="item" data-value="amh">Amharic</div>
@@ -299,6 +326,9 @@
               <div class="item" data-value="yid">Yiddish</div>
             </div>
           </div>
+          <div class="ui popup">
+            <span localization-key="tooltipOcrModelDropdown"></span>
+          </div>
         </div>
       </div>
       <div id="main-edit-area" class="ui basic fitted vertical segment">
@@ -314,7 +344,10 @@
             <div id="myInputBackground" class="no-kerning colorized-output-field">&nbsp;</div>
           </div>
           <div class="field">
-            <label class="col-sm-2 control-label" for="formtxt" id="txtlabel">Text
+            <label class="col-sm-2 control-label" for="formtxt" id="txtlabel">
+              <span localization-key="formGroundTruthTextLabel">
+                Text
+              </span>
               <span id="modelConfidenceScore" class="ui small text"></span>
             </label>
             <input disabled type="text" id="formtxt" class="no-kerning colorized-input-field" boxid="" name="txt"
@@ -327,19 +360,19 @@
           <form id="formCoordinateFields" class="ui form" spellcheck="false">
             <div class="four fields">
               <div class="field">
-                <label for="x1">Left</label>
+                <label for="x1" localization-key="coordinateFieldLeftLabel">Left</label>
                 <input disabled type="number" id="x1" class="box-coordinates" name="x1" value="">
               </div>
               <div class="field">
-                <label for="y1">Bottom</label>
+                <label for="y1" localization-key="coordinateFieldBottomLabel">Bottom</label>
                 <input disabled type="number" id="y1" class="box-coordinates" name="y1" value="">
               </div>
               <div class="field">
-                <label for="x2">Right</label>
+                <label for="x2" localization-key="coordinateFieldRightLabel">Right</label>
                 <input disabled type="number" id="x2" class="box-coordinates" name="x2" value="">
               </div>
               <div class="field">
-                <label for="y2">Top</label>
+                <label for="y2" localization-key="coordinateFieldTopLabel">Top</label>
                 <input disabled type="number" id="y2" class="box-coordinates" name="y2" value="">
               </div>
             </div>
@@ -349,13 +382,17 @@
         <div class="ui center aligned basic fitted segment">
           <button id="previousBB" class="ui disabled left labeled icon button">
             <i class="left chevron icon"></i>
-            Previous
+            <span localization-key="formNavigationPreviousLabel">
+              Previous
+            </span>
           </button>
 
           <!-- <button id="updateText" class="ui disabled button" type="submit">Update Line</button> -->
 
           <button id="nextBB" class="ui disabled right labeled icon button">
-            Next
+            <span localization-key="formNavigationNextLabel">
+              Next
+            </span>
             <i class="right chevron icon"></i>
           </button>
         </div>
@@ -367,7 +404,10 @@
           <div class="ui basic fitted segment">
             <div class="ui horizontal small list">
               <div class="item">
-                By: <a href="https://penteliuc.com">Dr. Marius E. Penteliuc</a>
+                <span localization-key="bylineWithCollon">
+                  By:
+                </span>
+                <a href="https://penteliuc.com">Dr. Marius E. Penteliuc</a>
               </div>
               <!-- <div class="item">
                 Originally: <a href="https://johanjunkka.com">Johan Junkka</a>
@@ -391,7 +431,7 @@
   </div>
   <div class="ui settings modal ui grid">
     <i class="inside close icon"></i>
-    <div class="header">
+    <div class="header" localization-key="settingsMenuHeroHeader">
       Box Editor Settings
     </div>
     <div id="navSettingsPane" class="four wide column scrolling content">
@@ -400,32 +440,44 @@
           <i class="fitted icons">
             <i class="grey adjust icon"></i>
           </i>
-          Interface
+          <span localization-key="settingsMenuSidebarInterfaceLabel">
+            Interface
+          </span>
         </a>
         <a class="item" data-tab="behavior-settings">
           <i class="fitted icons">
             <i class="grey toggle on icon"></i>
           </i>
-          Behavior
+          <span localization-key="settingsMenuSidebarBehaviorLabel">
+            Behavior
+          </span>
         </a>
         <a class="item" data-tab="language-settings">
           <i class="fitted icons">
             <i class="grey globe icon"></i>
           </i>
-          Language Models
+          <span localization-key="settingsMenuSidebarLanguageModelsLabel">
+            Language Models
+          </span>
         </a>
         <a id="highlighterTab" class="item" data-tab="highlighter-settings">
           <i class="grey highlighter icon"></i>
-          Highlighter
+          <span localization-key="settingsMenuSidebarHighlighterLabel">
+            Highlighter
+          </span>
         </a>
         <div class="ui divider"></div>
         <a id="helpTab" class="bottom attached item" data-tab="help-section">
           <i class="grey help circle icon"></i>
-          Help
+          <span localization-key="settingsMenuSidebarHelpLabel">
+            Help
+          </span>
         </a>
         <a class="bottom attached item" data-tab="about-section">
           <i class="grey info circle icon"></i>
-          About
+          <span localization-key="settingsMenuSidebarAboutLabel">
+            About
+          </span>
         </a>
       </div>
     </div>
@@ -433,34 +485,55 @@
       <div class="ui tab active" data-tab="interface-settings">
         <div class="ui very relaxed list">
           <div class="item">
-            <div class="header">App Appearance</div>
-            <div class="description">
+            <div class="header" localization-key="settingsMenuAppAppearanceHeader">App Appearance</div>
+            <div class="description" localization-key="settingsMenuAppAppearanceDescription">
               Adjust the appearance of the interface.
             </div>
             <div class="ui list">
               <div class="item">
                 <div class="ui radio checkbox">
                   <input type="radio" name="interface.appearance" value="light-theme">
-                  <label>Light</label>
+                  <label localization-key="settingsMenuAppAppearanceRadioButtonLabelLight">Light</label>
                 </div>
               </div>
               <div class="item">
                 <div class="ui radio checkbox">
                   <input type="radio" name="interface.appearance" value="dark-theme">
-                  <label>Dark</label>
+                  <label localization-key="settingsMenuAppAppearanceRadioButtonLabelDark">Dark</label>
                 </div>
               </div>
               <div class="item">
                 <div class="ui radio checkbox">
                   <input type="radio" name="interface.appearance" value="match-device">
-                  <label>Match Device</label>
+                  <label localization-key="settingsMenuAppAppearanceRadioButtonLabelMatchDevice">Match Device</label>
                 </div>
               </div>
             </div>
           </div>
           <div class="item">
-            <div class="header">Toolbar Actions</div>
-            <div class="description">
+            <div class="header" localization-key="settingsMenuAppLanguageHeader">App Language</div>
+            <div class="description" localization-key="settingsMenuAppLanguageDescription">Choose what language to use
+              in the interface.</div>
+          </div>
+          <div class="item">
+            <div id="appLanguageDropdownInSettings" name="interface.appLanguage.appLanguageDropdown"
+              class="ui floating compact dropdown labeled search icon button" spellcheck="false">
+              <i class="translate icon"></i>
+              <span class="text">Automatic</span>
+              <div class="menu">
+                <div class="header" localization-key="appLanguagePickerPrompt">
+                  Choose a language...
+                </div>
+                <div class="divider"></div>
+                <div class="item" data-value="system-lang" localization-key="system-lang">Auto</div>
+                <div class="item" data-value="en-US" localization-key="en-US">English</div>
+                <div class="item" data-value="ro-RO" localization-key="ro-RO">Română</div>
+              </div>
+            </div>
+          </div>
+          <div class="item">
+            <div class="header" localization-key="settingsMenuToolbarActionsHeader">Toolbar Actions</div>
+            <div class="description" localization-key="settingsMenuToolbarActionsDescription">
               Choose actions to display in the toolbar.
             </div>
             <div class="ui list">
@@ -470,7 +543,9 @@
                     <input type="checkbox" name="interface.toolbarActions.invisiblesToggle">
                     <label>
                       <i class="paragraph icon"></i>
-                      Toggle between showing or hiding invisibles
+                      <span localization-key="settingsMenuToolbarActionsCheckboxInvisibles">
+                        Toggle between showing or hiding invisibles
+                      </span>
                     </label>
                   </div>
                 </div>
@@ -481,7 +556,9 @@
                     <input type="checkbox" name="interface.toolbarActions.detectAllLines">
                     <label>
                       <i class="magic icon"></i>
-                      Detect all lines of text visible in the image
+                      <span localization-key="settingsMenuToolbarActionsCheckboxDetectAllLines">
+                        Detect all lines of text visible in the image
+                      </span>
                     </label>
                   </div>
                 </div>
@@ -492,7 +569,9 @@
                     <input type="checkbox" name="interface.toolbarActions.detectAllBoxes">
                     <label>
                       <i class="sync icon"></i>
-                      Identify all characters for all text boxes
+                      <span localization-key="settingsMenuToolbarActionsCheckboxIdentifyAllBoxes">
+                        Identify all characters for all text boxes
+                      </span>
                     </label>
                   </div>
                 </div>
@@ -503,7 +582,9 @@
                     <input type="checkbox" name="interface.toolbarActions.detectSelectedBox">
                     <label>
                       <i class="redo icon"></i>
-                      Identify all characters for the selected text box
+                      <span localization-key="settingsMenuToolbarActionsCheckboxIdentifySelectedBoxes">
+                        Identify all characters for the selected text box
+                      </span>
                     </label>
                   </div>
                 </div>
@@ -514,7 +595,9 @@
                     <input type="checkbox" name="interface.toolbarActions.languageModelDropdown">
                     <label>
                       <i class="world icon"></i>
-                      Language model dropdown selector
+                      <span localization-key="settingsMenuToolbarActionsCheckboxLanguageModelDropdown">
+                        Language model dropdown selector
+                      </span>
                     </label>
                   </div>
                 </div>
@@ -522,8 +605,8 @@
             </div>
           </div>
           <div class="item">
-            <div class="header">Image View</div>
-            <div class="description">
+            <div class="header" localization-key="settingsMenuImageViewHeader">Image View</div>
+            <div class="description" localization-key="settingsMenuImageViewDescription">
               Adjust the size of the image display area.
             </div>
             <div class="ui list">
@@ -534,44 +617,53 @@
             </div>
           </div>
           <div class="item">
-            <div class="header">Editor Tools</div>
-            <div class="description"></div>
+            <div class="header" localization-key="settingsMenuEditorToolsHeader">Editor Tools</div>
+            <div class="description" localization-key="settingsMenuEditorToolsDescription">
+              Choose which convenience features to make available in the editor.
+            </div>
             <div class="ui list">
               <div class="item">
                 <div class="ui checkbox">
                   <input type="checkbox" name="interface.editorTools.virtualKeyboard">
-                  <label>Use cyrillic virtual keyboard <span class="ui small italic orange text updateNotification"
-                      data-release-date="2023-09-30" data-expire-notification="14">new</span></label>
+                  <label><span localization-key="settingsMenuEditorToolsCheckboxVirtualKeyboard">Use cyrillic virtual
+                      keyboard</span> <span class="ui small italic orange text updateNotification"
+                      data-release-date="2023-09-30" data-expire-notification="14"
+                      localization-key="updateNotificationLabel">new</span></label>
                 </div>
               </div>
               <div class="item">
                 <div class="ui checkbox">
                   <input type="checkbox" name="interface.editorTools.progressIndicator">
-                  <label>Indicate task progress</label>
+                  <label localization-key="settingsMenuEditorToolsCheckboxProgressIndicatorLabel">Indicate task
+                    progress</label>
                 </div>
               </div>
               <div class="item">
                 <div class="ui checkbox">
                   <input type="checkbox" name="interface.editorTools.positionSlider">
-                  <label>Show interactive position slider</label>
+                  <label localization-key="settingsMenuEditorToolsCheckboxPositionSliderLabel">Show interactive position
+                    slider</label>
                 </div>
               </div>
               <div class="item">
                 <div class="ui checkbox">
                   <input type="checkbox" name="interface.editorTools.formCoordinateFields">
-                  <label>Display coordinate fields in form</label>
+                  <label localization-key="settingsMenuEditorToolsCheckboxCoordinateFieldsLabel">Display coordinate
+                    fields in form</label>
                 </div>
               </div>
               <div class="item">
                 <div class="ui checkbox">
                   <input type="checkbox" name="interface.editorTools.unicodeInfoPopup">
-                  <label>Show Unicode info popup for selected characters</label>
+                  <label localization-key="settingsMenuEditorToolsCheckboxCharInfoPopupLabel">Show Unicode info popup
+                    for selected characters</label>
                 </div>
               </div>
               <div class="item">
                 <div class="ui checkbox">
                   <input type="checkbox" name="interface.editorTools.confidenceScoreEnabled">
-                  <label>Display confidence score for text suggestions
+                  <label localization-key="settingsMenuEditorToolsCheckboxConfidenceScoreLabel">Display confidence score
+                    for text suggestions
                   </label>
                 </div>
               </div>
@@ -592,47 +684,52 @@
       <div class="ui tab" data-tab="behavior-settings">
         <div class="ui very relaxed list">
           <div class="item" name="onImageLoad">
-            <div class="header">On Image Load</div>
-            <div class="description">
+            <div class="header" localization-key="settingsMenuOnImageLoadHeader">On Image Load</div>
+            <div class="description" localization-key="settingsMenuOnImageLoadDescription">
               Perform actions when a new image is loaded.
             </div>
             <div class="ui list">
               <div class="item">
                 <div class="ui master checkbox">
                   <input type="checkbox" name="behavior.onImageLoad.detectAllLines">
-                  <label>Detect all lines of text</label>
+                  <label localization-key="settingsMenuOnImageLoadCheckboxDetectAllLines">Detect all lines of
+                    text</label>
                 </div>
               </div>
               <div class="item">
                 <div class="ui child checkbox">
                   <input type="checkbox" name="behavior.onImageLoad.includeTextForDetectedLines">
-                  <label>Include text suggestions for detected lines</label>
+                  <label localization-key="settingsMenuOnImageLoadCheckboxIncludeTextSuggestions">Include text
+                    suggestions for detected lines</label>
                 </div>
               </div>
             </div>
           </div>
           <div class="item" name="alerting">
-            <div class="header">Alerts and Warnings</div>
-            <div class="description">
+            <div class="header" localization-key="settingsMenuAlertsAndWarningsHeader">Alerts and Warnings</div>
+            <div class="description" localization-key="settingsMenuAlertsAndWarningsDescription">
               Enable or surpress the following messages.
             </div>
             <div class="ui list">
               <div class="item">
                 <div class="ui checkbox">
                   <input type="checkbox" name="behavior.alerting.enableWarrningMessagesForDifferentFileNames">
-                  <label>Box and image file names do not match</label>
+                  <label localization-key="settingsMenuAlertsAndWarningsCheckboxFilenameNotMatchingLabel">Box and image
+                    file names do not match</label>
                 </div>
               </div>
               <div class="item">
                 <div class="ui checkbox">
                   <input type="checkbox" name="behavior.alerting.enableWarrningMessagesForUncommittedChanges">
-                  <label>Leaving or loading an image without first downloading</label>
+                  <label localization-key="settingsMenuAlertsAndWarningsCheckboxChangesNotSavedLabel">Leaving or loading
+                    an image without first downloading</label>
                 </div>
               </div>
               <div class="item">
                 <div class="ui checkbox">
                   <input type="checkbox" name="behavior.alerting.enableWarrningMessagesForOverwritingDirtyData">
-                  <label>Overwriting unsaved (not downloaded) data
+                  <label localization-key="settingsMenuAlertsAndWarningsCheckboxOverwritingUnsavedLabel">Overwriting
+                    unsaved (not downloaded) data
                   </label>
                 </div>
               </div>
@@ -651,35 +748,38 @@
             </div>
           </div>
           <div class="item">
-            <div class="header">Workflow</div>
-            <div class="description">
+            <div class="header" localization-key="settingsMenuWorkflowHeader">Workflow</div>
+            <div class="description" localization-key="settingsMenuWorkflowDescription">
               Choose what convenience features you would like to use.
             </div>
             <div class="ui list">
               <div class="item">
                 <div class="ui checkbox">
                   <input type="checkbox" name="behavior.workflow.autoDownloadBoxFileOnAllLinesComitted">
-                  <label>Auto-download box file when all lines committed</label>
+                  <label localization-key="settingsMenuWorkflowCheckboxAutoDownloadBoxFileLabel">Auto-download box file
+                    when all lines committed</label>
                 </div>
               </div>
               <div class="item">
                 <div class="ui checkbox">
                   <input type="checkbox" name="behavior.workflow.autoDownloadGroundTruthFileOnAllLinesComitted">
-                  <label>Auto-download ground truth file when all lines committed</label>
+                  <label localization-key="settingsMenuWorkflowCheckboxAutoDownloadGroundTruthFileLabel">Auto-download
+                    ground truth file when all lines committed</label>
                 </div>
               </div>
             </div>
           </div>
           <div class="item" name="Keyboard Shortcuts">
-            <div class="header">Keyboard Shortcuts</div>
-            <div class="description">
+            <div class="header" localization-key="settingsMenuKeyboardShortcutsHeader">Keyboard Shortcuts</div>
+            <div class="description" localization-key="settingsMenuKeyboardShortcutsDescription">
               Customize the keyboard shortcuts for frequently used actions.
             </div>
             <div class="ui list">
               <div class="item">
                 <div class="ui disabled checkbox">
                   <input disabled type="checkbox" name="behavior.keyboardShortcuts.keyboardShortcutsEnabled">
-                  <label>Use keyboard shortcuts</label>
+                  <label localization-key="settingsMenuKeyboardShortcutsCheckboxUseShortcutsLabel">Use keyboard
+                    shortcuts</label>
                 </div>
               </div>
             </div>
@@ -691,10 +791,11 @@
             <div class="ui tiny icon message">
               <i class="keyboard icon"></i>
               <div class="content">
-                <div class="header">
+                <div class="header" localization-key="messageUpcomingFeatureHeader">
                   Upcoming Feature
                 </div>
-                <p>In a future update you will be able to add and customize the keyboard shortcuts. For now, you can use
+                <p localization-key="messageUpcomingFeatureKeyboardShortcutsDescription">In a future update you will be
+                  able to add and customize the keyboard shortcuts. For now, you can use
                   these
                   defaults and swap them around.</p>
               </div>
@@ -705,9 +806,9 @@
       <div class="ui tab" data-tab="language-settings">
         <div class="ui very relaxed list">
           <div class="item" name="recognitionModel">
-            <div class="header">Recognition Model
+            <div class="header" localization-key="settingsMenuRecognitionModelHeader">Recognition Model
             </div>
-            <div class="description">
+            <div class="description" localization-key="settingsMenuRecognitionModelDescription">
               Choose a language to use for OCR text suggestions.
             </div>
           </div>
@@ -715,15 +816,15 @@
             <div id="ocrModelDropdownInSettings" name="language.recognitionModel"
               class="ui fluid two column dropdown labeled search icon button" spellcheck="false">
               <i class="world icon"></i>
-              <span class="text">Romanian Transitional Script (RTS)</span>
+              <span class="text" localization-key="languageModelRTS">Romanian Transitional Script (RTS)</span>
               <div class="menu">
                 <!-- <div class="header">
                   Choose a language model
                 </div>
                 <div class="divider"></div> -->
                 <div class="item active selected" data-value="RTS_from_Cyrillic">
-                  <span class="description">custom</span>
-                  <span class="text">Romanian Transitional Script (RTS)</span>
+                  <span class="description" localization-key="languageModelCustomLabel">custom</span>
+                  <span class="text" localization-key="languageModelRTS">Romanian Transitional Script (RTS)</span>
                 </div>
                 <div class="item" data-value="afr">Afrikaans</div>
                 <div class="item" data-value="amh">Amharic</div>
@@ -834,27 +935,30 @@
             <div class="ui tiny icon message">
               <i class="align right icon"></i>
               <div class="content">
-                <div class="header">
+                <div class="header" localization-key="messageKnwonIssueHeader">
                   Known Issue
                 </div>
-                <p>Not all recognition models are fully supported yet. Right-to-left scripts do not properly display in
+                <p localization-key="messageKnownIssueRecognitionModelDescription">Not all recognition models are fully
+                  supported yet. Right-to-left scripts do not properly display in
                   the input field, especially when mixed with left-to-right text.
                 </p>
               </div>
             </div>
           </div>
           <div class="item">
-            <div class="header">RTS Keyboard Layout
+            <div class="header" localization-key="settingsMenuRTSKeyboardLayoutHeader">RTS Keyboard Layout
             </div>
             <div class="description">
-              <p>
+              <p localization-key="settingsMenuRTSKeyboardLayoutDescription">
                 We've made a custom keyboard layout for macOS to allow for easier typing of Cyrillic characters.
               </p>
               <a class="ui icon labeled button"
                 href="https://github.com/mariuspenteliuc/RTS-Keyboard-Layout/releases/latest/download/RTS.bundle.zip"
                 title="Download RTS Keyboard Layout Bundle">
                 <i class="file download icon"></i>
-                Download RTS Keyboard Layout
+                <span localization-key="settingsMenuRTSKeyboardLayoutDownloadLabel">
+                  Download RTS Keyboard Layout
+                </span>
               </a>
               <picture class="ui image">
                 <source srcset="../../img/rts-keyboard-1-dark.png" media="(prefers-color-scheme: dark)">
@@ -871,28 +975,32 @@
       <div id="highlighterTab" class="ui tab" data-tab="highlighter-settings">
         <div class="ui very relaxed list">
           <div class="item" name="text-highlighting">
-            <div class="header">Text Highlighting</div>
-            <div class="description">
+            <div class="header" localization-key="settingsMenuTextHighlightingHeader">Text Highlighting</div>
+            <div class="description" localization-key="settingsMenuTextHighlightingDescription">
               Highlight text in the input field based on custom regex patterns.
             </div>
             <div class="ui list">
               <div class="item">
                 <div class="ui checkbox">
                   <input type="checkbox" name="highlighter.textHighlighting.textHighlightingEnabled">
-                  <label>Use text highlighting</label>
+                  <label localization-key="settingsMenuTextHighlightingCheckboxUseHighlighting">Use text
+                    highlighting</label>
                 </div>
               </div>
             </div>
           </div>
           <div class="item">
-            <p>
+            <p localization-key="settingsMenuTextHighlightingUsageNote">
               Patterns only apply at the character level. Edit the cells under Name, Color, and Pattern columns to
               modify a highlighter's properties.
             </p>
           </div>
           <div id="highlighterTableContainer" class="item">
             <div id="addNewHighlighterPattern" class="ui right floated small labeled icon button">
-              <i class="plus icon"></i> Add Pattern
+              <i class="plus icon"></i>
+              <span localization-key="settingsMenuTextHighlightingAddPatternLabel">
+                Add Pattern
+              </span>
             </div>
           </div>
           <form class="ui form colorized-output-form" id="updatePreview" spellcheck="false">
@@ -901,7 +1009,8 @@
               <div id="myPreviewBackground" class="no-kerning colorized-output-field">&nbsp;</div>
             </div>
             <div class="field">
-              <label class="col-sm-2 control-label" for="previewText" id="previewLabel">Preview</label>
+              <label class="col-sm-2 control-label" for="previewText" id="previewLabel"
+                localization-key="settingsMenuTextHighlightingPreviewLabel">Preview</label>
               <input type="text" id="previewText" class="no-kerning colorized-input-field"
                 value="1 colored sample here...">
             </div>
@@ -911,96 +1020,93 @@
       <div id="helpTab" class="ui tab" data-tab="help-section">
         <div class="ui very relaxed list">
           <div class="item">
-            <h3 class="ui header">How to use the Box Editor</h3>
-            <p>
+            <h3 class="ui header" localization-key="settingsMenuHelpHeader">How to use the Box Editor</h3>
+            <p localization-key="settingsMenuHelpDescription1">
               To begin, upload an image or use the provided sample. Select the buttons in the toolbar to perform certain
               actions such as identifying lines of text and generating suggestions.
             </p>
-            <p>
+            <p localization-key="settingsMenuHelpDescription2">
               Once text boxes are generated for all lines of text, you can start editing as needed. Either manually type
               in the box dimensions in the coordinate fields or drag the handles on the image to change the size or
               position of a text box.
               Use the tools on the right to split boxes into columns, draw new ones, or delete existing boxes.
             </p>
-            <p>
+            <p localization-key="settingsMenuHelpDescription3">
               When the document is complete, download the <code>.box</code> file and <code>.gt.txt</code> files and use
               them to train your OCR model.
             </p>
-            <p>
-              The progress bar shows the progress of the tagging. When done, download the <code>.box</code> file and
-              the
-              <code>.gt.txt</code> file to use in Tesseract.
-            </p>
             <button tabindex="0" id="useSampleImage" class="ui right labeled basic icon button">
               <i class="right arrow icon"></i>
-              Use sample
+              <span localization-key="settingsMenuHelpUseSampleLabel">
+                Use sample
+              </span>
             </button>
           </div>
           <div class="item">
-            <h3>Toolbar Actions:</h3>
+            <h3 localization-key="settingsMenuHelpToolbarActionsHeader">Toolbar Actions:</h3>
             <div class="ui list">
               <div class="item">
                 <i class="paragraph icon"></i>
-                <div class="content">
+                <div class="content" localization-key="settingsMenuHelpToolbarActionsInvisiblesLabel">
                   Toggle invisibles on or off.
                 </div>
               </div>
               <div class="item">
                 <i class="magic icon"></i>
-                <div class="content">
+                <div class="content" localization-key="settingsMenuHelpToolbarActionsDetectAllLinesLabel">
                   Detect all lines of text and draw boxes for them.
                 </div>
               </div>
               <div class="item">
                 <i class="sync icon"></i>
-                <div class="content">
+                <div class="content" localization-key="settingsMenuHelpToolbarActionsRedetectAllBoxesLabel">
                   Redetect text in boxes and regenerate output.
                 </div>
               </div>
               <div class="item">
                 <i class="redo icon"></i>
-                <div class="content">
+                <div class="content" localization-key="settingsMenuHelpToolbarActionsRedectedSelectedBoxLabel">
                   Redetect text for selected box and regenerate output.
                 </div>
               </div>
               <div class="item">
                 <i class="globe icon"></i>
-                <div class="content">
+                <div class="content" localization-key="settingsMenuHelpToolbarActionsLanguageModelDropdownLabel">
                   Choose a language model for OCR suggestions.
                 </div>
               </div>
             </div>
           </div>
           <div class="item">
-            <h3>Image Actions:</h3>
+            <h3 localization-key="settingsMenuHelpImageActionsHeader">Image Actions:</h3>
             <div class="ui list">
               <div class="item">
                 <i class="plus icon"></i>
-                <div class="content">
+                <div class="content" localization-key="settingsMenuHelpImageActionsZoomInLabel">
                   Zoom in on the image.
                 </div>
               </div>
               <div class="item">
                 <i class="minus icon"></i>
-                <div class="content">
+                <div class="content" localization-key="settingsMenuHelpImageActionsZoomOutLabel">
                   Zoom out of the image.
                 </div>
               </div>
               <div class="item">
                 <i class="cut icon"></i>
-                <div class="content">
+                <div class="content" localization-key="settingsMenuHelpImageActionsSplitBoxesLabel">
                   Split boxes into columns.
                 </div>
               </div>
               <div class="item">
                 <i class="square icon"></i>
-                <div class="content">
+                <div class="content" localization-key="settingsMenuHelpImageActionsDrawBoxesLabel">
                   Draw new boxes for text.
                 </div>
               </div>
               <div class="item">
                 <i class="trash alternate icon"></i>
-                <div class="content">
+                <div class="content" localization-key="settingsMenuHelpImageActionsDeleteBoxesLabel">
                   Delete one or more boxes.
                 </div>
               </div>
@@ -1008,13 +1114,17 @@
           </div>
           <div class="ui divider"></div>
           <div class="item">
-            <h3 class="ui header">Reset</h3>
-            <p>In case of unexpected behavior, you can reset all settings to their default values.</p>
-            <button id="resetAppSettings" class="ui left floating negative button">Reset App...</button>
+            <h3 class="ui header" localization-key="settingsMenuHelpResetHeader">Reset</h3>
+            <p localization-key="settingsMenuHelpResetDescription">In case of unexpected behavior, you can reset all
+              settings to their default values.</p>
+            <button id="resetAppSettings" class="ui left floating negative button"
+              localization-key="settingsMenuHelpResetButtonLabel">Reset App...</button>
             <a class="ui right labeled icon button" target="_blank"
               href="https://github.com/mariuspenteliuc/box-editor-for-tesseract/issues/new">
               <i class="github icon"></i>
-              Report Issue
+              <span localization-key="settingsMenuHelpReportIssueButtonLabel">
+                Report Issue
+              </span>
             </a>
           </div>
         </div>
@@ -1022,47 +1132,55 @@
       <div class="ui tab" data-tab="about-section">
         <div class="ui very relaxed list">
           <div class="item">
-            <h3 class="ui header">About</h3>
-            <p>This is a powerful Box Editor for Tesseract allowing for efficient generation, editing, and managing text
+            <h3 class="ui header" localization-key="settingsMenuAboutHeader">About</h3>
+            <p localization-key="settingsMenuAboutDescription">This is a powerful Box Editor for Tesseract allowing for
+              efficient generation, editing, and managing text
               boxes in WordStr format. The tool uses a custom trained model for authoring the Romanian Transitional
               Script.
             </p>
             <div class="ui basic label">
-              Version: <div id="appInfoVersion" class="detail">1.4.1</div>
+              <span localization-key="settingsMenuAboutVersionLabel">
+                Version:
+              </span>
+              <div id="appInfoVersion" class="detail">1.4.1</div>
             </div>
             <div class="ui basic label">
-              Updated: <div id="appInfoUpdated" class="detail">July 22nd, 2023</div>
+              <span localization-key="settingsMenuAboutUpdatedLabel">
+                Updated:
+              </span>
+              <div id="appInfoUpdated" class="detail">July 22nd, 2023</div>
             </div>
           </div>
           <div class="item">
-            <p>
-              For info and support, please visit the following links:</p>
+            <p localization-key="settingsMenuAboutMoreInfoNote">
+              For info and support, please visit the following links:
+            </p>
             <table class="ui unstackable striped celled collapsing table">
               <tbody>
                 <tr>
-                  <td>Author:</td>
+                  <td localization-key="authorWithCollon">Author:</td>
                   <td class="right aligned"><a class="" href="https://penteliuc.com" target="_blank"
                       title="Author's Website">Dr. Marius E. Penteliuc</a></td>
                 </tr>
                 <tr>
-                  <td>Source Code:</td>
+                  <td localization-key="sourceCodeWithCollon">Source Code:</td>
                   <td class="right aligned"><a class=""
-                      href="https://github.com/mariuspenteliuc/box-editor-for-tesseract" target="_blank"
-                      title="GitHub">GitHub Repository</a></td>
+                      href="https://github.com/mariuspenteliuc/box-editor-for-tesseract" target="_blank" title="GitHub"
+                      localization-key="githubRepository">GitHub Repository</a></td>
                 </tr>
                 <tr>
-                  <td>Project Website:</td>
+                  <td localization-key="projectWebsiteWithCollon">Project Website:</td>
                   <td class="right aligned"><a class=""
                       href="https://transitional-romanian-transliteration.azurewebsites.net/" target="_blank"
-                      title="ROTLA Website">ROTLA Team</a></td>
+                      title="ROTLA Website" localization-key="rotlaTeamName">ROTLA Team</a></td>
                 </tr>
                 <tr>
-                  <td>Custom OCR Model:</td>
+                  <td localization-key="customOCRModelWithCollon">Custom OCR Model:</td>
                   <td class="right aligned"><a class="" href="../../assets/RTS_from_Cyrillic.traineddata"
-                      title="Tesseract Model">Download RTS </a></td>
+                      title="Tesseract Model" localization-key="customOCRModelDownloadLabel">Download RTS </a></td>
                 </tr>
                 <tr>
-                  <td>Training Dataset:</td>
+                  <td localization-key="trainingDatasetWithCollon">Training Dataset:</td>
                   <td class="right aligned"><a class="" href="https://www.kaggle.com/datasets/mariuspenteliuc/rts-ocr"
                       target="_blank" title="Training Dataset">Kaggle</a></td>
                 </tr>
@@ -1071,10 +1189,13 @@
           </div>
           <div class="item">
             <h3 class="ui header">
-              Acknowledgement
+              <span localization-key="settingsMenuAcknowledgementHeader">
+                Acknowledgement
+              </span>
               <i class="ro flag"></i>
             </h3>
-            <p>This work was supported by a grant from the Romanian Ministry of Research, Innovation and
+            <p localization-key="settingsMenuAcknowledgementDescription">This work was supported by a grant from the
+              Romanian Ministry of Research, Innovation and
               Digitization, CCCDI -
               UEFISCDI, project number PN-III-P2-2.1-PED-2021-0693, within PNCDI III.</p>
           </div>
@@ -1087,14 +1208,18 @@
               <p>Description.</p>
             </div>
           </div> -->
-          <p><span class="ui grey text">Reset button has moved to the
-              <a onclick="app.handler.open.settingsModal('help-section')" class="more">Help pane.</a>
+          <p><span class="ui grey text">
+              <span localization-key="settingsMenuAboutSectionResetButtonHasMovedText">
+                Reset button has moved to the
+              </span>
+              <a onclick="app.handler.open.settingsModal('help-section')" class="more"
+                localization-key="settingsMenuAboutSectionHelpPaneName">Help pane.</a>
             </span></p>
         </div>
       </div>
     </div>
     <div id="settingsModalStatus" class="actions">
-      <div class="ui button ok" tabindex="0">OK</div>
+      <div class="ui button ok" tabindex="0" localization-key="settingsMenuOkButton">OK</div>
     </div>
   </div>
 </body>

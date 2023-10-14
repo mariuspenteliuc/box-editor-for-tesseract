@@ -67,6 +67,7 @@ app.ready = async () => {
     $redetectAllBoxesButton = $('#redetectAllBoxes'),
     $regenerateTextSuggestionsButton = $('#regenerateTextSuggestions'),
     $regenerateTextSuggestionForSelectedBoxButton = $('#regenerateTextSuggestionForSelectedBox'),
+    $appLanguageDropdownInSettings = $('#appLanguageDropdownInSettings'),
     $ocrModelDropdown = $('#ocrModelDropdown'),
     $ocrModelDropdownInSettings = $('#ocrModelDropdownInSettings'),
     $colorizedOutputForms = $('.colorized-output-form'),
@@ -87,6 +88,7 @@ app.ready = async () => {
     $settingsModalStatusMessage = $settingsModalStatus.find('.ui.disabled.tertiary.button'),
     $settingsModalContent = $settingsModal.find('.content'),
     $map = $('#mapid'),
+    $tooltipTriggers = $('.tooltip-trigger'),
     $boxFileInput = $('#boxFile'),
     $imageFileInput = $('#imageFile'),
     $imageFileInputButton = $('#imageFileButton'),
@@ -194,6 +196,7 @@ app.ready = async () => {
       localStorageKey: 'appSettings-boxEditor',
       appVersion: null,
       interface: {
+        appLanguage: 'system-lang',
         appearance: 'match-device',
         toolbarActions: {
           detectAllLines: true,
@@ -210,7 +213,7 @@ app.ready = async () => {
           unicodeInfoPopup: true,
           confidenceScoreEnabled: true,
         },
-        imageView: 'medium',
+        imageView: 500,
         showInvisibles: false,
       },
       behavior: {
@@ -246,24 +249,25 @@ app.ready = async () => {
 
     notificationTypes = {
       info: {
-        fileDownloadedInfo: { title: 'File Downloaded', type: 'fileDownloadedInfo' },
+        fileDownloadedInfo: { title: 'notificationTypeFileDownloadedInfoTitle', type: 'fileDownloadedInfo' },
       },
       warning: {
-        nothingToDownloadWarning: { title: 'Nothing To Download', type: 'nothingToDownloadWarning', class: 'warning' },
-        resetAppWarning: { title: 'App Reset', type: 'resetAppWarning', class: 'warning' },
-        replacingTextWarning: { title: 'Replacing Text', type: 'replacingTextWarning', class: 'warning' },
-        nameMismatchError: { title: 'File Names Mismatch', type: 'nameMismatchError', class: 'warning' },
-        overridingUnsavedChangesWarning: { title: 'Unsaved Changes', type: 'overridingUnsavedChangesWarning', class: 'warning' },
-        uncommittedChangesWarning: { title: 'Uncommitted Changes Warning', type: 'uncommittedChangesWarning', class: 'warning' },
-        differentFileNameWarning: { title: 'Different File Name Warning', type: 'differentFileNameWarning', class: 'warning' },
+        nothingToDownloadWarning: { title: 'notificationTypeNothingToDownloadWarningTitle', type: 'nothingToDownloadWarning', class: 'warning' },
+        resetAppWarning: { title: 'notificationTypeResetAppWarningTitle', type: 'resetAppWarning', class: 'warning' },
+        replacingTextWarning: { title: 'notificationTypeReplacingTextWarningTitle', type: 'replacingTextWarning', class: 'warning' },
+        nameMismatchError: { title: 'notificationTypeNameMismatchErrorTitle', type: 'nameMismatchError', class: 'warning' },
+        overridingUnsavedChangesWarning: { title: 'notificationTypeOverridingUnsavedChangesWarningTitle', type: 'overridingUnsavedChangesWarning', class: 'warning' },
+        uncommittedChangesWarning: { title: 'notificationTypeUncommittedChangesWarningTitle', type: 'uncommittedChangesWarning', class: 'warning' },
+        differentFileNameWarning: { title: 'notificationTypeDifferentFileNameWarningTitle', type: 'differentFileNameWarning', class: 'warning' },
       },
       error: {
-        networkError: { title: 'Connection issue', type: 'networkError', class: 'error' },
-        identicalPatternNamesError: { title: 'Identical Pattern Names', type: 'identicalPatternNamesError', class: 'error' },
-        invalidPatternsError: { title: 'Invalid Pattern', type: 'invalidPatternsError', class: 'error' },
-        commitLineError: { title: 'Commit Line Error', type: 'commitLineError', class: 'error' },
-        loadingLanguageModelError: { title: 'Language Model Error', type: 'loadingLanguageModelError', class: 'error' },
-        invalidFileTypeError: { title: 'Invalid File Type', type: 'invalidFileTypeError', class: 'error' },
+        loadingTranslationsError: { title: 'notificationTypeLoadingTranslationsErrorTitle', type: 'loadingTranslationsError', class: 'error' },
+        networkError: { title: 'notificationTypeNetworkErrorTitle', type: 'networkError', class: 'error' },
+        identicalPatternNamesError: { title: 'notificationTypeIdenticalPatternNamesErrorTitle', type: 'identicalPatternNamesError', class: 'error' },
+        invalidPatternsError: { title: 'notificationTypeInvalidPatternsErrorTitle', type: 'invalidPatternsError', class: 'error' },
+        commitLineError: { title: 'notificationTypeCommitLineErrorTitle', type: 'commitLineError', class: 'error' },
+        loadingLanguageModelError: { title: 'notificationTypeLoadingLanguageModelErrorTitle', type: 'loadingLanguageModelError', class: 'error' },
+        invalidFileTypeError: { title: 'notificationTypeInvalidFileTypeErrorTitle', type: 'invalidFileTypeError', class: 'error' },
       },
     },
 
@@ -341,6 +345,7 @@ app.ready = async () => {
         ],
       },
     },
+    appTranslations = {},
 
     boxState = {
       boxProcessing: {
@@ -564,14 +569,14 @@ app.ready = async () => {
             handler.unhighlightCell(elem.querySelector('td:nth-child(2)'));
             const
               enabled = elem.querySelector('td:nth-child(1) .checkbox input').checked,
-              name = elem.querySelector('td:nth-child(2) input[name=action]').value,
+              localizationKey = elem.querySelector('td:nth-child(2) input[name=action]').value,
               keyCombo = elem.querySelector('td:nth-child(3)').innerText,
-              action = availableShortcutActions.find(action => action.name === name).action;
+              action = availableShortcutActions.find(action => action.localizationKey === localizationKey).action;
             try {
               shortcuts.push({
                 enabled: enabled,
                 keyCombo: keyCombo,
-                name: name,
+                localizationKey: localizationKey,
                 action: action,
                 // target: target,
               });
@@ -599,13 +604,13 @@ app.ready = async () => {
       if (!object.time) object.time = 'auto';
       if (!object.class) object.class = 'neutral';
       $.toast({
-        title: object.title,
+        title: appTranslations[object.title],
         class: object.class,
         displayTime: object.time,
         showProgress: 'top',
         position: 'top right',
         classProgress: object.color,
-        message: object.message,
+        message: appTranslations[object.message] || object.message,
         minDisplayTime: 3000,
         actions: object.actions ? object.actions : false,
       });
@@ -619,10 +624,10 @@ app.ready = async () => {
       handler.setKeyboardControl('prompt');
       if (object.actions == []) {
         object.actions = [{
-          confirmText: 'Yes',
+          confirmText: appTranslations['askUserConfirmText'],
           confirmTextClass: 'green positive',
         }, {
-          denyText: 'No',
+          denyText: appTranslations['askUserDenyText'],
           denyTextClass: 'red negative',
         }];
       }
@@ -630,7 +635,7 @@ app.ready = async () => {
         $.modal({
           // inverted: true,
           // blurring: true,
-          title: object.title,
+          title: appTranslations[object.title],
           // closeIcon: true,
           // autofocus: true,
           // restoreFocus: true,
@@ -644,7 +649,7 @@ app.ready = async () => {
             handler.setKeyboardControl('form');
             resolve(false);
           },
-          content: object.message,
+          content: appTranslations[object.message] || object.message,
           actions: object.actions,
         }).modal('show');
       });
@@ -659,13 +664,13 @@ app.ready = async () => {
     resetAppSettings: async () => {
       const response = await handler.askUser({
         title: notificationTypes.warning.resetAppWarning.title,
-        message: 'The app will reset it\'s settings and reload. Are you sure you want to continue?',
+        message: 'notificationTypeResetAppWarningBody',
         type: notificationTypes.warning.resetAppWarning.type,
         actions: [{
-          text: 'Cancel',
+          text: appTranslations['askUserCancelText'],
           class: 'cancel',
         }, {
-          text: 'Reset',
+          text: appTranslations['askUserResetText'],
           class: 'red ok',
         }]
       });
@@ -702,8 +707,9 @@ app.ready = async () => {
 
         if (handler.keyboardShortcuts.has(key)) {
           handler.notifyUser({
-            title: 'Shorcut Exists',
-            message: `Shortcut <strong>${key}</strong> has already been registered.`,
+            title: appTranslations['notificationTypeShortcutExistsWarningTitle'],
+            message: appTranslations['notificationTypeShortcutExistsWarningBody']
+              .replace('${key}', `${key}`),
             type: 'warning',
           })
           return;
@@ -802,7 +808,12 @@ app.ready = async () => {
           table = document.createElement('table'),
           thead = document.createElement('thead'),
           theadRow = document.createElement('tr'),
-          headers = ['', 'Action', 'Key Combo', ''],
+          headers = [
+            appTranslations['keyboardShortcutsTableHeaderEnabled'],
+            appTranslations['keyboardShortcutsTableHeaderAction'],
+            appTranslations['keyboardShortcutsTableHeaderKeyCombo'],
+            appTranslations['keyboardShortcutsTableHeaderDeleteButton']
+          ],
           tbody = document.createElement('tbody'),
           localStorageValue = localStorage.getItem(appSettings.localStorageKey);
         table.className = 'ui unstackable celled table';
@@ -810,8 +821,8 @@ app.ready = async () => {
         for (const header of headers) {
           const th = document.createElement('th');
           th.className = header ? '' : 'collapsing';
-          th.className = header === 'Key Combo' ? 'eight wide' : '';
-          th.className = header === 'Action' ? 'eight wide' : '';
+          th.className = header === appTranslations['keyboardShortcutsTableHeaderKeyCombo'] ? 'eight wide' : '';
+          th.className = header === appTranslations['keyboardShortcutsTableHeaderAction'] ? 'eight wide' : '';
           th.textContent = header;
           theadRow.appendChild(th);
         }
@@ -820,17 +831,17 @@ app.ready = async () => {
           const localStorageSettings = JSON.parse(localStorageValue);
           const shortcuts = localStorageSettings?.behavior?.keyboardShortcuts?.shortcuts;
           shortcuts.forEach(shortcut => {
-            const row = handler.create.keyboardShortcutRow(shortcut.enabled, shortcut.keyCombo, shortcut.name);
+            const row = handler.create.keyboardShortcutRow(shortcut.enabled, shortcut.keyCombo, shortcut.localizationKey);
             tbody.appendChild(row);
           });
 
           if (!localStorageValue || shortcuts.length == 0) {
             const rows = [
-              { enabled: true, keyCombo: 'ENTER', name: 'Move to next box' },
-              { enabled: true, keyCombo: 'Shift + ENTER', name: 'Move to previous box' },
+              { enabled: true, keyCombo: 'ENTER', localizationKey: 'keyboardShortcutsTableMoveToNextBox' },
+              { enabled: true, keyCombo: 'Shift + ENTER', localizationKey: 'keyboardShortcutsTableMoveToPreviousBox' },
             ];
             rows.forEach(row => {
-              const rowElement = handler.create.keyboardShortcutRow(row.enabled, row.keyCombo, row.name);
+              const rowElement = handler.create.keyboardShortcutRow(row.enabled, row.keyCombo, row.localizationKey);
               tbody.appendChild(rowElement);
             });
           }
@@ -853,7 +864,13 @@ app.ready = async () => {
           table = document.createElement('table'),
           thead = document.createElement('thead'),
           theadRow = document.createElement('tr'),
-          headers = ['', 'Name', 'Color', 'Pattern', ''],
+          headers = [
+            appTranslations['highlighterTableHeaderEnabled'],
+            appTranslations['highlighterTableHeaderName'],
+            appTranslations['highlighterTableHeaderColor'],
+            appTranslations['highlighterTableHeaderPattern'],
+            appTranslations['highlighterTableHeaderDeleteButton']
+          ],
           tbody = document.createElement('tbody'),
           localStorageValue = localStorage.getItem(appSettings.localStorageKey);
         table.className = 'ui unstackable celled table';
@@ -861,7 +878,7 @@ app.ready = async () => {
         for (const header of headers) {
           const th = document.createElement('th');
           th.className = header ? '' : 'collapsing';
-          th.className = header === 'Color' ? 'four wide' : '';
+          th.className = header === appTranslations['highlighterTableHeaderColor'] ? 'four wide' : '';
           th.textContent = header;
           theadRow.appendChild(th);
         }
@@ -909,8 +926,8 @@ app.ready = async () => {
         row.classList.add('two', 'column', 'stretched', 'row');
         leftColumn.classList.add('twelve', 'wide', 'left', 'floated', 'column');
         rightColumn.classList.add('four', 'wide', 'right', 'floated', 'column', 'text', 'right', 'aligned');
-        leftHeader.textContent = 'Name';
-        rightHeader.textContent = 'Char';
+        leftHeader.textContent = appTranslations['tooltipUnicodeInfoNameColumn'];
+        rightHeader.textContent = appTranslations['tooltipUnicodeInfoCharColumn'];
 
         leftColumn.appendChild(leftHeader);
         rightColumn.appendChild(rightHeader);
@@ -940,7 +957,7 @@ app.ready = async () => {
       highlighterRow: (enabled, name, color, pattern) => {
         const
           row = document.createElement('tr'),
-          checkboxCell = handler.create.checkboxCell(name, { onChange: handler.saveHighlightsToSettings }),
+          checkboxCell = handler.create.checkboxCell(name, enabled, { onChange: handler.saveHighlightsToSettings }),
           nameCell = handler.create.editableTextCell(name, { onChange: handler.saveHighlightsToSettings }),
           colorCell = handler.create.colorCell(color, { onChange: handler.saveHighlightsToSettings }),
           patternCell = handler.create.editableTextCell(pattern, { onChange: handler.saveHighlightsToSettings }),
@@ -953,11 +970,11 @@ app.ready = async () => {
 
         return row;
       },
-      keyboardShortcutRow: (enabled, keyCombo, name) => {
+      keyboardShortcutRow: (enabled, keyCombo, localizationKey) => {
         const
           row = document.createElement('tr'),
-          checkboxCell = handler.create.checkboxCell(keyCombo, { onChange: handler.saveKeyboardShortcutsToSettings }),
-          shortcutsActionCell = handler.create.shortcutActionCell(name, { onChange: handler.saveKeyboardShortcutsToSettings }),
+          checkboxCell = handler.create.checkboxCell(keyCombo, enabled, { onChange: handler.saveKeyboardShortcutsToSettings }),
+          shortcutsActionCell = handler.create.shortcutActionCell(localizationKey, { onChange: handler.saveKeyboardShortcutsToSettings }),
           keyComboCell = handler.create.editableTextCell(keyCombo, { onChange: handler.saveKeyboardShortcutsToSettings }),
           actionsCell = handler.create.actionsCell({ onChange: handler.saveKeyboardShortcutsToSettings });
         row.appendChild(checkboxCell);
@@ -967,7 +984,7 @@ app.ready = async () => {
 
         return row;
       },
-      checkboxCell: (name, params = {}) => {
+      checkboxCell: (name, enabled, params = {}) => {
         const
           cell = document.createElement('td'),
           div = document.createElement('div'),
@@ -976,7 +993,7 @@ app.ready = async () => {
         div.className = 'ui fitted checkbox text-highlighter-checkbox';
         input.type = 'checkbox';
         input.name = name;
-        input.checked = true;
+        input.checked = enabled;
 
         div.appendChild(input);
         $(div).checkbox({
@@ -1021,7 +1038,7 @@ app.ready = async () => {
           itemDiv.className = 'item';
           itemDiv.setAttribute('data-value', color);
           colorIcon.className = `ui ${color} small empty circular label icon link text-highlighter`;
-          colorText.textContent = color.charAt(0).toUpperCase() + color.slice(1);
+          colorText.textContent = appTranslations[color].charAt(0).toUpperCase() + appTranslations[color].slice(1);
           itemDiv.appendChild(colorIcon);
           itemDiv.appendChild(colorText);
           menuDiv.appendChild(itemDiv);
@@ -1067,9 +1084,10 @@ app.ready = async () => {
             actionIcon = document.createElement('i'),
             actionText = document.createElement('span');
           itemDiv.className = 'item';
-          itemDiv.setAttribute('data-value', action.name);
+          itemDiv.setAttribute('data-value', action.localizationKey);
           actionIcon.className = `ui small ${action.icon} icon`;
-          actionText.textContent = action.name;
+          actionText.textContent = appTranslations[action.localizationKey];
+          actionText.setAttribute('localization-key', action.localizationKey);
           itemDiv.appendChild(actionIcon);
           itemDiv.appendChild(actionText);
           menuDiv.appendChild(itemDiv);
@@ -1260,7 +1278,7 @@ app.ready = async () => {
     addNewHighlighterPattern: () => {
       const
         tableBody = $highlighterTableBody[0],
-        row = handler.create.highlighterRow(true, 'New Highlighter', false, '.');
+        row = handler.create.highlighterRow(true, appTranslations['highlighterTableDefaultName'], false, '.');
       tableBody.append(row);
       // update selectors
       $highlighterTableBody = $highlighterTableContainer.find('.ui.celled.table tbody');
@@ -1567,7 +1585,30 @@ app.ready = async () => {
         }
       },
     },
+    translatePage: () => {
+      document.querySelectorAll('[localization-key]')
+        .forEach(element => {
+          let
+            key = element.getAttribute('localization-key'),
+            translation = appTranslations[key];
+          element.innerText = translation;
+        })
+    },
     update: {
+      interfaceLanguage: async (lang) => {
+        await handler.load.translations(lang);//.then(translationData => {
+        // Use the translation data as needed
+        //   appTranslations = translationData;
+        //   appSettings.interface.appLanguage = languageToUse;
+        //   console.info('loaded', appTranslations['locale'], appSettings.interface.appLanguage);
+        // }).catch(error => {
+        //   console.error('Error loading translation:', error);
+        // });;
+        await handler.translatePage();
+        await handler.load.sliders();
+        handler.load.virtualKeyboard();
+        if (selectedBox) handler.update.confidenceScoreField(selectedBox);
+      },
       settingsModal: async () => {
         // Toolbar Actions
         if (Object.values(appSettings.interface.toolbarActions).every(value => !value)) {
@@ -1581,6 +1622,9 @@ app.ready = async () => {
             $('#custom-controls [name="' + path + '"]').toggle(appSettings.interface.toolbarActions[key]);
           }
         }
+        // App Language Dropdown
+        handler.load.translations(appSettings.interface.appLanguage);
+        // $appLanguageDropdownInSettings.dropdown('set selected', appSettings.interface.appLanguage, true);
         // Appearance
         const appearancePath = 'interface.appearance';
         document.querySelector(`input[name='${appearancePath}'][value='${appSettings.interface.appearance}']`).checked = true;
@@ -1591,9 +1635,9 @@ app.ready = async () => {
         if (appSettings.interface.imageView < 300) {
           // find item with text 'Tiny'
           $imageViewHeightSlider.find('.label').each(() => {
-            if (this.innerText == 'Tiny') {
+            if (appTranslations['settingsMenuImageViewSliderLabelTiny'] == this.innerText) {
               // append span element with additional text
-              this.innerHTML += '<span class="ui italic grey text">&nbsp;– Some editor buttons will get clipped.</span>';
+              this.innerHTML += '<span class="ui italic grey text">&nbsp;– ' + appTranslations['settingsMenuImageViewSliderClippingWarning'] + '</span>';
             }
           });
         }
@@ -1670,7 +1714,7 @@ app.ready = async () => {
             $progressSlider.progress({
               value: modifiedLines.length,
               total: boxData.length,
-              text: { active: 'Updating: {value} out of {total} / {percent}%', }
+              text: { active: appTranslations['progressIndicatorUpdatingText'], }
             })
           } else {
             $progressSlider.removeClass('active indicating');
@@ -1679,7 +1723,7 @@ app.ready = async () => {
             $progressSlider.progress({
               value: textLines.length,
               total: boxData.length,
-              text: { active: 'Tagging: {value} out of {total} / {percent}%', }
+              text: { active: appTranslations['progressIndicatorTaggingText'], }
             });
           }
           return;
@@ -1689,7 +1733,7 @@ app.ready = async () => {
             $progressSlider.progress({
               value: options.progress,
               total: 1,
-              text: { active: 'Analyzing Image: {percent}%', }
+              text: { active: appTranslations['progressIndicatorAnalyzingText'], }
             });
           } else if (/initializingWorker/.test(options.type)) {
             $progressSlider.progress({
@@ -1701,7 +1745,7 @@ app.ready = async () => {
             $progressSlider.progress({
               value: options.value,
               total: options.total,
-              text: { active: 'Regenerating Text Data…', }
+              text: { active: appTranslations['progressIndicatorRegeneratingText'], }
             });
           }
           return;
@@ -1783,7 +1827,7 @@ app.ready = async () => {
       confidenceScoreField: async (box) => {
         $modelConfidenceScoreDetail.text('');
         if ($modelConfidenceScoreEnabledCheckbox[0].checked && box.isModelGeneratedText) {
-          $modelConfidenceScoreDetail.text(`Suggestion Confidence: ${Math.round(box.modelConfidenceScore)}%`);
+          $modelConfidenceScoreDetail.text(`${appTranslations['formGroundTruthConfidenceLabel']}: ${Math.round(box.modelConfidenceScore)}%`);
           // colorize if low confidence
           const colorMap = {
             70: 'red',
@@ -1852,7 +1896,7 @@ app.ready = async () => {
           button.tabIndex = '0';
           button.innerText = 'OK';
           status.className = 'ui disabled tertiary button';
-          status.innerText = 'Settings saved!';
+          status.innerText = appTranslations['settingsMenuSavedSuccessfullyText'];
           inlineLoader.className = 'ui tiny active grey fast inline double loader';
 
           setTimeout(() => {
@@ -1901,45 +1945,34 @@ app.ready = async () => {
         if (oldSettings.appVersion == 0) {
           return appSettings;
         }
-        // Upgrading settings
 
-        if (handler.compareVersions(oldSettings.appVersion, '1.7.0') < 0) {
+        appSettings = oldSettings;
+
+        // Upgrading settings
+        if (handler.compareVersions(oldSettings.appVersion, '1.8.0') < 0) {
+          // console.info('[Migration]', 'Migrating from', oldSettings.appVersion, 'to', '1.7.3');
 
           // add new setting
-          appSettings.interface.editorTools.virtualKeyboard = false;
+          appSettings.interface.appLanguage = 'system-lang';
 
-          // move behavior workflow settings to interface editor tools settings
-          const oldKeys = ['progressIndicator', 'positionSlider', 'formCoordinateFields', 'unicodeInfoPopup'];
-
-          oldKeys.forEach(element => {
-            if (oldSettings.behavior.workflow[element] != undefined) {
-              appSettings.interface.editorTools[element] = oldSettings.behavior.workflow[element];
-              delete appSettings.behavior.workflow[element];
+          // update keyboard shortcuts
+          oldSettings.behavior.keyboardShortcuts.shortcuts.forEach(key => {
+            switch (key.name) {
+              case "Move to next box":
+                key.localizationKey = "keyboardShortcutsTableMoveToNextBox";
+                delete key.name;
+                break;
+              case "Move to previous box":
+                key.localizationKey = "keyboardShortcutsTableMoveToPreviousBox";
+                delete key.name;
+                break;
+              // add more cases here as needed
+              default:
+                // handle default case here
+                break;
             }
           });
-        }
-
-
-        if (handler.compareVersions(oldSettings.appVersion, '1.6.2') < 0) {
-          // migrate map height labels to numbers
-          const oldHeightLabels = {
-            'short': 300,
-            'medium': 500,
-            'tall': 700
-          };
-          // if oldSettings.interface.imageView is not undefined
-          if (oldSettings.interface?.imageView) {
-            appSettings.interface.imageView = oldHeightLabels[oldSettings.interface.imageView]
-          } else {
-            appSettings.interface.imageView = 500;
-          }
-          appSettings.behavior.alerting.enableWarrningMessagesForOverwritingDirtyData = true;
-        }
-
-        if (handler.compareVersions(oldSettings.appVersion, '1.6.0') < 0) {
-          // clear cookies set by versions prior to 1.6.0
-          // also remove html script tag for JS Cookie
-          Cookies.get().forEach(cookie => Cookies.remove(cookie));
+          appSettings.behavior.keyboardShortcuts.shortcuts = oldSettings.behavior.keyboardShortcuts.shortcuts;
         }
         return appSettings;
       }
@@ -1947,16 +1980,16 @@ app.ready = async () => {
     receiveDroppedFiles: async (event) => {
       if (event.length > 2) {
         handler.notifyUser({
-          title: 'Too many files',
-          message: 'Upload an image and, optionally, a box file.',
+          title: appTranslations['notificationTypeTooManyFilesWarningTitle'],
+          message: appTranslations['notificationTypeTooManyFilesWarningBody'],
           type: 'error',
         });
         return;
       }
       if (event.length < 1) {
         notifyUser({
-          title: 'No files',
-          message: 'You need to drop at least one file.',
+          title: appTranslations['notificationTypeTooNoFilesTitle'],
+          message: appTranslations['notificationTypeTooNoFilesBody'],
           type: 'error',
         });
         return;
@@ -1970,8 +2003,8 @@ app.ready = async () => {
           boxFile = file;
         } else {
           handler.notifyUser({
-            title: 'Invalid File Type',
-            message: 'You can only upload an image and a box file.',
+            title: appTranslations['notificationTypeInvalidFileTypeTitle'],
+            message: appTranslations['notificationTypeInvalidFileTypeBody'],
             type: 'error',
           });
           return;
@@ -1980,8 +2013,8 @@ app.ready = async () => {
 
       if (!imageFile && !imageFileInfo.isProcessed()) {
         handler.notifyUser({
-          title: 'No image file',
-          message: 'You need at least one image file.',
+          title: appTranslations['notificationTypeNoImageFileTitle'],
+          message: appTranslations['notificationTypeNoImageFileBody'],
           type: 'error',
         });
         return;
@@ -2121,8 +2154,104 @@ app.ready = async () => {
       const formattedDate = dateString.replace(/\d+/, day + daySuffix);
       return formattedDate;
     },
+    get: {
+      availableTranslations: async () => {
+        // return all filenames in lang directory
+        const langFiles = [];
+        await $.ajax({
+          url: '../../js/lang',
+          context: document.body,
+          success: function (data) {
+            $(data).find('a:contains(".json")').each(function () {
+              langFiles.push(this.href.replace(window.location.host, '').replace('https:///', '').replace('http:', ''));
+            });
+          }
+        });
+        return langFiles.map(x => x.replace('.json', '').replace(/\/.*\//, ''));
+      },
+    },
+    check: {
+      translationExists: async (lang) => {
+        try {
+          const response = await fetch(`../../js/lang/${lang}.json`, { method: "GET" });
+
+          if (response.ok) {
+            // File found, do something with the response
+            const translationData = await response.json();
+            console.log('Translation data:', translationData);
+            return true;
+          } else {
+            // File not found, load default file
+            const defaultResponse = await fetch(`../../js/lang/en-US.json`);
+            if (defaultResponse.ok) {
+              const defaultTranslationData = await defaultResponse.json();
+              console.log('Default translation data:', defaultTranslationData);
+            } else {
+              console.error('Default translation file not found');
+            }
+            return false;
+          }
+        } catch (error) {
+          // Handle the error without logging to the console
+          console.error('An unexpected error occurred:', error);
+          return false;
+        }
+      }
+    },
     load: {
+      translations: async (language) => {
+        var translationData = null;
+        var languageToUse = language;
+        // for (const lang of languages) {
+        const languages = /system-lang/.test(language) ? navigator.languages: [language]
+        for (const lang of languages) {
+          try {
+            const response = await fetch(`../../js/lang/${lang}.json`);
+
+            if (response.status === 200) {
+              translationData = await response.json();
+              // console.log(`Translation data loaded for ${lang}:`, translationData);
+              break;
+              // return translationData; // Use the loaded translation
+            }
+          } catch (error) {
+            console.error(`Error loading translation for ${lang}:`, error);
+          }
+        }
+
+        // Fallback to 'en-US' if no preferred language files are found
+        if (translationData == null) {
+
+          try {
+            languageToUse = 'en-US';
+            const response = await fetch(`../../js/lang/${languageToUse}.json`);
+
+            if (response.status === 200) {
+              translationData = await response.json();
+              console.log('Fallback to en-US - Translation data:', translationData);
+              // return translationData; // Use the fallback translation
+            } else {
+              console.error('Fallback translation file not found');
+            }
+          } catch (error) {
+            console.error('An unexpected error occurred while loading the fallback translation:', error);
+          }
+        }
+
+        appTranslations = translationData;
+        // console.info('loaded', appTranslations['locale'], appSettings.interface.appLanguage);
+        ///////
+        // const response = await fetch(`../../js/lang/${languageToUse}.json`);
+        // const data = await response.json();
+        // appTranslations = data;
+        // appSettings.interface.appLanguage = languageToUse;
+        // console.info('loaded', appTranslations['locale'], appSettings.interface.appLanguage);
+        const dropdownSelection = /system-lang/.test(language) ? language : languageToUse;
+        appSettings.interface.appLanguage = dropdownSelection;
+        $appLanguageDropdownInSettings.dropdown('set selected', dropdownSelection, true);
+      },
       virtualKeyboard: () => {
+        if (virtualKeyboard !== undefined) virtualKeyboard.destroy();
         virtualKeyboard = new Keyboard({
           theme: "simple-keyboard hg-theme-default hg-layout-default",
           layout: virtualKeyboardLayouts['rts'],
@@ -2159,23 +2288,23 @@ app.ready = async () => {
           display: {
             "{escape}": "esc ⎋",
             "{tab}": "tab ⇥",
-            "{backspace}": "backspace ⌫",
-            "{enter}": "enter ↵",
-            "{capslock}": "caps lock ⇪",
+            "{backspace}": appTranslations['virtualKeyboardBackspaceKeyLabel'],
+            "{enter}": appTranslations['virtualKeyboardEnterKeyLabel'],
+            "{capslock}": appTranslations['virtualKeyboardCapsLockKeyLabel'],
             "{shiftleft}": "shift ⇧",
             "{shiftright}": "shift ⇧",
             "{controlleft}": "ctrl ⌃",
             "{controlright}": "ctrl ⌃",
-            "{altleft}": "alternative ⌥",
-            "{altright}": "alternative ⌥",
+            "{altleft}": appTranslations['virtualKeyboardAltKeyLabel'],
+            "{altright}": appTranslations['virtualKeyboardAltKeyLabel'],
             "{metaleft}": "cmd ⌘",
             "{metaright}": "cmd ⌘",
-            '{space}': 'space',
-            '{grave}': 'grave  ̀',
-            '{acute}': 'acute  ́',
-            '{kavyka}': 'kavyka  ꙼',
-            '{cyrillic}': ' Cyrillic',
-            '{latin}': ' Latin',
+            '{space}': appTranslations['virtualKeyboardSpaceKeyLabel'],
+            '{grave}': appTranslations['virtualKeyboardGraveKeyLabel'],
+            '{acute}': appTranslations['virtualKeyboardAcuteKeyLabel'],
+            '{kavyka}': appTranslations['virtualKeyboardKavykaKeyLabel'],
+            '{cyrillic}': appTranslations['virtualKeyboardCyrillicKeyLabel'],
+            '{latin}': appTranslations['virtualKeyboardLatinKeyLabel'],
           }
         });
       },
@@ -2215,7 +2344,8 @@ app.ready = async () => {
             console.log(error);
             handler.notifyUser({
               title: notificationTypes.error.loadingLanguageModelError.title,
-              message: `Failed to load selected language model ${appSettings.language.recognitionModel}. Loading default RTS instead.`,
+              message: appTranslations['notificationTypeLoadingLanguageModelErrorBody']
+                .replace('${appSettings.language.recognitionModel}', `${appSettings.language.recognitionModel}`),
               type: notificationTypes.error.loadingLanguageModelError.type,
               class: notificationTypes.error.loadingLanguageModelError.class,
             });
@@ -2226,7 +2356,7 @@ app.ready = async () => {
             console.log(error);
             handler.notifyUser({
               title: notificationTypes.error.networkError.title,
-              message: 'Failed to load language model. You may not be connected to the internet.',
+              message: 'notificationTypeNetworkErrorBody',
               type: notificationTypes.error.networkError.type,
               class: notificationTypes.error.networkError.class,
             });
@@ -2237,6 +2367,16 @@ app.ready = async () => {
         }
       },
       dropdowns: () => {
+        $appLanguageDropdownInSettings.dropdown({
+          onChange: async (value, text, $selectedItem) => {
+            handler.set.loadingState({ buttons: true });
+            // const newLanguage = /system-lang/.test(value) ? navigator.languages : value;
+            await handler.update.interfaceLanguage(value);
+            handler.update.localStorage();
+            handler.set.loadingState({ buttons: false });
+            $appLanguageDropdownInSettings.dropdown('set selected', value, true);
+          }
+        });
         $ocrModelDropdown.dropdown({
           onChange: async (value, text, $selectedItem) => {
             $ocrModelDropdown.addClass('loading');
@@ -2277,6 +2417,7 @@ app.ready = async () => {
             handler.update.localStorage();
           }
         });
+        $ocrModelDropdownInSettings.dropdown('set selected', appSettings.language.recognitionModel, true);
       },
       keyboardShortcuts: () => {
         $window.off('keyup');
@@ -2343,8 +2484,15 @@ app.ready = async () => {
           handler.update.appSettings({ path: path, value: value });
         });
       },
-      sliders: () => {
-        const labels = ["Tiny", "Short", "Normal", "Tall", "Huge"];
+      sliders: async () => {
+        const sizes = [
+          "settingsMenuImageViewSliderLabelTiny",
+          "settingsMenuImageViewSliderLabelShort",
+          "settingsMenuImageViewSliderLabelNormal",
+          "settingsMenuImageViewSliderLabelTall",
+          "settingsMenuImageViewSliderLabelHuge"];
+        // await handler.load.translations(appSettings.interface.appLanguage);
+        const labels = sizes.map(size => appTranslations[size]);
         $imageViewHeightSlider.slider({
           min: 100,
           max: 900,
@@ -2355,16 +2503,16 @@ app.ready = async () => {
             if (value < 300) {
               // find item with text 'Tiny'
               $imageViewHeightSlider.find('.label').each(function () {
-                if (this.innerText == 'Tiny') {
+                if (this.innerText == appTranslations['settingsMenuImageViewSliderLabelTiny']) {
                   // append span element with additional text
-                  this.innerHTML += '<span class="ui italic grey text">&nbsp;– Some editor buttons will be clipped.</span>';
+                  this.innerHTML += '<span class="ui italic grey text">&nbsp;– ' + appTranslations['settingsMenuImageViewSliderClippingWarning'] + '</span>';
                 }
               });
             } else {
               // remove span element from label
               $imageViewHeightSlider.find('.label').each(function () {
-                if (this.innerText.includes('Tiny')) {
-                  this.innerHTML = 'Tiny';
+                if (this.innerText.includes(appTranslations['settingsMenuImageViewSliderLabelTiny'])) {
+                  this.innerHTML = appTranslations['settingsMenuImageViewSliderLabelTiny'];
                 }
               });
             }
@@ -2373,6 +2521,7 @@ app.ready = async () => {
             handler.update.appSettings({ path: 'interface.imageView', value: value });
           },
         });
+        $imageViewHeightSlider.slider('set value', appSettings.interface.imageView, fireChange = false);
       },
       settings: () => {
         handler.getAppInfo();
@@ -2391,7 +2540,7 @@ app.ready = async () => {
             if (invalidPatterns || identicalPatternNames) {
               const
                 title = invalidPatterns ? notificationTypes.error.invalidPatternsError.title : notificationTypes.error.identicalPatternNamesError.title,
-                message = invalidPatterns ? 'Some enabled highlighters have invalid patterns. Please fix them or disable the highlighters.' : 'Some highlighter names are the same. Please give them different names.',
+                message = invalidPatterns ? 'notificationTypeInvalidPatternsErrorBody' : 'notificationTypeIdenticalPatternNamesErrorBody',
                 type = invalidPatterns ? notificationTypes.error.invalidPatternsError.type : notificationTypes.error.identicalPatternNamesError.type,
                 classType = invalidPatterns ? notificationTypes.error.invalidPatternsError.class : notificationTypes.error.identicalPatternNamesError.class;
               handler.notifyUser({
@@ -2400,7 +2549,7 @@ app.ready = async () => {
                 type: type,
                 class: classType,
                 actions: [{
-                  text: 'Fix now',
+                  text: appTranslations['askUserFixNowText'],
                   click: handler.open.settingsModal.bind(handler.open, 'highlighter-settings'),
                 }]
               });
@@ -2422,14 +2571,18 @@ app.ready = async () => {
           handler.update.settingsModal();
         }
       },
-      popups: () => $imageFileInputButton.popup({
-        popup: $useSamplePopup,
-        position: 'top left',
-        hoverable: true,
-        delay: {
-          hide: 800,
-        }
-      }),
+      popups: () => {
+        $imageFileInputButton
+          .popup({
+            popup: $useSamplePopup,
+            position: 'top left',
+            hoverable: true,
+            delay: {
+              hide: 800,
+            }
+          });
+        $tooltipTriggers.popup();
+      },
       unicodeData: async () => {
         await $.ajax({
           url: '../../assets/unicodeData.csv',
@@ -2485,13 +2638,13 @@ app.ready = async () => {
         if (!skipWarning && appSettings.behavior.alerting.enableWarrningMessagesForOverwritingDirtyData && boxDataInfo.isDirty()) {
           const response = await handler.askUser({
             title: notificationTypes.warning.overridingUnsavedChangesWarning.title,
-            message: 'You did not download current progress. Do you want to overwrite existing data?',
+            message: 'notificationTypeOverridingUnsavedChangesWarningBody',
             type: notificationTypes.warning.overridingUnsavedChangesWarning.type,
             actions: [{
-              text: 'Cancel',
+              text: appTranslations['askUserCancelText'],
               class: 'cancel',
             }, {
-              text: 'Yes',
+              text: appTranslations['askUserConfirmText'],
               class: 'positive',
             }],
           });
@@ -2520,7 +2673,8 @@ app.ready = async () => {
         if (!'box'.includes(fileExtension)) {
           handler.notifyUser({
             title: notificationTypes.error.invalidFileTypeError.title,
-            message: 'Expected box file. Received ' + fileExtension + ' file.',
+            message: appTranslations['notificationTypeInvalidFileTypeErrorBody']
+              .replace('${fileExtension}', `${fileExtension}`),
             type: notificationTypes.error.invalidFileTypeError.type,
             class: notificationTypes.error.invalidFileTypeError.class,
           });
@@ -2529,13 +2683,15 @@ app.ready = async () => {
           const
             response = await handler.askUser({
               title: notificationTypes.warning.nameMismatchError.title,
-              message: 'Expected box file with name ' + file.name + '. Received ' + imageFileName + '.<br> Are you sure you want to continue?',
+              message: appTranslations['notificationTypeNameMismatchErrorBody']
+                .replace('${file.name}', `${file.name}`)
+                .replace('${imageFileName}', `${imageFileName}`),
               type: notificationTypes.warning.nameMismatchError.type,
               actions: [{
-                text: 'No',
+                text: appTranslations['askUserDenyText'],
                 class: 'cancel',
               }, {
-                text: 'Yes',
+                text: appTranslations['askUserConfirmText'],
                 class: 'positive',
               }],
             });
@@ -2554,13 +2710,13 @@ app.ready = async () => {
         if (appSettings.behavior.alerting.enableWarrningMessagesForOverwritingDirtyData && boxDataInfo.isDirty() || lineDataInfo.isDirty()) {
           const response = await handler.askUser({
             title: notificationTypes.warning.overridingUnsavedChangesWarning.title,
-            message: 'You did not download current progress. Do you want to overwrite existing data?',
+            message: 'notificationTypeOverridingUnsavedChangesWarningBody',
             type: notificationTypes.warning.overridingUnsavedChangesWarning.type,
             actions: [{
-              text: 'Cancel',
+              text: appTranslations['askUserCancelText'],
               class: 'cancel',
             }, {
-              text: 'Yes',
+              text: appTranslations['askUserConfirmText'],
               class: 'positive',
             }],
           });
@@ -2626,7 +2782,8 @@ app.ready = async () => {
             const fileExtension = file.name.split('.').pop();
             handler.notifyUser({
               title: notificationTypes.error.invalidFileTypeError.title,
-              message: 'Expected image file. Received ' + fileExtension + ' file.',
+              message: appTranslations['notificationTypeInvalidFileTypeErrorBody']
+                .replace('${fileExtension}', `${fileExtension}`),
               type: notificationTypes.error.invalidFileTypeError.type,
               class: notificationTypes.error.invalidFileTypeError.class,
             });
@@ -2781,7 +2938,7 @@ app.ready = async () => {
         if (!boxData.length) {
           handler.notifyUser({
             title: notificationTypes.warning.nothingToDownloadWarning.title,
-            message: 'There is nothing to download!',
+            message: 'notificationTypeNothingToDownloadWarningBody',
             type: notificationTypes.warning.nothingToDownloadWarning.type,
             class: notificationTypes.warning.nothingToDownloadWarning.class,
           });
@@ -2790,7 +2947,7 @@ app.ready = async () => {
         if (lineDataInfo.isDirty()) {
           handler.notifyUser({
             title: notificationTypes.error.commitLineError.title,
-            message: 'Please commit the current line first.',
+            message: 'notificationTypeCommitLineErrorBody',
             type: notificationTypes.error.commitLineError.type,
             class: notificationTypes.error.commitLineError.class,
           });
@@ -2825,7 +2982,9 @@ app.ready = async () => {
         document.body.removeChild(downloadAnchor);
         handler.notifyUser({
           title: notificationTypes.info.fileDownloadedInfo.title,
-          message: 'Downloaded file ' + imageFileName + '.' + fileExtension,
+          message: appTranslations['notificationTypeFileDownloadedInfoBody']
+            .replace('${imageFileName}', `${imageFileName}`)
+            .replace('${fileExtension}', `${fileExtension}`),
           type: notificationTypes.info.fileDownloadedInfo.type,
           class: notificationTypes.info.fileDownloadedInfo.class,
         });
@@ -2875,13 +3034,13 @@ app.ready = async () => {
         if (appSettings.behavior.alerting.enableWarrningMessagesForOverwritingDirtyData && boxDataInfo.isDirty()) {
           const response = await handler.askUser({
             title: notificationTypes.warning.replacingTextWarning.title,
-            message: 'Suggestions will be generated from the current lines. Do you want to continue?',
+            message: 'notificationTypeReplacingTextWarningBody',
             type: notificationTypes.warning.replacingTextWarning.type,
             actions: [{
-              text: 'Cancel',
+              text: appTranslations['askUserCancelText'],
               class: 'cancel',
             }, {
-              text: 'yes',
+              text: appTranslations['askUserConfirmText'],
               class: 'positive',
             }]
           });
@@ -2919,13 +3078,13 @@ app.ready = async () => {
         if (appSettings.behavior.alerting.enableWarrningMessagesForOverwritingDirtyData && boxDataInfo.isDirty()) {
           const response = await handler.askUser({
             title: notificationTypes.warning.replacingTextWarning.title,
-            message: 'Suggestions will be generated from the current lines. Do you want to continue?',
+            message: 'notificationTypeReplacingTextWarningBody',
             type: notificationTypes.warning.replacingTextWarning.type,
             actions: [{
-              text: 'Cancel',
+              text: appTranslations['askUserCancelText'],
               class: 'cancel',
             }, {
-              text: 'yes',
+              text: appTranslations['askUserConfirmText'],
               class: 'positive',
             }]
           });
@@ -3172,6 +3331,7 @@ app.ready = async () => {
       $imageFileInput.prop('disabled', false);
       boxDataInfo.setDirty(false);
       lineDataInfo.setDirty(false);
+      handler.load.settings();
       handler.setKeyboardControl('form');
       // handler.set.loadingState({ buttons: false });
       await handler.load.unicodeData();
@@ -3179,7 +3339,6 @@ app.ready = async () => {
       handler.load.dropdowns();
       handler.load.popups();
       handler.load.sliders();
-      handler.load.settings();
       handler.create.highlighterTable();
       // TODO: Keyboard shortcuts table not behaving properly in settings
       handler.create.keyboardShortcutsTable();
@@ -3192,10 +3351,13 @@ app.ready = async () => {
 
       handler.delete.expiredNotifications();
       balanceText($balancedText, { watch: true });
-      handler.hideSplashScreen();
+      await handler.hideSplashScreen();
 
     },
-    hideSplashScreen: () => {
+    hideSplashScreen: async () => {
+      let lang = appSettings.interface.appLanguage;
+      // let lang = $appLanguageDropdownInSettings.dropdown('get value');
+      await handler.update.interfaceLanguage(lang);
       $body[0].style.transition = "opacity 0.5s ease-in-out";
       $body[0].style.opacity = "1";
     },
@@ -3205,13 +3367,15 @@ app.ready = async () => {
     {
       // target: $window,
       icon: 'arrow right',
-      name: 'Move to next box',
+      // name: 'Move to next box',
+      localizationKey: 'keyboardShortcutsTableMoveToNextBox',
       action: handler.getNextBoxContentAndFill,
     },
     {
       // target: $window,
       icon: 'arrow left',
-      name: 'Move to previous box',
+      // name: 'Move to previous box',
+      localizationKey: 'keyboardShortcutsTableMoveToPreviousBox',
       action: handler.getPreviousBoxContentAndFill,
     },
   ],
@@ -3243,7 +3407,7 @@ app.ready = async () => {
         break;
       case parseInt(times) >= 3:
         actions = [{
-          text: 'Try again',
+          text: appTranslations['askUserRetryText'],
           class: 'positive',
         }];
         break;
