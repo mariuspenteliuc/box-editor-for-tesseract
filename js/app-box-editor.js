@@ -1949,8 +1949,8 @@ app.ready = async () => {
         appSettings = oldSettings;
 
         // Upgrading settings
-        if (handler.compareVersions(oldSettings.appVersion, '1.7.3') < 0) {
-          console.info('[Migration]', 'Migrating from', oldSettings.appVersion, 'to', '1.7.3');
+        if (handler.compareVersions(oldSettings.appVersion, '1.8.0') < 0) {
+          // console.info('[Migration]', 'Migrating from', oldSettings.appVersion, 'to', '1.7.3');
 
           // add new setting
           appSettings.interface.appLanguage = 'system-lang';
@@ -2210,7 +2210,7 @@ app.ready = async () => {
 
             if (response.status === 200) {
               translationData = await response.json();
-              console.log(`Translation data loaded for ${lang}:`, translationData);
+              // console.log(`Translation data loaded for ${lang}:`, translationData);
               break;
               // return translationData; // Use the loaded translation
             }
