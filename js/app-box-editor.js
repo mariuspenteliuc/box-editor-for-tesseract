@@ -3241,7 +3241,7 @@ app.ready = async () => {
       //   handler.close.popups();
       //   return false;
       // }
-      if (selection.anchorNode != null || !event.target.id.includes('formtxt') || selection.toString().length < 1) {
+      if (selection.anchorNode == null || !event.target.id.includes('formtxt') || selection.toString().length < 1) {
         handler.close.popups();
         return false;
       }
