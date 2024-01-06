@@ -803,6 +803,52 @@ app.ready = async () => {
       },
     },
     create: {
+      imagesFromPDF: async (pdfData) => {
+        const reader = new FileReader();
+        const pages = [];
+
+        await new Promise((resolve, reject) => {
+          reader.onload = async function () {
+            const typedArray = new Uint8Array(this.result);
+            pdfjsLib.getDocument(typedArray).promise.then(async function (pdf) {
+              const numPages = pdf.numPages;
+
+              // Create an array of promises for each page rendering
+              const renderPromises = Array.from({ length: numPages }, (_, i) =>
+                pdf.getPage(i + 1).then(async (page) => {
+                  const canvas = document.createElement('canvas');
+                  const ctx = canvas.getContext('2d');
+                  const viewport = page.getViewport({ scale: 1.0 });
+                  canvas.height = viewport.height;
+                  canvas.width = viewport.width;
+
+                  const renderContext = {
+                    canvasContext: ctx,
+                    viewport: viewport,
+                  };
+
+                  await page.render(renderContext).promise;
+
+                  // Convert canvas to image data URL
+                  const imageDataURL = canvas.toDataURL('image/png');
+
+                  // Push the image data URL to the array
+                  pages.push(imageDataURL);
+                })
+              );
+
+              // Wait for all promises to resolve
+              await Promise.all(renderPromises);
+
+              resolve();
+            });
+          };
+          reader.readAsArrayBuffer(pdfData);
+        });
+
+        console.log("Number of images:", pages.length);
+        return pages;
+      },
       keyboardShortcutsTable: async () => {
         const
           table = document.createElement('table'),
@@ -1997,7 +2043,7 @@ app.ready = async () => {
       var
         files = event;
       files.forEach(file => {
-        if (file.type.includes('image')) {
+        if (file.type.includes('image') || file.type.includes('pdf')) {
           imageFile = file;
         } else if (file.name.endsWith('.box')) {
           boxFile = file;
@@ -2203,7 +2249,7 @@ app.ready = async () => {
         var translationData = null;
         var languageToUse = language;
         // for (const lang of languages) {
-        const languages = /system-lang/.test(language) ? navigator.languages: [language]
+        const languages = /system-lang/.test(language) ? navigator.languages : [language]
         for (const lang of languages) {
           try {
             const response = await fetch(`../../js/lang/${lang}.json`);
@@ -2604,7 +2650,7 @@ app.ready = async () => {
           parallelUploads: 3,
           disablePreviews: true,
           clickable: false,
-          acceptedFiles: "image/*,.box",
+          acceptedFiles: "image/*,.box,application/pdf",
         });
         $html.on('drag dragenter dragover', (event) => {
           event.preventDefault();
@@ -2726,13 +2772,14 @@ app.ready = async () => {
           }
         }
         handler.set.loadingState({ buttons: true });
-
+        var file;
         const
           defaultImageUrl = '../../assets/sampleImage.jpg',
           img = new Image(),
           imageOverlayOptions = {
             opacity: appSettings.behavior.onImageLoad.detectAllLines ? 0.25 : 1
           };
+        if (!map) { handler.create.map('mapid'); }
         if (sample) {
           imageFileName = defaultImageUrl.split('/').pop().split('.').slice(0, -1).join('.');
           imageFileNameForButton = defaultImageUrl;
@@ -2742,6 +2789,30 @@ app.ready = async () => {
           imageFileNameForButton = e;
           filename = e.name;
           file = e;
+        } else if (e.type.includes('pdf')) {
+          imageFileName = e.name.split('.').slice(0, -1).join('.');
+          imageFileNameForButton = e;
+          filename = e.name;
+          PDFpages = await handler.create.imagesFromPDF(e);
+          images = [];
+          PDFpages.forEach((dataURL, index) => {
+            const base64Data = dataURL.split(',')[1];
+            const byteCharacters = atob(base64Data);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+              byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], { type: 'image/png' });
+            images.push(blob);
+          });
+          console.log("number of pages loaded from pdf:", images.length, "pages");
+          handler.notifyUser({
+            title: 'Notification Success',
+            message: `number of pages loaded form pdf: ${images.length}`,
+            type: 'info',
+          });
+          file = images[1];
         } else if (file = this.files[0]) {
           imageFileName = file.name.split('.').slice(0, -1).join('.');
           imageFileNameForButton = file.name;
@@ -2750,8 +2821,8 @@ app.ready = async () => {
 
         handler.load.image(sample ? defaultImageUrl : _URL.createObjectURL(file))
           .then(async img => {
-            // console.log('Image loaded', img);
-            if (!map) { handler.create.map('mapid'); }
+            console.log('Image loaded', img);
+            // if (!map) { handler.create.map('mapid'); }
             map.eachLayer(layer => map.removeLayer(layer));
 
             imageHeight = img.height;
@@ -3153,7 +3224,7 @@ app.ready = async () => {
         map.addLayer(boxLayer);
       },
       detect: async (boxList = []) => {
-        if (!boxList.length) { return await worker.recognize(image._image); }
+        if (!boxList.length) { return await worker.recognize(image._image, { pdf: true }); }
         for (const box of boxList) {
           const layer = boxLayer.getLayer(box.polyid);
           handler.map.disableEditBox(layer);
