@@ -132,6 +132,11 @@ app.ready = async () => {
     $imageViewHeightSlider = $('#imageViewHeightSlider'),
     $balancedText = $('.balance-text, p, .header'),
     $toolbar = $('#custom-controls'),
+    $pageNavigationControls = $('#page-navigation-controls'),
+    $pageNavigationControlsPreviousButton = $('#previousPage'),
+    $pageNavigationControlsCurrent = $('#currentPage'),
+    $pageNavigationControlsCurrentTextLabel = $('#currentPage span'),
+    $pageNavigationControlsNextButton = $('#nextPage'),
 
     // variables
     pressedModifiers = {},
@@ -170,6 +175,8 @@ app.ready = async () => {
     },
     unicodeData,
     imageFile,
+    documentPages = [],
+    currentPageIndex = -1,
     boxFile,
     imageFileInfo = {
       processed: false,
@@ -831,9 +838,8 @@ app.ready = async () => {
 
                   // Convert canvas to image data URL
                   const imageDataURL = canvas.toDataURL('image/png');
-
                   // Push the image data URL to the array
-                  pages.push(imageDataURL);
+                  pages[i] = imageDataURL;
                 })
               );
 
@@ -846,7 +852,6 @@ app.ready = async () => {
           reader.readAsArrayBuffer(pdfData);
         });
 
-        console.log("Number of images:", pages.length);
         return pages;
       },
       keyboardShortcutsTable: async () => {
@@ -1419,7 +1424,7 @@ app.ready = async () => {
       return newBoxes;
     },
     virtualKeyboardKeyPressed: key => {
-      console.log("Button pressed", key);
+      // console.log("Button pressed", key);
       virtualKeyboard.removeButtonTheme(key, 'active')
       let
         currentLayout = virtualKeyboard.options.layoutName,
@@ -1641,6 +1646,22 @@ app.ready = async () => {
         })
     },
     update: {
+      imageNavigationControls: (options) => {
+        if (options.totalPages < 1) {
+          $pageNavigationControls.toggle(false);
+        } else {
+          $pageNavigationControls.toggle(true);
+          $pageNavigationControlsCurrentTextLabel.text(
+            appTranslations['pageNavigationCurrentPageLabel']
+              .replace('${currentPage}', `${options.currentPage + 1}`)
+              .replace('${totalPages}', `${options.totalPages}`)
+          );
+          // options.currentPage <= 1 ?
+          //   $pageNavigationControlsPreviousButton.addClass('disabled') : $pageNavigationControlsPreviousButton.removeClass('disabled');
+          // options.currentPage >= options.totalPages - 1 ?
+          //   $pageNavigationControlsNextButton.addClass('disabled') : $pageNavigationControlsNextButton.removeClass('disabled');
+        }
+      },
       interfaceLanguage: async (lang) => {
         await handler.load.translations(lang);//.then(translationData => {
         // Use the translation data as needed
@@ -2224,14 +2245,14 @@ app.ready = async () => {
           if (response.ok) {
             // File found, do something with the response
             const translationData = await response.json();
-            console.log('Translation data:', translationData);
+            // console.log('Translation data:', translationData);
             return true;
           } else {
             // File not found, load default file
             const defaultResponse = await fetch(`../../js/lang/en-US.json`);
             if (defaultResponse.ok) {
               const defaultTranslationData = await defaultResponse.json();
-              console.log('Default translation data:', defaultTranslationData);
+              // console.log('Default translation data:', defaultTranslationData);
             } else {
               console.error('Default translation file not found');
             }
@@ -2245,6 +2266,98 @@ app.ready = async () => {
       }
     },
     load: {
+      imageCallback: async img => {
+        console.log('Image loaded', img);
+        // if (!map) { handler.create.map('mapid'); }
+        map.eachLayer(layer => map.removeLayer(layer));
+
+        imageHeight = img.height;
+        imageWidth = img.width;
+
+        const
+          bounds = [[0, 0], [parseInt(imageHeight), parseInt(imageWidth)]],
+          bounds2 = [[imageHeight - 300, 0], [imageHeight, imageWidth]],
+          imageOverlayOptions = {
+            opacity: appSettings.behavior.onImageLoad.detectAllLines ? 0.25 : 1
+          };
+        if (image) {
+          await $(image._image).fadeOut(750, async () => {
+            map.removeLayer(image);
+            image = new L.imageOverlay(img.src, bounds, imageOverlayOptions).addTo(map);
+            await $(image._image).fadeIn(500);
+          });
+        } else {
+          map.fitBounds(bounds2);
+          image = new L.imageOverlay(img.src, bounds, imageOverlayOptions).addTo(map);
+          await $(image._image).fadeIn(750);
+        }
+
+        handler.update.imageNavigationControls({ currentPage: currentPageIndex, totalPages: documentPages.length });
+        handler.update.downloadButtonsLabels({
+          boxDownloadButton: imageFileName + '.box',
+          groundTruthDownloadButton: imageFileName + '.gt.txt'
+        });
+      },
+      previousPage: () => {
+        // compare currentPageIndex with documentPages length
+        if (currentPageIndex > 0) {
+          currentPageIndex--;
+        } else {
+          currentPageIndex = documentPages.length - 1;
+        }
+        handler.load.image(_URL.createObjectURL(documentPages[currentPageIndex]))
+          .then(img => handler.load.imageCallback(img))
+          .catch(error => {
+            console.error('Image load failed:', error);
+            const fileExtension = file.name.split('.').pop();
+            handler.notifyUser({
+              title: notificationTypes.error.invalidFileTypeError.title,
+              message: appTranslations['notificationTypeInvalidFileTypeErrorBody']
+                .replace('${fileExtension}', `${fileExtension}`),
+              type: notificationTypes.error.invalidFileTypeError.type,
+              class: notificationTypes.error.invalidFileTypeError.class,
+            });
+          })
+        // remove current box data
+        boxLayer.clearLayers();
+        boxData = [];
+        boxDataInfo.setDirty(false);
+        lineDataInfo.setDirty(false);
+        $groundTruthInputField.val('');
+        handler.destroy.positionSlider();
+        handler.destroy.progressBar();
+        handler.update.colorizedBackground();
+      },
+      nextPage: () => {
+        // compare currentPageIndex with documentPages length
+        if (currentPageIndex < documentPages.length - 1) {
+          currentPageIndex++;
+        } else {
+          currentPageIndex = 0;
+        }
+        handler.load.image(_URL.createObjectURL(documentPages[currentPageIndex]))
+          .then(img => handler.load.imageCallback(img))
+          .catch(error => {
+            console.error('Image load failed:', error);
+            const fileExtension = file.name.split('.').pop();
+            handler.notifyUser({
+              title: notificationTypes.error.invalidFileTypeError.title,
+              message: appTranslations['notificationTypeInvalidFileTypeErrorBody']
+                .replace('${fileExtension}', `${fileExtension}`),
+              type: notificationTypes.error.invalidFileTypeError.type,
+              class: notificationTypes.error.invalidFileTypeError.class,
+            });
+          })
+        // remove current box data
+        boxLayer.clearLayers();
+        boxData = [];
+        boxDataInfo.setDirty(false);
+        lineDataInfo.setDirty(false);
+        $groundTruthInputField.val('');
+        handler.destroy.positionSlider();
+        handler.destroy.progressBar();
+        handler.update.colorizedBackground();
+      },
       translations: async (language) => {
         var translationData = null;
         var languageToUse = language;
@@ -2773,12 +2886,10 @@ app.ready = async () => {
         }
         handler.set.loadingState({ buttons: true });
         var file;
+        documentPages = [];
         const
           defaultImageUrl = '../../assets/sampleImage.jpg',
-          img = new Image(),
-          imageOverlayOptions = {
-            opacity: appSettings.behavior.onImageLoad.detectAllLines ? 0.25 : 1
-          };
+          img = new Image();
         if (!map) { handler.create.map('mapid'); }
         if (sample) {
           imageFileName = defaultImageUrl.split('/').pop().split('.').slice(0, -1).join('.');
@@ -2794,7 +2905,6 @@ app.ready = async () => {
           imageFileNameForButton = e;
           filename = e.name;
           PDFpages = await handler.create.imagesFromPDF(e);
-          images = [];
           PDFpages.forEach((dataURL, index) => {
             const base64Data = dataURL.split(',')[1];
             const byteCharacters = atob(base64Data);
@@ -2804,15 +2914,18 @@ app.ready = async () => {
             }
             const byteArray = new Uint8Array(byteNumbers);
             const blob = new Blob([byteArray], { type: 'image/png' });
-            images.push(blob);
+            documentPages.push(blob);
           });
-          console.log("number of pages loaded from pdf:", images.length, "pages");
+          // log each page to check that the are properly loaded
+          documentPages.forEach((page, index) => {
+          });
           handler.notifyUser({
             title: 'Notification Success',
-            message: `number of pages loaded form pdf: ${images.length}`,
+            message: `number of pages loaded form pdf: ${documentPages.length}`,
             type: 'info',
           });
-          file = images[1];
+          currentPageIndex = 0;
+          file = documentPages[currentPageIndex];
         } else if (file = this.files[0]) {
           imageFileName = file.name.split('.').slice(0, -1).join('.');
           imageFileNameForButton = file.name;
@@ -2820,34 +2933,7 @@ app.ready = async () => {
         }
 
         handler.load.image(sample ? defaultImageUrl : _URL.createObjectURL(file))
-          .then(async img => {
-            console.log('Image loaded', img);
-            // if (!map) { handler.create.map('mapid'); }
-            map.eachLayer(layer => map.removeLayer(layer));
-
-            imageHeight = img.height;
-            imageWidth = img.width;
-
-            const
-              bounds = [[0, 0], [parseInt(imageHeight), parseInt(imageWidth)]],
-              bounds2 = [[imageHeight - 300, 0], [imageHeight, imageWidth]];
-            if (image) {
-              await $(image._image).fadeOut(750, async () => {
-                map.removeLayer(image);
-                image = new L.imageOverlay(img.src, bounds, imageOverlayOptions).addTo(map);
-                await $(image._image).fadeIn(500);
-              });
-            } else {
-              map.fitBounds(bounds2);
-              image = new L.imageOverlay(img.src, bounds, imageOverlayOptions).addTo(map);
-              await $(image._image).fadeIn(750);
-            }
-
-            handler.update.downloadButtonsLabels({
-              boxDownloadButton: imageFileName + '.box',
-              groundTruthDownloadButton: imageFileName + '.gt.txt'
-            });
-          })
+          .then(img => handler.load.imageCallback(img))
           .catch(error => {
             console.error('Image load failed:', error);
             const fileExtension = file.name.split('.').pop();
@@ -3351,7 +3437,6 @@ app.ready = async () => {
       });
       // $groundTruthInputField.on('mousedown', event => {
       //   handler.set.virtualKeyboardInput(event.target.value)
-      //   console.log("here", event.target.value);
       // });
       $textHighlightingEnabledCheckbox.checkbox({
         onChange: () => {
@@ -3390,6 +3475,8 @@ app.ready = async () => {
       $resetButton.on('click', handler.resetAppSettings);
       $useSampleImageButton.on('click', handler.load.sampleImageAndBox);
       $addNewHighligherButton.on('click', handler.addNewHighlighterPattern);
+      $pageNavigationControlsPreviousButton.on('click', handler.load.previousPage);
+      $pageNavigationControlsNextButton.on('click', handler.load.nextPage);
     },
     addBehaviors: () => {
       $groundTruthInputField.focus(() => $groundTruthColorizedOutput.addClass('focused'));
