@@ -254,5 +254,7 @@
     "virtualKeyboardAcuteKeyLabel": "ascuțit  ́",
     "virtualKeyboardKavykaKeyLabel": "kavyka  ꙼",
     "virtualKeyboardCyrillicKeyLabel": "Chirilic",
-    "virtualKeyboardLatinKeyLabel": "Latin"
+    "virtualKeyboardLatinKeyLabel": "Latin",
+
+    "pageNavigationCurrentPageLabel": "Pagina ${currentPage}/${totalPages}"
 }

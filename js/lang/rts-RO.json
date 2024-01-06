@@ -239,5 +239,7 @@
     "virtualKeyboardAcuteKeyLabel": "аскꙋꚏіт  ́",
     "virtualKeyboardKavykaKeyLabel": "кавука  ꙼",
     "virtualKeyboardCyrillicKeyLabel": "Кірілік",
-    "virtualKeyboardLatinKeyLabel": "Латін"
+    "virtualKeyboardLatinKeyLabel": "Латін",
+
+    "pageNavigationCurrentPageLabel": "Пагіна ${currentPage}/${totalPages}"
 }
