@@ -1895,6 +1895,7 @@ app.ready = async () => {
         handler.update.colorizedBackground();
         handler.update.progressBar({ type: 'tagging' });
         lineDataInfo.setDirty(same);
+        documentBoxData[currentPageIndex] = boxData;
         handler.close.popups();
       },
       confidenceScoreField: async (box) => {
@@ -2186,11 +2187,19 @@ app.ready = async () => {
               rectangle.on('edit', handler.editRectangle);
               rectangle.on('click', handler.selectRectangle);
               handler.style.remove(rectangle);
-              boxLayer.addLayer(rectangle);
+              if (documentBoxLayers[dimensions[5]] == undefined) {
+                documentBoxLayers[dimensions[5]] = new L.FeatureGroup();
+                documentBoxData[dimensions[5]] = [];
+              }
+              documentBoxLayers[dimensions[5]].addLayer(rectangle);
+              // boxLayer.addLayer(rectangle);
               box.polyid = boxLayer.getLayerId(rectangle);
-              boxData.push(box);
+              documentBoxData[dimensions[5]].push(box);
+              // boxData.push(box);
             }
           });
+        boxLayer = documentBoxLayers[0];
+        boxData = documentBoxData[0];
       },
       char_or_line: (content) => {
         // TODO: handle char_or_line format
@@ -2287,7 +2296,6 @@ app.ready = async () => {
           boxLayer = documentBoxLayers[newPageIndex];
           map.addLayer(boxLayer);
           emptyBoxLayer = false;
-          // handler.focusBoxID(handler.getBoxContent().polyid);
         }
 
         boxDataInfo.setDirty(false);
@@ -2320,7 +2328,12 @@ app.ready = async () => {
               resolve();
             });
           }
+        }).then(() => {
+          if (boxData[0] != undefined) {
+            handler.focusBoxID(boxData[0].polyid);
+          }
         });
+
 
         handler.update.imageNavigationControls({ currentPage: newPageIndex, totalPages: documentPages.length });
 
@@ -2338,16 +2351,19 @@ app.ready = async () => {
         handler.update.colorizedBackground();
 
         // Load Tesseract Worker
-        await handler.load.tesseractWorker();
-        if (appSettings.behavior.onImageLoad.detectAllLines && !sample && !skipProcessing && emptyBoxLayer) {
-          await handler.generate.initialBoxes(includeSuggestions = appSettings.behavior.onImageLoad.includeTextForDetectedLines);
+        if (worker == undefined) {
+
+          await handler.load.tesseractWorker();
+          if (appSettings.behavior.onImageLoad.detectAllLines && !sample && !skipProcessing && emptyBoxLayer) {
+            await handler.generate.initialBoxes(includeSuggestions = appSettings.behavior.onImageLoad.includeTextForDetectedLines);
+          }
         }
-        handler.set.loadingState({ main: false, buttons: false });
-        if (appSettings.behavior.onImageLoad.detectAllLines) {
-          handler.focusGroundTruthField();
-        }
-        await $(image._image).animate({ opacity: 1 }, 500);
-        imageFileInfo.setProcessed();
+          handler.set.loadingState({ main: false, buttons: false });
+          if (appSettings.behavior.onImageLoad.detectAllLines) {
+            handler.focusGroundTruthField();
+          }
+          await $(image._image).animate({ opacity: 1 }, 500);
+          imageFileInfo.setProcessed();
 
         currentPageIndex = newPageIndex;
       },
@@ -3200,9 +3216,14 @@ app.ready = async () => {
         event?.preventDefault();
         var content = '';
         if (BoxFileType.WORDSTR === boxFileType) {
-          for (const box of boxData) {
-            content = `${content}WordStr ${box.x1} ${box.y1} ${box.x2} ${box.y2} 0 #${box.text}\n`;
-            content = `${content}\t ${box.x2 + 1} ${box.y1} ${box.x2 + 5} ${box.y2} 0\n`;
+          if (documentBoxData.length <= 1) {
+            documentBoxData[0] = boxData;
+          }
+          for (let page = 0; page < documentBoxData.length; ++page) {
+            for (const box of documentBoxData[page]) {
+              content = `${content}WordStr ${box.x1} ${box.y1} ${box.x2} ${box.y2} ${page} #${box.text}\n`;
+              content = `${content}\t ${box.x2 + 1} ${box.y1} ${box.x2 + 5} ${box.y2} ${page}\n`;
+            }
           }
         }
         return content;
@@ -3211,8 +3232,14 @@ app.ready = async () => {
         event?.preventDefault();
         var content = '';
         if (BoxFileType.WORDSTR === boxFileType) {
-          for (const box of boxData) {
-            content = `${content}${box.text}\n`;
+          if (documentBoxData.length <= 1) {
+            documentBoxData[0] = boxData;
+          }
+          for (let page = 0; page < documentBoxData.length; ++page) {
+            for (const box of documentBoxData[page]) {
+              // for (const box of boxData) {
+              content = `${content}${box.text}\n`;
+            }
           }
         }
         return content;
