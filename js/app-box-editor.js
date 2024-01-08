@@ -1647,6 +1647,9 @@ app.ready = async () => {
             translation = appTranslations[key];
           element.innerText = translation;
         })
+      // elements that are updated by methods
+      handler.update.imageNavigationControls({ currentPage: currentPageIndex, totalPages: documentPages.length });
+
     },
     update: {
       imageNavigationControls: (options) => {
