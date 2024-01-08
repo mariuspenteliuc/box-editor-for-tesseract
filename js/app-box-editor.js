@@ -159,6 +159,8 @@ app.ready = async () => {
     imageFileNameForButton,
     boxFileName,
     boxFileNameForButton,
+    documentBoxData = [],
+    documentBoxLayers = [],
     boxData = [],
     boxDataInfo = {
       dirty: false,
@@ -176,7 +178,8 @@ app.ready = async () => {
     unicodeData,
     imageFile,
     documentPages = [],
-    currentPageIndex = -1,
+    currentPageIndex = 0,
+    newPageIndex = 0,
     boxFile,
     imageFileInfo = {
       processed: false,
@@ -2266,10 +2269,28 @@ app.ready = async () => {
       }
     },
     load: {
-      imageCallback: async img => {
-        console.log('Image loaded', img);
+      imageCallback: async (img, pdfPages = false) => {
+        // console.log('Image loaded', img);
         // if (!map) { handler.create.map('mapid'); }
-        map.eachLayer(layer => map.removeLayer(layer));
+        documentBoxData[currentPageIndex] = boxData;
+        documentBoxLayers[currentPageIndex] = boxLayer;
+        emptyBoxLayer = true;
+        map.removeLayer(boxLayer);
+        boxLayer = new L.FeatureGroup();
+        boxData = [];
+        if (documentBoxData[newPageIndex] && documentBoxData[newPageIndex].length !== 0) {
+          boxData = documentBoxData[newPageIndex];
+          // boxLayer = new L.FeatureGroup(documentBoxLayers[newPageIndex]);
+          boxLayer = documentBoxLayers[newPageIndex];
+          map.addLayer(boxLayer);
+          emptyBoxLayer = false;
+          // handler.focusBoxID(handler.getBoxContent().polyid);
+        }
+
+        boxDataInfo.setDirty(false);
+        lineDataInfo.setDirty(false);
+
+        // map.eachLayer(layer => map.removeLayer(layer));
 
         imageHeight = img.height;
         imageWidth = img.width;
@@ -2280,33 +2301,62 @@ app.ready = async () => {
           imageOverlayOptions = {
             opacity: appSettings.behavior.onImageLoad.detectAllLines ? 0.25 : 1
           };
-        if (image) {
-          await $(image._image).fadeOut(750, async () => {
-            map.removeLayer(image);
+        await new Promise((resolve, reject) => {
+          if (image) {
+            $(image._image).fadeOut(pdfPages ? 100 : 750, async () => {
+              map.removeLayer(image);
+              image = new L.imageOverlay(img.src, bounds, imageOverlayOptions).addTo(map);
+              $(image._image).fadeIn(pdfPages ? 100 : 500, () => {
+                resolve();
+              });
+            });
+          } else {
+            map.fitBounds(bounds2);
             image = new L.imageOverlay(img.src, bounds, imageOverlayOptions).addTo(map);
-            await $(image._image).fadeIn(500);
-          });
-        } else {
-          map.fitBounds(bounds2);
-          image = new L.imageOverlay(img.src, bounds, imageOverlayOptions).addTo(map);
-          await $(image._image).fadeIn(750);
-        }
+            $(image._image).fadeIn(750, () => {
+              resolve();
+            });
+          }
+        });
 
-        handler.update.imageNavigationControls({ currentPage: currentPageIndex, totalPages: documentPages.length });
+        handler.update.imageNavigationControls({ currentPage: newPageIndex, totalPages: documentPages.length });
+
         handler.update.downloadButtonsLabels({
           boxDownloadButton: imageFileName + '.box',
           groundTruthDownloadButton: imageFileName + '.gt.txt'
         });
+
+
+        boxDataInfo.setDirty(false);
+        lineDataInfo.setDirty(false);
+        $groundTruthInputField.val('');
+        handler.destroy.positionSlider();
+        handler.destroy.progressBar();
+        handler.update.colorizedBackground();
+
+        // Load Tesseract Worker
+        await handler.load.tesseractWorker();
+        if (appSettings.behavior.onImageLoad.detectAllLines && !sample && !skipProcessing && emptyBoxLayer) {
+          await handler.generate.initialBoxes(includeSuggestions = appSettings.behavior.onImageLoad.includeTextForDetectedLines);
+        }
+        handler.set.loadingState({ main: false, buttons: false });
+        if (appSettings.behavior.onImageLoad.detectAllLines) {
+          handler.focusGroundTruthField();
+        }
+        await $(image._image).animate({ opacity: 1 }, 500);
+        imageFileInfo.setProcessed();
+
+        currentPageIndex = newPageIndex;
       },
       previousPage: () => {
         // compare currentPageIndex with documentPages length
         if (currentPageIndex > 0) {
-          currentPageIndex--;
+          newPageIndex = currentPageIndex - 1;
         } else {
-          currentPageIndex = documentPages.length - 1;
+          newPageIndex = documentPages.length - 1;
         }
-        handler.load.image(_URL.createObjectURL(documentPages[currentPageIndex]))
-          .then(img => handler.load.imageCallback(img))
+        handler.load.image(_URL.createObjectURL(documentPages[newPageIndex]))
+          .then(img => handler.load.imageCallback(img, pdfPages = true))
           .catch(error => {
             console.error('Image load failed:', error);
             const fileExtension = file.name.split('.').pop();
@@ -2319,10 +2369,7 @@ app.ready = async () => {
             });
           })
         // remove current box data
-        boxLayer.clearLayers();
-        boxData = [];
-        boxDataInfo.setDirty(false);
-        lineDataInfo.setDirty(false);
+        // boxLayer.clearLayers();
         $groundTruthInputField.val('');
         handler.destroy.positionSlider();
         handler.destroy.progressBar();
@@ -2331,12 +2378,12 @@ app.ready = async () => {
       nextPage: () => {
         // compare currentPageIndex with documentPages length
         if (currentPageIndex < documentPages.length - 1) {
-          currentPageIndex++;
+          newPageIndex = currentPageIndex + 1;
         } else {
-          currentPageIndex = 0;
+          newPageIndex = 0;
         }
-        handler.load.image(_URL.createObjectURL(documentPages[currentPageIndex]))
-          .then(img => handler.load.imageCallback(img))
+        handler.load.image(_URL.createObjectURL(documentPages[newPageIndex]))
+          .then(img => handler.load.imageCallback(img, pdfPages = true))
           .catch(error => {
             console.error('Image load failed:', error);
             const fileExtension = file.name.split('.').pop();
@@ -2349,10 +2396,7 @@ app.ready = async () => {
             });
           })
         // remove current box data
-        boxLayer.clearLayers();
-        boxData = [];
-        boxDataInfo.setDirty(false);
-        lineDataInfo.setDirty(false);
+        // boxLayer.clearLayers();
         $groundTruthInputField.val('');
         handler.destroy.positionSlider();
         handler.destroy.progressBar();
@@ -2946,27 +2990,27 @@ app.ready = async () => {
             });
           })
         // remove current box data
-        boxLayer.clearLayers();
-        boxData = [];
-        boxDataInfo.setDirty(false);
-        lineDataInfo.setDirty(false);
-        $groundTruthInputField.val('');
-        handler.destroy.positionSlider();
-        handler.destroy.progressBar();
-        handler.update.colorizedBackground();
+        // boxLayer.clearLayers();
+        // boxData = [];
+        // boxDataInfo.setDirty(false);
+        // lineDataInfo.setDirty(false);
+        // $groundTruthInputField.val('');
+        // handler.destroy.positionSlider();
+        // handler.destroy.progressBar();
+        // handler.update.colorizedBackground();
 
-        // Load Tesseract Worker
-        await handler.load.tesseractWorker();
+        // // Load Tesseract Worker
+        // await handler.load.tesseractWorker();
 
-        if (appSettings.behavior.onImageLoad.detectAllLines && !sample && !skipProcessing) {
-          await handler.generate.initialBoxes(includeSuggestions = appSettings.behavior.onImageLoad.includeTextForDetectedLines);
-        }
-        handler.set.loadingState({ main: false, buttons: false });
-        if (appSettings.behavior.onImageLoad.detectAllLines) {
-          handler.focusGroundTruthField();
-        }
-        await $(image._image).animate({ opacity: 1 }, 500);
-        imageFileInfo.setProcessed();
+        // if (appSettings.behavior.onImageLoad.detectAllLines && !sample && !skipProcessing) {
+        //   await handler.generate.initialBoxes(includeSuggestions = appSettings.behavior.onImageLoad.includeTextForDetectedLines);
+        // }
+        // handler.set.loadingState({ main: false, buttons: false });
+        // if (appSettings.behavior.onImageLoad.detectAllLines) {
+        //   handler.focusGroundTruthField();
+        // }
+        // await $(image._image).animate({ opacity: 1 }, 500);
+        // imageFileInfo.setProcessed();
 
         return true;
 
