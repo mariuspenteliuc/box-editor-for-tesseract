@@ -828,7 +828,7 @@ app.ready = async () => {
                 pdf.getPage(i + 1).then(async (page) => {
                   const canvas = document.createElement('canvas');
                   const ctx = canvas.getContext('2d');
-                  const viewport = page.getViewport({ scale: 1.0 });
+                  const viewport = page.getViewport({ scale: 4.0 });
                   canvas.height = viewport.height;
                   canvas.width = viewport.width;
 
