@@ -2331,9 +2331,9 @@ app.ready = async () => {
         }).then(() => {
           currentPageIndex = newPageIndex;
           if (documentBoxData[newPageIndex] && documentBoxData[newPageIndex].length !== 0) {
-          if (boxData[0] != undefined) {
+            if (boxData[0] != undefined) {
               handler.getBoxContent()
-            handler.focusBoxID(boxData[0].polyid);
+              handler.focusBoxID(boxData[0].polyid);
             } else {
               $groundTruthInputField.val('');
               handler.destroy.positionSlider();
@@ -2363,12 +2363,12 @@ app.ready = async () => {
             await handler.generate.initialBoxes(includeSuggestions = appSettings.behavior.onImageLoad.includeTextForDetectedLines);
           }
         }
-          handler.set.loadingState({ main: false, buttons: false });
-          if (appSettings.behavior.onImageLoad.detectAllLines) {
-            handler.focusGroundTruthField();
-          }
-          await $(image._image).animate({ opacity: 1 }, 500);
-          imageFileInfo.setProcessed();
+        handler.set.loadingState({ main: false, buttons: false });
+        if (appSettings.behavior.onImageLoad.detectAllLines) {
+          handler.focusGroundTruthField();
+        }
+        await $(image._image).animate({ opacity: 1 }, 500);
+        imageFileInfo.setProcessed();
 
       },
       previousPage: () => {
@@ -3240,9 +3240,15 @@ app.ready = async () => {
             documentBoxData[0] = boxData;
           }
           for (let page = 0; page < documentBoxData.length; ++page) {
-            for (const box of documentBoxData[page]) {
-              // for (const box of boxData) {
-              content = `${content}${box.text}\n`;
+            // Check if the page data exists and is not empty
+            if (documentBoxData[page] && documentBoxData[page].length > 0) {
+              content += `--- Start of Page ${page + 1} ---\n`;
+              for (const box of documentBoxData[page]) {
+                if (box) { // Check if the box exists
+                  content = `${content}${box.text}\n`;
+                }
+              }
+              content += `--- End of Page ${page + 1} ---\n`;
             }
           }
         }
