@@ -2329,8 +2329,17 @@ app.ready = async () => {
             });
           }
         }).then(() => {
+          currentPageIndex = newPageIndex;
+          if (documentBoxData[newPageIndex] && documentBoxData[newPageIndex].length !== 0) {
           if (boxData[0] != undefined) {
+              handler.getBoxContent()
             handler.focusBoxID(boxData[0].polyid);
+            } else {
+              $groundTruthInputField.val('');
+              handler.destroy.positionSlider();
+              handler.destroy.progressBar();
+              handler.update.colorizedBackground();
+            }
           }
         });
 
@@ -2345,10 +2354,6 @@ app.ready = async () => {
 
         boxDataInfo.setDirty(false);
         lineDataInfo.setDirty(false);
-        $groundTruthInputField.val('');
-        handler.destroy.positionSlider();
-        handler.destroy.progressBar();
-        handler.update.colorizedBackground();
 
         // Load Tesseract Worker
         if (worker == undefined) {
@@ -2365,7 +2370,6 @@ app.ready = async () => {
           await $(image._image).animate({ opacity: 1 }, 500);
           imageFileInfo.setProcessed();
 
-        currentPageIndex = newPageIndex;
       },
       previousPage: () => {
         // compare currentPageIndex with documentPages length
@@ -3506,6 +3510,7 @@ app.ready = async () => {
     bindInputs: () => {
       handler.bindColorizerOnInput();
       $groundTruthInputField.on('input', event => {
+        event.preventDefault();
         lineDataInfo.setDirty(true);
         handler.set.virtualKeyboardInput(event.target.value);
       });
