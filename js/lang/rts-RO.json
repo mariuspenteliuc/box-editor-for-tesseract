@@ -23,7 +23,8 @@
     "languageModelPickerPrompt": "Алеџеꚏꙇ꙼ ꙋн Модел Лінгвістік",
     "progressIndicatorUpdatingText": "Модіфікате: {value} дін {total} / {percent}%",
     "progressIndicatorTaggingText": "Етікетате: {value} дін {total} / {percent}%",
-    "progressIndicatorAnalyzingText": "Аналіzаре Імаџіне: {percent}%",
+    "progressIndicatorAnalyzingImageText": "Аналіzаре Імаџіне: {percent}%",
+    "progressIndicatorAnalyzingPageText": "Аналіzаре Паџінъ: {percent}%",
     "progressIndicatorRegeneratingText": "Реџенераре Сꙋџесті де Текст...",
     "formGroundTruthTextLabel": "Текст",
     "formGroundTruthConfidenceLabel": "Ꙟнкредере ꙟн сꙋџестіе",
@@ -99,7 +100,7 @@
     "settingsMenuTextHighlightingAddPatternLabel": "Адаꙋгъ Експресіе",
     "settingsMenuTextHighlightingPreviewLabel": "Превіzꙋаліzаре",
     "settingsMenuHelpHeader": "Чꙋм се фолосеште Едіторꙋл де касете",
-    "settingsMenuHelpDescription1": "Пентрꙋ а ꙟнчепе, ꙟнкъркаꚏꙇ꙼ о імаџіне саꙋ ꙋтіліzаꚏꙇ꙼ егzемплꙋл прегътіт апъсѫнд пе бꙋтонꙋл де маі жос. Селектаꚏꙇ꙼ бꙋтоанеле дін zона де контрол ъентрꙋ а ефектꙋа акꚏіꙋнꙇ꙼ спечіфіче, кꙋм ар фі џенерареа аꙋтоматъ а касетелор де текст ші інклꙋдереа де сꙋџестіі.",
+    "settingsMenuHelpDescription1": "Пентрꙋ а ꙟнчепе, ꙟнкъркаꚏꙇ꙼ о імаџіне, ꙋн докꙋмент ПДФ саꙋ ꙋтіліzаꚏꙇ꙼ егzемплꙋл прегътіт апъсѫнд пе бꙋтонꙋл де маі жос. Селектаꚏꙇ꙼ бꙋтоанеле дін zона де контрол ъентрꙋ а ефектꙋа акꚏіꙋнꙇ꙼ спечіфіче, кꙋм ар фі џенерареа аꙋтоматъ а касетелор де текст ші інклꙋдереа де сꙋџестіі.",
     "settingsMenuHelpDescription2": "Одатъ че касетеле де текст аꙋ фост креате, пꙋтеꚏꙇ꙼ ꙟнчепе етікетареа. Фіе інтродꙋчеꚏꙇ꙼ манꙋал діменсіꙋніле касетелор ꙟн кѫмпꙋріле пентрꙋ коордонате, фіе траџеꚏі де мѫнереле касетелор (дꙋпъ че аꚏꙇ꙼ селектат ꙋна) пентрꙋ а модіфіка діменсіꙋнеа саꙋ поzіꚏіа ачестора. Фолосіꚏꙇ꙼ інстрꙋментеле де пе імаџіне пентрꙋ а ꙟмпърꚏі каселете ꙟн колоане, а десена алтеле ноꙇ꙼ саꙋ а штерџе касетеле ꙟн плꙋс.",
     "settingsMenuHelpDescription3": "Кѫнд аꚏꙇ꙼ термінат де адъꙋгат ші комплетат ксетеле, дескъркаꚏꙇ꙼ фішіереле .box ші .gt.txt ші фолосіꚏꙇ꙼'ле пентрꙋ а антрена пропріꙋл модел ОКР.",
     "settingsMenuHelpUseSampleLabel": "Ꙋтіліzаꚏі егzемплꙋл",
@@ -109,6 +110,8 @@
     "settingsMenuHelpToolbarActionsRedetectAllBoxesLabel": "Редетектеаzъ тоате рѫндꙋріле віzібіле ші реџенереаzъ тоате касетеле.",
     "settingsMenuHelpToolbarActionsRedectedSelectedBoxLabel": "Редетектеаzъ рѫндꙋл селектат ші реџенереаzъ касета.",
     "settingsMenuHelpToolbarActionsLanguageModelDropdownLabel": "Скімбъ моделꙋл лінгвістік фолосіт пентрꙋ сꙋџестііле де текст.",
+    "settingsMenuHelpToolbarActionsDocumentPageNavigationPrevious": "Навігеаzъ ла паџіна антеріо́ръ ал ꙋнꙋі докꙋмент ПДФ.",
+    "settingsMenuHelpToolbarActionsDocumentPageNavigationNext": "Навігеаzъ ла паџіна ꙋрмъто́ре ал ꙋнꙋі докꙋмент ПДФ.",
     "settingsMenuHelpImageActionsHeader": "Акꚏіꙋні пе Імаџіне:",
     "settingsMenuHelpImageActionsZoomInLabel": "Мъреште імаџінеа.",
     "settingsMenuHelpImageActionsZoomOutLabel": "Мікшореаzъ імаџінеа.",
@@ -148,6 +151,8 @@
     "settingsMenuImageViewSliderLabelHuge": "Ꙋріашъ",
     "settingsMenuImageViewSliderClippingWarning": "Ꙋнеле бꙋтоане але едіторꙋлꙋі с'ар пꙋтеа съ нꙋ îнкапъ.",
     "updateNotificationLabel": "ноꙋ",
+    "updateNotificationPDFSupportHeader": "Сꙋпорт ПДФ",
+    "updateNotificationPDFSupportDescription": "Акꙋм пꙋтеꚏі ꙟнкърка ші етікета докꙋменте ПДФ. Аплікаꚏіа ва афіша контро́ле де навігаре ші ва сепара аꙋтомат касетеле ші текстеле де реферінꚏъ пе паџінꙇ꙼.",
     "keyboardShortcutsTableHeaderEnabled": "",
     "keyboardShortcutsTableHeaderAction": "Акꚏіꙋне",
     "keyboardShortcutsTableHeaderKeyCombo": "Комбінаꚏіе тасте",
@@ -239,5 +244,7 @@
     "virtualKeyboardAcuteKeyLabel": "аскꙋꚏіт  ́",
     "virtualKeyboardKavykaKeyLabel": "кавука  ꙼",
     "virtualKeyboardCyrillicKeyLabel": "Кірілік",
-    "virtualKeyboardLatinKeyLabel": "Латін"
+    "virtualKeyboardLatinKeyLabel": "Латін",
+
+    "pageNavigationCurrentPageLabel": "Пагіна ${currentPage}/${totalPages}"
 }

@@ -3,7 +3,7 @@ window.app = {
 };
 
 class Box {
-  constructor({ text, x1, x2, y1, y2, polyid, visited = false, isModelGeneratedText, modelConfidenceScore = null }) {
+  constructor({ text, x1, x2, y1, y2, polyid, visited = false, committed = false, isModelGeneratedText, modelConfidenceScore = null }) {
     this.text = text;
     this.x1 = x1;
     this.x2 = x2;
@@ -12,7 +12,7 @@ class Box {
     this.polyid = polyid;
     this.filled = text != '' ? true : false;
     this.visited = visited;
-    this.committed = false;
+    this.committed = committed;
     this.isModelGeneratedText = isModelGeneratedText;
     this.modelConfidenceScore = modelConfidenceScore;
   }
@@ -132,6 +132,11 @@ app.ready = async () => {
     $imageViewHeightSlider = $('#imageViewHeightSlider'),
     $balancedText = $('.balance-text, p, .header'),
     $toolbar = $('#custom-controls'),
+    $pageNavigationControls = $('#page-navigation-controls'),
+    $pageNavigationControlsPreviousButton = $('#previousPage'),
+    $pageNavigationControlsCurrent = $('#currentPage'),
+    $pageNavigationControlsCurrentTextLabel = $('#currentPage span'),
+    $pageNavigationControlsNextButton = $('#nextPage'),
 
     // variables
     pressedModifiers = {},
@@ -154,6 +159,8 @@ app.ready = async () => {
     imageFileNameForButton,
     boxFileName,
     boxFileNameForButton,
+    documentBoxData = [],
+    documentBoxLayers = [],
     boxData = [],
     boxDataInfo = {
       dirty: false,
@@ -170,6 +177,9 @@ app.ready = async () => {
     },
     unicodeData,
     imageFile,
+    documentPages = [],
+    currentPageIndex = 0,
+    newPageIndex = 0,
     boxFile,
     imageFileInfo = {
       processed: false,
@@ -783,18 +793,21 @@ app.ready = async () => {
         const currentDate = new Date();
 
         $('.updateNotification')
-          .each(() => {
+          .each((index, element) => {
             const
-              releaseDate = new Date($(this).attr('data-release-date')),
-              removeDays = parseInt($(this).attr('data-expire-notification')),
+              releaseDate = new Date($(element).attr('data-release-date')),
+              removeDays = parseInt($(element).attr('data-expire-notification')),
+              currentDate = new Date(),
               timeDifference = currentDate - releaseDate,
               daysDifference = timeDifference / (1000 * 60 * 60 * 24),
-              parent = $(this)[0].parentElement;
+              parent = element.parentElement;
 
             if (daysDifference >= removeDays) {
               try {
-                console.info(`Notification badge removed from: ${parent.attributes['id']}, ${parent.attributes['class'].textContent}, ${parent.outerHTML}`)
-                $(this).remove();
+                const parentId = parent.attributes['id'] ? parent.attributes['id'] : 'No ID';
+                const parentClass = parent.attributes['class'] ? parent.attributes['class'].textContent : 'No Class';
+                console.info(`Notification badge removed from: ${parentId}, ${parentClass}, ${parent.outerHTML}`)
+                $(element).remove();
               } catch (error) {
                 console.error(error);
               }
@@ -803,6 +816,50 @@ app.ready = async () => {
       },
     },
     create: {
+      imagesFromPDF: async (pdfData) => {
+        const reader = new FileReader();
+        const pages = [];
+
+        await new Promise((resolve, reject) => {
+          reader.onload = async function () {
+            const typedArray = new Uint8Array(this.result);
+            pdfjsLib.getDocument(typedArray).promise.then(async function (pdf) {
+              const numPages = pdf.numPages;
+
+              // Create an array of promises for each page rendering
+              const renderPromises = Array.from({ length: numPages }, (_, i) =>
+                pdf.getPage(i + 1).then(async (page) => {
+                  const canvas = document.createElement('canvas');
+                  const ctx = canvas.getContext('2d');
+                  const viewport = page.getViewport({ scale: 4.0 });
+                  canvas.height = viewport.height;
+                  canvas.width = viewport.width;
+
+                  const renderContext = {
+                    canvasContext: ctx,
+                    viewport: viewport,
+                  };
+
+                  await page.render(renderContext).promise;
+
+                  // Convert canvas to image data URL
+                  const imageDataURL = canvas.toDataURL('image/png');
+                  // Push the image data URL to the array
+                  pages[i] = imageDataURL;
+                })
+              );
+
+              // Wait for all promises to resolve
+              await Promise.all(renderPromises);
+
+              resolve();
+            });
+          };
+          reader.readAsArrayBuffer(pdfData);
+        });
+
+        return pages;
+      },
       keyboardShortcutsTable: async () => {
         const
           table = document.createElement('table'),
@@ -1373,7 +1430,7 @@ app.ready = async () => {
       return newBoxes;
     },
     virtualKeyboardKeyPressed: key => {
-      console.log("Button pressed", key);
+      // console.log("Button pressed", key);
       virtualKeyboard.removeButtonTheme(key, 'active')
       let
         currentLayout = virtualKeyboard.options.layoutName,
@@ -1593,8 +1650,27 @@ app.ready = async () => {
             translation = appTranslations[key];
           element.innerText = translation;
         })
+      // elements that are updated by methods
+      handler.update.imageNavigationControls({ currentPage: currentPageIndex, totalPages: documentPages.length });
+
     },
     update: {
+      imageNavigationControls: (options) => {
+        if (options.totalPages < 1) {
+          $pageNavigationControls.toggle(false);
+        } else {
+          $pageNavigationControls.toggle(true);
+          $pageNavigationControlsCurrentTextLabel.text(
+            appTranslations['pageNavigationCurrentPageLabel']
+              .replace('${currentPage}', `${options.currentPage + 1}`)
+              .replace('${totalPages}', `${options.totalPages}`)
+          );
+          // options.currentPage <= 1 ?
+          //   $pageNavigationControlsPreviousButton.addClass('disabled') : $pageNavigationControlsPreviousButton.removeClass('disabled');
+          // options.currentPage >= options.totalPages - 1 ?
+          //   $pageNavigationControlsNextButton.addClass('disabled') : $pageNavigationControlsNextButton.removeClass('disabled');
+        }
+      },
       interfaceLanguage: async (lang) => {
         await handler.load.translations(lang);//.then(translationData => {
         // Use the translation data as needed
@@ -1733,7 +1809,7 @@ app.ready = async () => {
             $progressSlider.progress({
               value: options.progress,
               total: 1,
-              text: { active: appTranslations['progressIndicatorAnalyzingText'], }
+              text: { active: documentPages.length > 1 ? appTranslations['progressIndicatorAnalyzingPageText'] : appTranslations['progressIndicatorAnalyzingImageText'], }
             });
           } else if (/initializingWorker/.test(options.type)) {
             $progressSlider.progress({
@@ -1752,6 +1828,11 @@ app.ready = async () => {
         }
       },
       slider: (options) => {
+        if (documentBoxData[currentPageIndex] != undefined && documentBoxData[currentPageIndex].length < 2) {
+          handler.destroy.positionSlider(); return;
+          // } else {
+          //   handler.init.slider();
+        }
         if (options.max) handler.init.slider();
         if (options.value) $positionSlider.slider('set value', options.value, fireChange = false);
         if (options.min) $positionSlider.slider('setting', 'min', options.min);
@@ -1783,6 +1864,9 @@ app.ready = async () => {
         newData.polyid = polyid;
         // check if data is different
         newData.committed = oldData.committed || !oldData.equals(newData);
+        if (newData.committed) {
+          boxData[oldBoxIndex] = newData;
+        }
         boxData[oldBoxIndex] = newData;
         boxDataInfo.setDirty(true);
         lineDataInfo.setDirty(false);
@@ -1821,7 +1905,9 @@ app.ready = async () => {
         handler.focusGroundTruthField();
         handler.update.colorizedBackground();
         handler.update.progressBar({ type: 'tagging' });
-        lineDataInfo.setDirty(same);
+        // lineDataInfo.setDirty(same);
+        // lineDataInfo.setDirty(!same && !selectedBox.committed);
+        documentBoxData[currentPageIndex] = boxData;
         handler.close.popups();
       },
       confidenceScoreField: async (box) => {
@@ -1997,7 +2083,7 @@ app.ready = async () => {
       var
         files = event;
       files.forEach(file => {
-        if (file.type.includes('image')) {
+        if (file.type.includes('image') || file.type.includes('pdf')) {
           imageFile = file;
         } else if (file.name.endsWith('.box')) {
           boxFile = file;
@@ -2113,11 +2199,19 @@ app.ready = async () => {
               rectangle.on('edit', handler.editRectangle);
               rectangle.on('click', handler.selectRectangle);
               handler.style.remove(rectangle);
-              boxLayer.addLayer(rectangle);
+              if (documentBoxLayers[dimensions[5]] == undefined) {
+                documentBoxLayers[dimensions[5]] = new L.FeatureGroup();
+                documentBoxData[dimensions[5]] = [];
+              }
+              documentBoxLayers[dimensions[5]].addLayer(rectangle);
+              // boxLayer.addLayer(rectangle);
               box.polyid = boxLayer.getLayerId(rectangle);
-              boxData.push(box);
+              documentBoxData[dimensions[5]].push(box);
+              // boxData.push(box);
             }
           });
+        boxLayer = documentBoxLayers[0];
+        boxData = documentBoxData[0];
       },
       char_or_line: (content) => {
         // TODO: handle char_or_line format
@@ -2178,14 +2272,14 @@ app.ready = async () => {
           if (response.ok) {
             // File found, do something with the response
             const translationData = await response.json();
-            console.log('Translation data:', translationData);
+            // console.log('Translation data:', translationData);
             return true;
           } else {
             // File not found, load default file
             const defaultResponse = await fetch(`../../js/lang/en-US.json`);
             if (defaultResponse.ok) {
               const defaultTranslationData = await defaultResponse.json();
-              console.log('Default translation data:', defaultTranslationData);
+              // console.log('Default translation data:', defaultTranslationData);
             } else {
               console.error('Default translation file not found');
             }
@@ -2199,11 +2293,155 @@ app.ready = async () => {
       }
     },
     load: {
+      imageCallback: async (img, pdfPages = false) => {
+        // console.log('Image loaded', img);
+        // if (!map) { handler.create.map('mapid'); }
+        documentBoxData[currentPageIndex] = boxData;
+        documentBoxLayers[currentPageIndex] = boxLayer;
+        emptyBoxLayer = true;
+        map.removeLayer(boxLayer);
+        // map.eachLayer(layer => map.removeLayer(layer));
+        boxLayer = new L.FeatureGroup();
+        boxData = [];
+        if (documentBoxData[newPageIndex] && documentBoxData[newPageIndex].length !== 0) {
+          boxData = documentBoxData[newPageIndex];
+          // boxLayer = new L.FeatureGroup(documentBoxLayers[newPageIndex]);
+          boxLayer = documentBoxLayers[newPageIndex];
+          emptyBoxLayer = false;
+        }
+        map.addLayer(boxLayer);
+
+        boxDataInfo.setDirty(false);
+        lineDataInfo.setDirty(false);
+
+
+        imageHeight = img.height;
+        imageWidth = img.width;
+
+        const
+          bounds = [[0, 0], [parseInt(imageHeight), parseInt(imageWidth)]],
+          bounds2 = [[imageHeight - 300, 0], [imageHeight, imageWidth]],
+          imageOverlayOptions = {
+            opacity: appSettings.behavior.onImageLoad.detectAllLines ? 0.25 : 1
+          };
+        await new Promise((resolve, reject) => {
+          if (image) {
+            $(image._image).fadeOut(pdfPages ? 100 : 750, async () => {
+              map.removeLayer(image);
+              image = new L.imageOverlay(img.src, bounds, imageOverlayOptions).addTo(map);
+              $(image._image).fadeIn(pdfPages ? 100 : 500, () => {
+                resolve();
+              });
+            });
+          } else {
+            map.fitBounds(bounds2);
+            image = new L.imageOverlay(img.src, bounds, imageOverlayOptions).addTo(map);
+            $(image._image).fadeIn(750, () => {
+              resolve();
+            });
+          }
+        }).then(() => {
+          currentPageIndex = newPageIndex;
+          if (documentBoxData[newPageIndex] && documentBoxData[newPageIndex].length !== 0) {
+            if (boxData[0] != undefined) {
+              handler.getBoxContent()
+              handler.focusBoxID(boxData[0].polyid);
+            } else {
+              $groundTruthInputField.val('');
+              handler.destroy.positionSlider();
+              handler.destroy.progressBar();
+              handler.update.colorizedBackground();
+            }
+          }
+        });
+
+
+        handler.update.imageNavigationControls({ currentPage: newPageIndex, totalPages: documentPages.length });
+
+        handler.update.downloadButtonsLabels({
+          boxDownloadButton: imageFileName + '.box',
+          groundTruthDownloadButton: imageFileName + '.gt.txt'
+        });
+
+
+        boxDataInfo.setDirty(false);
+        lineDataInfo.setDirty(false);
+
+        // Load Tesseract Worker
+        if (worker == undefined) {
+
+          await handler.load.tesseractWorker();
+          if (appSettings.behavior.onImageLoad.detectAllLines && !sample && !skipProcessing && emptyBoxLayer) {
+            await handler.generate.initialBoxes(includeSuggestions = appSettings.behavior.onImageLoad.includeTextForDetectedLines);
+          }
+        }
+        handler.set.loadingState({ main: false, buttons: false });
+        if (appSettings.behavior.onImageLoad.detectAllLines) {
+          handler.focusGroundTruthField();
+        }
+        await $(image._image).animate({ opacity: 1 }, 500);
+        imageFileInfo.setProcessed();
+
+      },
+      previousPage: () => {
+        // compare currentPageIndex with documentPages length
+        if (currentPageIndex > 0) {
+          newPageIndex = currentPageIndex - 1;
+        } else {
+          newPageIndex = documentPages.length - 1;
+        }
+        handler.load.image(_URL.createObjectURL(documentPages[newPageIndex]))
+          .then(img => handler.load.imageCallback(img, pdfPages = true))
+          .catch(error => {
+            console.error('Image load failed:', error);
+            const fileExtension = file.name.split('.').pop();
+            handler.notifyUser({
+              title: notificationTypes.error.invalidFileTypeError.title,
+              message: appTranslations['notificationTypeInvalidFileTypeErrorBody']
+                .replace('${fileExtension}', `${fileExtension}`),
+              type: notificationTypes.error.invalidFileTypeError.type,
+              class: notificationTypes.error.invalidFileTypeError.class,
+            });
+          })
+        // remove current box data
+        // boxLayer.clearLayers();
+        $groundTruthInputField.val('');
+        handler.destroy.positionSlider();
+        handler.destroy.progressBar();
+        handler.update.colorizedBackground();
+      },
+      nextPage: () => {
+        // compare currentPageIndex with documentPages length
+        if (currentPageIndex < documentPages.length - 1) {
+          newPageIndex = currentPageIndex + 1;
+        } else {
+          newPageIndex = 0;
+        }
+        handler.load.image(_URL.createObjectURL(documentPages[newPageIndex]))
+          .then(img => handler.load.imageCallback(img, pdfPages = true))
+          .catch(error => {
+            console.error('Image load failed:', error);
+            const fileExtension = file.name.split('.').pop();
+            handler.notifyUser({
+              title: notificationTypes.error.invalidFileTypeError.title,
+              message: appTranslations['notificationTypeInvalidFileTypeErrorBody']
+                .replace('${fileExtension}', `${fileExtension}`),
+              type: notificationTypes.error.invalidFileTypeError.type,
+              class: notificationTypes.error.invalidFileTypeError.class,
+            });
+          })
+        // remove current box data
+        // boxLayer.clearLayers();
+        $groundTruthInputField.val('');
+        handler.destroy.positionSlider();
+        handler.destroy.progressBar();
+        handler.update.colorizedBackground();
+      },
       translations: async (language) => {
         var translationData = null;
         var languageToUse = language;
         // for (const lang of languages) {
-        const languages = /system-lang/.test(language) ? navigator.languages: [language]
+        const languages = /system-lang/.test(language) ? navigator.languages : [language]
         for (const lang of languages) {
           try {
             const response = await fetch(`../../js/lang/${lang}.json`);
@@ -2604,7 +2842,7 @@ app.ready = async () => {
           parallelUploads: 3,
           disablePreviews: true,
           clickable: false,
-          acceptedFiles: "image/*,.box",
+          acceptedFiles: "image/*,.box,application/pdf",
         });
         $html.on('drag dragenter dragover', (event) => {
           event.preventDefault();
@@ -2726,13 +2964,12 @@ app.ready = async () => {
           }
         }
         handler.set.loadingState({ buttons: true });
-
+        var file;
+        documentPages = [];
         const
           defaultImageUrl = '../../assets/sampleImage.jpg',
-          img = new Image(),
-          imageOverlayOptions = {
-            opacity: appSettings.behavior.onImageLoad.detectAllLines ? 0.25 : 1
-          };
+          img = new Image();
+        if (!map) { handler.create.map('mapid'); }
         if (sample) {
           imageFileName = defaultImageUrl.split('/').pop().split('.').slice(0, -1).join('.');
           imageFileNameForButton = defaultImageUrl;
@@ -2742,6 +2979,27 @@ app.ready = async () => {
           imageFileNameForButton = e;
           filename = e.name;
           file = e;
+        } else if (e.type.includes('pdf')) {
+          imageFileName = e.name.split('.').slice(0, -1).join('.');
+          imageFileNameForButton = e;
+          filename = e.name;
+          PDFpages = await handler.create.imagesFromPDF(e);
+          PDFpages.forEach((dataURL, index) => {
+            const base64Data = dataURL.split(',')[1];
+            const byteCharacters = atob(base64Data);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+              byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], { type: 'image/png' });
+            documentPages.push(blob);
+          });
+          // log each page to check that the are properly loaded
+          // documentPages.forEach((page, index) => {
+          // });
+          currentPageIndex = 0;
+          file = documentPages[currentPageIndex];
         } else if (file = this.files[0]) {
           imageFileName = file.name.split('.').slice(0, -1).join('.');
           imageFileNameForButton = file.name;
@@ -2749,34 +3007,7 @@ app.ready = async () => {
         }
 
         handler.load.image(sample ? defaultImageUrl : _URL.createObjectURL(file))
-          .then(async img => {
-            // console.log('Image loaded', img);
-            if (!map) { handler.create.map('mapid'); }
-            map.eachLayer(layer => map.removeLayer(layer));
-
-            imageHeight = img.height;
-            imageWidth = img.width;
-
-            const
-              bounds = [[0, 0], [parseInt(imageHeight), parseInt(imageWidth)]],
-              bounds2 = [[imageHeight - 300, 0], [imageHeight, imageWidth]];
-            if (image) {
-              await $(image._image).fadeOut(750, async () => {
-                map.removeLayer(image);
-                image = new L.imageOverlay(img.src, bounds, imageOverlayOptions).addTo(map);
-                await $(image._image).fadeIn(500);
-              });
-            } else {
-              map.fitBounds(bounds2);
-              image = new L.imageOverlay(img.src, bounds, imageOverlayOptions).addTo(map);
-              await $(image._image).fadeIn(750);
-            }
-
-            handler.update.downloadButtonsLabels({
-              boxDownloadButton: imageFileName + '.box',
-              groundTruthDownloadButton: imageFileName + '.gt.txt'
-            });
-          })
+          .then(img => handler.load.imageCallback(img))
           .catch(error => {
             console.error('Image load failed:', error);
             const fileExtension = file.name.split('.').pop();
@@ -2789,27 +3020,27 @@ app.ready = async () => {
             });
           })
         // remove current box data
-        boxLayer.clearLayers();
-        boxData = [];
-        boxDataInfo.setDirty(false);
-        lineDataInfo.setDirty(false);
-        $groundTruthInputField.val('');
-        handler.destroy.positionSlider();
-        handler.destroy.progressBar();
-        handler.update.colorizedBackground();
+        // boxLayer.clearLayers();
+        // boxData = [];
+        // boxDataInfo.setDirty(false);
+        // lineDataInfo.setDirty(false);
+        // $groundTruthInputField.val('');
+        // handler.destroy.positionSlider();
+        // handler.destroy.progressBar();
+        // handler.update.colorizedBackground();
 
-        // Load Tesseract Worker
-        await handler.load.tesseractWorker();
+        // // Load Tesseract Worker
+        // await handler.load.tesseractWorker();
 
-        if (appSettings.behavior.onImageLoad.detectAllLines && !sample && !skipProcessing) {
-          await handler.generate.initialBoxes(includeSuggestions = appSettings.behavior.onImageLoad.includeTextForDetectedLines);
-        }
-        handler.set.loadingState({ main: false, buttons: false });
-        if (appSettings.behavior.onImageLoad.detectAllLines) {
-          handler.focusGroundTruthField();
-        }
-        await $(image._image).animate({ opacity: 1 }, 500);
-        imageFileInfo.setProcessed();
+        // if (appSettings.behavior.onImageLoad.detectAllLines && !sample && !skipProcessing) {
+        //   await handler.generate.initialBoxes(includeSuggestions = appSettings.behavior.onImageLoad.includeTextForDetectedLines);
+        // }
+        // handler.set.loadingState({ main: false, buttons: false });
+        // if (appSettings.behavior.onImageLoad.detectAllLines) {
+        //   handler.focusGroundTruthField();
+        // }
+        // await $(image._image).animate({ opacity: 1 }, 500);
+        // imageFileInfo.setProcessed();
 
         return true;
 
@@ -2857,12 +3088,13 @@ app.ready = async () => {
 
       // if all boxes are committed then call download function
       if (boxData.every(box => box.committed)) {
-        boxData.forEach(box => box.committed = false);
         if (appSettings.behavior.workflow.autoDownloadBoxFileOnAllLinesComitted) {
           $downloadBoxFileButton.click();
+          boxData.forEach(box => box.committed = false);
         }
         if (appSettings.behavior.workflow.autoDownloadGroundTruthFileOnAllLinesComitted) {
           $downloadGroundTruthFileButton.click();
+          boxData.forEach(box => box.committed = false);
         }
       }
       return modified;
@@ -2935,7 +3167,7 @@ app.ready = async () => {
     download: {
       file: async (type, event) => {
         event?.preventDefault() && event?.stopPropagation();
-        if (!boxData.length) {
+        if (!documentBoxData.length) {
           handler.notifyUser({
             title: notificationTypes.warning.nothingToDownloadWarning.title,
             message: 'notificationTypeNothingToDownloadWarningBody',
@@ -2996,9 +3228,14 @@ app.ready = async () => {
         event?.preventDefault();
         var content = '';
         if (BoxFileType.WORDSTR === boxFileType) {
-          for (const box of boxData) {
-            content = `${content}WordStr ${box.x1} ${box.y1} ${box.x2} ${box.y2} 0 #${box.text}\n`;
-            content = `${content}\t ${box.x2 + 1} ${box.y1} ${box.x2 + 5} ${box.y2} 0\n`;
+          if (documentBoxData.length <= 1) {
+            documentBoxData[0] = boxData;
+          }
+          for (let page = 0; page < documentBoxData.length; ++page) {
+            for (const box of documentBoxData[page]) {
+              content = `${content}WordStr ${box.x1} ${box.y1} ${box.x2} ${box.y2} ${page} #${box.text}\n`;
+              content = `${content}\t ${box.x2 + 1} ${box.y1} ${box.x2 + 5} ${box.y2} ${page}\n`;
+            }
           }
         }
         return content;
@@ -3007,8 +3244,20 @@ app.ready = async () => {
         event?.preventDefault();
         var content = '';
         if (BoxFileType.WORDSTR === boxFileType) {
-          for (const box of boxData) {
-            content = `${content}${box.text}\n`;
+          if (documentBoxData.length <= 1) {
+            documentBoxData[0] = boxData;
+          }
+          for (let page = 0; page < documentBoxData.length; ++page) {
+            // Check if the page data exists and is not empty
+            if (documentBoxData[page] && documentBoxData[page].length > 0) {
+              content += `--- Start of Page ${page + 1} ---\n`;
+              for (const box of documentBoxData[page]) {
+                if (box) { // Check if the box exists
+                  content = `${content}${box.text}\n`;
+                }
+              }
+              content += `--- End of Page ${page + 1} ---\n`;
+            }
           }
         }
         return content;
@@ -3153,7 +3402,7 @@ app.ready = async () => {
         map.addLayer(boxLayer);
       },
       detect: async (boxList = []) => {
-        if (!boxList.length) { return await worker.recognize(image._image); }
+        if (!boxList.length) { return await worker.recognize(image._image, { pdf: true }); }
         for (const box of boxList) {
           const layer = boxLayer.getLayer(box.polyid);
           handler.map.disableEditBox(layer);
@@ -3275,12 +3524,12 @@ app.ready = async () => {
     bindInputs: () => {
       handler.bindColorizerOnInput();
       $groundTruthInputField.on('input', event => {
+        event.preventDefault();
         lineDataInfo.setDirty(true);
         handler.set.virtualKeyboardInput(event.target.value);
       });
       // $groundTruthInputField.on('mousedown', event => {
       //   handler.set.virtualKeyboardInput(event.target.value)
-      //   console.log("here", event.target.value);
       // });
       $textHighlightingEnabledCheckbox.checkbox({
         onChange: () => {
@@ -3319,6 +3568,8 @@ app.ready = async () => {
       $resetButton.on('click', handler.resetAppSettings);
       $useSampleImageButton.on('click', handler.load.sampleImageAndBox);
       $addNewHighligherButton.on('click', handler.addNewHighlighterPattern);
+      $pageNavigationControlsPreviousButton.on('click', handler.load.previousPage);
+      $pageNavigationControlsNextButton.on('click', handler.load.nextPage);
     },
     addBehaviors: () => {
       $groundTruthInputField.focus(() => $groundTruthColorizedOutput.addClass('focused'));
