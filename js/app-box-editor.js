@@ -793,18 +793,21 @@ app.ready = async () => {
         const currentDate = new Date();
 
         $('.updateNotification')
-          .each(() => {
+          .each((index, element) => {
             const
-              releaseDate = new Date($(this).attr('data-release-date')),
-              removeDays = parseInt($(this).attr('data-expire-notification')),
+              releaseDate = new Date($(element).attr('data-release-date')),
+              removeDays = parseInt($(element).attr('data-expire-notification')),
+              currentDate = new Date(),
               timeDifference = currentDate - releaseDate,
               daysDifference = timeDifference / (1000 * 60 * 60 * 24),
-              parent = $(this)[0].parentElement;
+              parent = element.parentElement;
 
             if (daysDifference >= removeDays) {
               try {
-                console.info(`Notification badge removed from: ${parent.attributes['id']}, ${parent.attributes['class'].textContent}, ${parent.outerHTML}`)
-                $(this).remove();
+                const parentId = parent.attributes['id'] ? parent.attributes['id'] : 'No ID';
+                const parentClass = parent.attributes['class'] ? parent.attributes['class'].textContent : 'No Class';
+                console.info(`Notification badge removed from: ${parentId}, ${parentClass}, ${parent.outerHTML}`)
+                $(element).remove();
               } catch (error) {
                 console.error(error);
               }
