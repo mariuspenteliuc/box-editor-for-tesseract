@@ -3,7 +3,7 @@ window.app = {
 };
 
 class Box {
-  constructor({ text, x1, x2, y1, y2, polyid, visited = false, isModelGeneratedText, modelConfidenceScore = null }) {
+  constructor({ text, x1, x2, y1, y2, polyid, visited = false, committed = false, isModelGeneratedText, modelConfidenceScore = null }) {
     this.text = text;
     this.x1 = x1;
     this.x2 = x2;
@@ -12,7 +12,7 @@ class Box {
     this.polyid = polyid;
     this.filled = text != '' ? true : false;
     this.visited = visited;
-    this.committed = false;
+    this.committed = committed;
     this.isModelGeneratedText = isModelGeneratedText;
     this.modelConfidenceScore = modelConfidenceScore;
   }
@@ -1825,6 +1825,11 @@ app.ready = async () => {
         }
       },
       slider: (options) => {
+        if (documentBoxData[currentPageIndex] != undefined && documentBoxData[currentPageIndex].length < 2) {
+          handler.destroy.positionSlider(); return;
+          // } else {
+          //   handler.init.slider();
+        }
         if (options.max) handler.init.slider();
         if (options.value) $positionSlider.slider('set value', options.value, fireChange = false);
         if (options.min) $positionSlider.slider('setting', 'min', options.min);
@@ -1856,6 +1861,9 @@ app.ready = async () => {
         newData.polyid = polyid;
         // check if data is different
         newData.committed = oldData.committed || !oldData.equals(newData);
+        if (newData.committed) {
+          boxData[oldBoxIndex] = newData;
+        }
         boxData[oldBoxIndex] = newData;
         boxDataInfo.setDirty(true);
         lineDataInfo.setDirty(false);
@@ -1894,7 +1902,8 @@ app.ready = async () => {
         handler.focusGroundTruthField();
         handler.update.colorizedBackground();
         handler.update.progressBar({ type: 'tagging' });
-        lineDataInfo.setDirty(same);
+        // lineDataInfo.setDirty(same);
+        // lineDataInfo.setDirty(!same && !selectedBox.committed);
         documentBoxData[currentPageIndex] = boxData;
         handler.close.popups();
       },
@@ -2288,20 +2297,20 @@ app.ready = async () => {
         documentBoxLayers[currentPageIndex] = boxLayer;
         emptyBoxLayer = true;
         map.removeLayer(boxLayer);
+        // map.eachLayer(layer => map.removeLayer(layer));
         boxLayer = new L.FeatureGroup();
         boxData = [];
         if (documentBoxData[newPageIndex] && documentBoxData[newPageIndex].length !== 0) {
           boxData = documentBoxData[newPageIndex];
           // boxLayer = new L.FeatureGroup(documentBoxLayers[newPageIndex]);
           boxLayer = documentBoxLayers[newPageIndex];
-          map.addLayer(boxLayer);
           emptyBoxLayer = false;
         }
+        map.addLayer(boxLayer);
 
         boxDataInfo.setDirty(false);
         lineDataInfo.setDirty(false);
 
-        // map.eachLayer(layer => map.removeLayer(layer));
 
         imageHeight = img.height;
         imageWidth = img.width;
@@ -2984,13 +2993,8 @@ app.ready = async () => {
             documentPages.push(blob);
           });
           // log each page to check that the are properly loaded
-          documentPages.forEach((page, index) => {
-          });
-          handler.notifyUser({
-            title: 'Notification Success',
-            message: `number of pages loaded form pdf: ${documentPages.length}`,
-            type: 'info',
-          });
+          // documentPages.forEach((page, index) => {
+          // });
           currentPageIndex = 0;
           file = documentPages[currentPageIndex];
         } else if (file = this.files[0]) {
@@ -3081,12 +3085,13 @@ app.ready = async () => {
 
       // if all boxes are committed then call download function
       if (boxData.every(box => box.committed)) {
-        boxData.forEach(box => box.committed = false);
         if (appSettings.behavior.workflow.autoDownloadBoxFileOnAllLinesComitted) {
           $downloadBoxFileButton.click();
+          boxData.forEach(box => box.committed = false);
         }
         if (appSettings.behavior.workflow.autoDownloadGroundTruthFileOnAllLinesComitted) {
           $downloadGroundTruthFileButton.click();
+          boxData.forEach(box => box.committed = false);
         }
       }
       return modified;
@@ -3159,7 +3164,7 @@ app.ready = async () => {
     download: {
       file: async (type, event) => {
         event?.preventDefault() && event?.stopPropagation();
-        if (!boxData.length) {
+        if (!documentBoxData.length) {
           handler.notifyUser({
             title: notificationTypes.warning.nothingToDownloadWarning.title,
             message: 'notificationTypeNothingToDownloadWarningBody',
