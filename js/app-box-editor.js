@@ -1809,7 +1809,7 @@ app.ready = async () => {
             $progressSlider.progress({
               value: options.progress,
               total: 1,
-              text: { active: appTranslations['progressIndicatorAnalyzingText'], }
+              text: { active: documentPages.length > 1 ? appTranslations['progressIndicatorAnalyzingPageText'] : appTranslations['progressIndicatorAnalyzingImageText'], }
             });
           } else if (/initializingWorker/.test(options.type)) {
             $progressSlider.progress({

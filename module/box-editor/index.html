@@ -84,6 +84,8 @@
           <a id="settingsButton" data-variation="basic" data-position="bottom center" class="item tooltip-trigger">
             <i class="fitted icons">
               <i class="large fitted cog icon"></i>
+              <i class="top right corner orange circle icon updateNotification" data-release-date="2024-01-27"
+                data-expire-notification="28"></i>
             </i>
           </a>
           <div class="ui flowing popup">
@@ -189,24 +191,21 @@
             <span localization-key="tooltipInvisiblesToggle"></span>
           </div>
           <button id="redetectAllBoxes" name="interface.toolbarActions.detectAllLines"
-            class="ui compact icon disabled button tooltip-trigger" tabindex="0"
-            data-position="top left">
+            class="ui compact icon disabled button tooltip-trigger" tabindex="0" data-position="top left">
             <i class="magic icon"></i>
           </button>
           <div class="ui popup">
             <span localization-key="tooltipRedetectAllBoxes"></span>
           </div>
           <button id="regenerateTextSuggestions" name="interface.toolbarActions.detectAllBoxes"
-            class="ui compact icon disabled button tooltip-trigger" tabindex="0"
-            data-position="top left">
+            class="ui compact icon disabled button tooltip-trigger" tabindex="0" data-position="top left">
             <i class="sync icon"></i>
           </button>
           <div class="ui popup">
             <span localization-key="tooltipRegenerateTextSuggestions"></span>
           </div>
           <button id="regenerateTextSuggestionForSelectedBox" name="interface.toolbarActions.detectSelectedBox"
-            class="ui compact icon disabled button tooltip-trigger" tabindex="0"
-            data-position="top left">
+            class="ui compact icon disabled button tooltip-trigger" tabindex="0" data-position="top left">
             <i class="redo icon"></i>
           </button>
           <div class="ui popup">
@@ -335,13 +334,15 @@
           </div>
         </div>
         <div id="page-navigation-controls" class="ui right floated compact buttons" style="display: none;">
-          <button id="previousPage" name="interface.toolbarActions.previousPage" class="ui compact icon button"><i class="left chevron icon"></i></button>
+          <button id="previousPage" name="interface.toolbarActions.previousPage" class="ui compact icon button"><i
+              class="left chevron icon"></i></button>
           <button id="currentPage" name="interface.toolbarActions.currentPage" class="ui button">
             <span localization-key="pageNavigationCurrentPageLabel">
               Page
             </span>
           </button>
-          <button id="nextPage" name="interface.toolbarActions.nextPage" class="ui compact icon button"><i class="right chevron icon"></i></button>
+          <button id="nextPage" name="interface.toolbarActions.nextPage" class="ui compact icon button"><i
+              class="right chevron icon"></i></button>
         </div>
       </div>
       <div id="main-edit-area" class="ui basic fitted vertical segment">
@@ -482,6 +483,8 @@
         <div class="ui divider"></div>
         <a id="helpTab" class="bottom attached item" data-tab="help-section">
           <i class="grey help circle icon"></i>
+          <i class="normal orange certificate icon updateNotification" data-release-date="2024-01-27"
+            data-expire-notification="28"></i>
           <span localization-key="settingsMenuSidebarHelpLabel">
             Help
           </span>
@@ -686,11 +689,15 @@
                 <div class="content">
                   <div class="header" localization-key="messageMacOSKeyboardLayoutHeader">
                     macOS Keyboard Layout
-            </div>
+                  </div>
                   <p>
                     <span localization-key="messageMacOSKeyboardLayoutDescription1">
-                      Users on macOS can download and install a keyboard layout made for them. Download it from the </span>
-                    <a onclick="app.handler.open.settingsModal('language-settings')" localization-key="messageMacOSKeyboardLayoutDescription2">Language Models</a> <span localization-key="messageMacOSKeyboardLayoutDescription3">section</span></p>
+                      Users on macOS can download and install a keyboard layout made for them. Download it from the
+                    </span>
+                    <a onclick="app.handler.open.settingsModal('language-settings')"
+                      localization-key="messageMacOSKeyboardLayoutDescription2">Language Models</a> <span
+                      localization-key="messageMacOSKeyboardLayoutDescription3">section</span>
+                  </p>
                 </div>
               </div>
             </div>
@@ -1091,6 +1098,35 @@
                   Choose a language model for OCR suggestions.
                 </div>
               </div>
+              <div class="item">
+                <i class="left chevron icon"></i>
+                <div class="content">
+                  <span localization-key="settingsMenuHelpToolbarActionsDocumentPageNavigationPrevious">Navigate to the
+                    previous page in a PDF document.</span> <span class="ui small italic orange text updateNotification"
+                    data-release-date="2024-01-27" data-expire-notification="28"
+                    localization-key="updateNotificationLabel">new</span>
+                </div>
+              </div>
+              <div class="item">
+                <i class="right chevron icon"></i>
+                <div class="content">
+                  <span localization-key="settingsMenuHelpToolbarActionsDocumentPageNavigationNext">Navigate to the next
+                    page in a PDF document.</span> <span class="ui small italic orange text updateNotification"
+                    data-release-date="2024-01-27" data-expire-notification="28"
+                    localization-key="updateNotificationLabel">new</span>
+                </div>
+              </div>
+            </div>
+            <div class="ui orange tiny icon message updateNotification"
+                    data-release-date="2024-01-27" data-expire-notification="28">
+              <i class="file pdf icon"></i>
+              <div class="content">
+                <div class="header" localization-key="updateNotificationPDFSupportHeader">
+                  PDF Support
+                </div>
+                <p localization-key="updateNotificationPDFSupportDescription">
+                  You can now upload and tag PDF documents. The app will display navigation controls and automatically separate tags and ground truth by pages.</p>
+              </div>
             </div>
           </div>
           <div class="item">
@@ -1224,13 +1260,13 @@
               <p>Description.</p>
             </div>
           </div> -->
-          <p><span class="ui grey text">
+          <!-- <p><span class="ui grey text">
               <span localization-key="settingsMenuAboutSectionResetButtonHasMovedText">
                 Reset button has moved to the
               </span>
               <a onclick="app.handler.open.settingsModal('help-section')" class="more"
                 localization-key="settingsMenuAboutSectionHelpPaneName">Help pane.</a>
-            </span></p>
+            </span></p> -->
         </div>
       </div>
     </div>
