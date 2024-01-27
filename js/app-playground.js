@@ -930,8 +930,13 @@ app.ready = async function () {
             output = condition["output"],
             pattern = new RegExp(
               `(${context})(${originalCharacter})(${context})`
-            ),
-            subst = `$1${output}$3`;
+            );
+
+          // Count the number of groups in the context
+          var groupCount = (new RegExp(context + '|')).exec('').length - 1;
+
+          // Modify the substitution string based on the group count
+          var subst = groupCount === 3 ? `$1${output}$3` : `$1${output}`;
 
           text = text.normalize("NFKD").replace(/[\u0300-\u036f\ua67c]/g, "");
 
@@ -939,15 +944,11 @@ app.ready = async function () {
           if (text.search(context) !== -1) {
             // apply substitution
             text = text.replace(new RegExp(context, "g"), subst);
-            text = text.replace(new RegExp(context, "g"), subst);
-            text = text.replace(new RegExp(context, "g"), subst);
-            text = text.replace(new RegExp(context, "g"), subst);
           }
         }
       }
       return text;
-    },
-    resetAppSettings: async function () {
+    }, resetAppSettings: async function () {
       var
         response = await handler.askUser({
           title: 'Reset App',
