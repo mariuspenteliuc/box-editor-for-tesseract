@@ -123,7 +123,7 @@
                 </div>
                 <label for="imageFile" localization-key="uploadFilesSectionImageLabel">Image</label>
                 <input class="ui invisible file input form-control" type="file" disabled id="imageFile" name="imageFile"
-                  accept="image/*" />
+                  accept="image/*, .pdf" />
                 <label for="imageFile" class="ui small fluid button" id="imageFileButton">
                   <i class="file upload icon"></i>
                   <span localization-key="uploadFilesSectionChooseFileButtonLabel">
@@ -212,7 +212,7 @@
             <span localization-key="tooltipRegenerateTextSuggestionForSelectedBox"></span>
           </div>
           <div id="ocrModelDropdown" name="interface.toolbarActions.languageModelDropdown"
-            class="ui floating compact dropdown labeled search icon button tooltip-trigger" spellcheck="false"
+            class="ui floating disabled compact dropdown labeled search icon button tooltip-trigger" spellcheck="false"
             data-position="top left">
             <i class="world icon"></i>
             <span class="text" localization-key="languageModelRTS">Romanian Transitional Script</span>
