@@ -2625,6 +2625,7 @@ app.ready = async () => {
               appSettings.language.languageModelIsCustom = custom;
               await handler.load.tesseractWorker();
             } else {
+              if (worker == undefined) await handler.load.tesseractWorker();
               await handler.load.tesseractLanguage();
             }
             $ocrModelDropdownInSettings.dropdown('set selected', appSettings.language.recognitionModel, true);
@@ -2647,6 +2648,7 @@ app.ready = async () => {
               appSettings.language.languageModelIsCustom = custom;
               response = await handler.load.tesseractWorker();
             } else {
+              if (worker == undefined) response = await handler.load.tesseractWorker();
               await handler.load.tesseractLanguage();
             }
             $ocrModelDropdown.dropdown('set selected', appSettings.language.recognitionModel, true);
@@ -2945,105 +2947,114 @@ app.ready = async () => {
         handler.set.loadingState({ main: false, buttons: false });
       },
       imageFile: async function (e, sample = false, skipProcessing = false) {
-        if (appSettings.behavior.alerting.enableWarrningMessagesForOverwritingDirtyData && boxDataInfo.isDirty() || lineDataInfo.isDirty()) {
-          const response = await handler.askUser({
-            title: notificationTypes.warning.overridingUnsavedChangesWarning.title,
-            message: 'notificationTypeOverridingUnsavedChangesWarningBody',
-            type: notificationTypes.warning.overridingUnsavedChangesWarning.type,
-            actions: [{
-              text: appTranslations['askUserCancelText'],
-              class: 'cancel',
-            }, {
-              text: appTranslations['askUserConfirmText'],
-              class: 'positive',
-            }],
-          });
-          if (!response) {
-            // $imageFileInput.val(imageFileNameForButton.name);
-            return false;
-          }
-        }
-        handler.set.loadingState({ buttons: true });
-        var file;
-        documentPages = [];
-        const
-          defaultImageUrl = '../../assets/sampleImage.jpg',
-          img = new Image();
-        if (!map) { handler.create.map('mapid'); }
-        if (sample) {
-          imageFileName = defaultImageUrl.split('/').pop().split('.').slice(0, -1).join('.');
-          imageFileNameForButton = defaultImageUrl;
-          filename = defaultImageUrl.split('/').pop();
-        } else if (e.type.includes('image')) {
-          imageFileName = e.name.split('.').slice(0, -1).join('.');
-          imageFileNameForButton = e;
-          filename = e.name;
-          file = e;
-        } else if (e.type.includes('pdf')) {
-          imageFileName = e.name.split('.').slice(0, -1).join('.');
-          imageFileNameForButton = e;
-          filename = e.name;
-          PDFpages = await handler.create.imagesFromPDF(e);
-          PDFpages.forEach((dataURL, index) => {
-            const base64Data = dataURL.split(',')[1];
-            const byteCharacters = atob(base64Data);
-            const byteNumbers = new Array(byteCharacters.length);
-            for (let i = 0; i < byteCharacters.length; i++) {
-              byteNumbers[i] = byteCharacters.charCodeAt(i);
-            }
-            const byteArray = new Uint8Array(byteNumbers);
-            const blob = new Blob([byteArray], { type: 'image/png' });
-            documentPages.push(blob);
-          });
-          // log each page to check that the are properly loaded
-          // documentPages.forEach((page, index) => {
-          // });
-          currentPageIndex = 0;
-          file = documentPages[currentPageIndex];
-        } else if (file = this.files[0]) {
-          imageFileName = file.name.split('.').slice(0, -1).join('.');
-          imageFileNameForButton = file.name;
-          filename = file.name;
-        }
-
-        handler.load.image(sample ? defaultImageUrl : _URL.createObjectURL(file))
-          .then(img => handler.load.imageCallback(img))
-          .catch(error => {
-            console.error('Image load failed:', error);
-            const fileExtension = file.name.split('.').pop();
-            handler.notifyUser({
-              title: notificationTypes.error.invalidFileTypeError.title,
-              message: appTranslations['notificationTypeInvalidFileTypeErrorBody']
-                .replace('${fileExtension}', `${fileExtension}`),
-              type: notificationTypes.error.invalidFileTypeError.type,
-              class: notificationTypes.error.invalidFileTypeError.class,
+        try {
+          if (appSettings.behavior.alerting.enableWarrningMessagesForOverwritingDirtyData && boxDataInfo.isDirty() || lineDataInfo.isDirty()) {
+            const response = await handler.askUser({
+              title: notificationTypes.warning.overridingUnsavedChangesWarning.title,
+              message: 'notificationTypeOverridingUnsavedChangesWarningBody',
+              type: notificationTypes.warning.overridingUnsavedChangesWarning.type,
+              actions: [{
+                text: appTranslations['askUserCancelText'],
+                class: 'cancel',
+              }, {
+                text: appTranslations['askUserConfirmText'],
+                class: 'positive',
+              }],
             });
-          })
-        // remove current box data
-        // boxLayer.clearLayers();
-        // boxData = [];
-        // boxDataInfo.setDirty(false);
-        // lineDataInfo.setDirty(false);
-        // $groundTruthInputField.val('');
-        // handler.destroy.positionSlider();
-        // handler.destroy.progressBar();
-        // handler.update.colorizedBackground();
+            if (!response) {
+              // $imageFileInput.val(imageFileNameForButton.name);
+              return false;
+            }
+          }
+          handler.set.loadingState({ buttons: true });
+          var file;
+          documentPages = [];
+          const
+            defaultImageUrl = '../../assets/sampleImage.jpg',
+            img = new Image();
+          if (!map) { handler.create.map('mapid'); }
+          if (sample) {
+            imageFileName = defaultImageUrl.split('/').pop().split('.').slice(0, -1).join('.');
+            imageFileNameForButton = defaultImageUrl;
+            filename = defaultImageUrl.split('/').pop();
+          } else if (e.type.includes('image')) {
+            imageFileName = e.name.split('.').slice(0, -1).join('.');
+            imageFileNameForButton = e;
+            filename = e.name;
+            file = e;
+          } else if (e.type.includes('pdf') || e.target.files[0].name.includes('pdf')) {
+            if (e.type.includes('change')) {
+              e = e.target.files[0];
+            }
+            imageFileName = e.name.split('.').slice(0, -1).join('.');
+            imageFileNameForButton = e;
+            filename = e.name;
+            PDFpages = await handler.create.imagesFromPDF(e);
+            PDFpages.forEach((dataURL, index) => {
+              const base64Data = dataURL.split(',')[1];
+              const byteCharacters = atob(base64Data);
+              const byteNumbers = new Array(byteCharacters.length);
+              for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+              }
+              const byteArray = new Uint8Array(byteNumbers);
+              const blob = new Blob([byteArray], { type: 'image/png' });
+              documentPages.push(blob);
+            });
+            // log each page to check that the are properly loaded
+            // documentPages.forEach((page, index) => {
+            // });
+            currentPageIndex = 0;
+            file = documentPages[currentPageIndex];
+          } else if (file = this.files[0]) {
+            imageFileName = file.name.split('.').slice(0, -1).join('.');
+            imageFileNameForButton = file.name;
+            filename = file.name;
+          }
 
-        // // Load Tesseract Worker
-        // await handler.load.tesseractWorker();
+          handler.load.image(sample ? defaultImageUrl : _URL.createObjectURL(file))
+            .then(img => handler.load.imageCallback(img))
+            .catch(error => {
+              console.error('Image load failed:', error);
+              const fileExtension = file.name.split('.').pop();
+              handler.notifyUser({
+                title: notificationTypes.error.invalidFileTypeError.title,
+                message: appTranslations['notificationTypeInvalidFileTypeErrorBody']
+                  .replace('${fileExtension}', `${fileExtension}`),
+                type: notificationTypes.error.invalidFileTypeError.type,
+                class: notificationTypes.error.invalidFileTypeError.class,
+              });
+            })
+          // remove current box data
+          // boxLayer.clearLayers();
+          // boxData = [];
+          // boxDataInfo.setDirty(false);
+          // lineDataInfo.setDirty(false);
+          // $groundTruthInputField.val('');
+          // handler.destroy.positionSlider();
+          // handler.destroy.progressBar();
+          // handler.update.colorizedBackground();
 
-        // if (appSettings.behavior.onImageLoad.detectAllLines && !sample && !skipProcessing) {
-        //   await handler.generate.initialBoxes(includeSuggestions = appSettings.behavior.onImageLoad.includeTextForDetectedLines);
-        // }
-        // handler.set.loadingState({ main: false, buttons: false });
-        // if (appSettings.behavior.onImageLoad.detectAllLines) {
-        //   handler.focusGroundTruthField();
-        // }
-        // await $(image._image).animate({ opacity: 1 }, 500);
-        // imageFileInfo.setProcessed();
+          // // Load Tesseract Worker
+          // await handler.load.tesseractWorker();
 
-        return true;
+          // if (appSettings.behavior.onImageLoad.detectAllLines && !sample && !skipProcessing) {
+          //   await handler.generate.initialBoxes(includeSuggestions = appSettings.behavior.onImageLoad.includeTextForDetectedLines);
+          // }
+          // handler.set.loadingState({ main: false, buttons: false });
+          // if (appSettings.behavior.onImageLoad.detectAllLines) {
+          //   handler.focusGroundTruthField();
+          // }
+          // await $(image._image).animate({ opacity: 1 }, 500);
+          // imageFileInfo.setProcessed();
 
+          return true;
+
+        } catch (error) {
+          handler.set.loadingState({ main: false, buttons: false });
+          console.error('An error occurred:', error);
+          throw error;
+        }
       },
       image: (source) => {
         return new Promise((resolve, reject) => {
