@@ -772,6 +772,7 @@ app.ready = async () => {
         if (boxIndex > -1) {
           boxData.splice(boxIndex, 1);
         }
+        boxLayer
         const
           newIndex = recognizedLinesOfText.findIndex(object => {
             object = object.bbox;
@@ -1225,6 +1226,7 @@ app.ready = async () => {
                 polyid = parseInt(element),
                 delbox = boxData.find(box => box.polyid == polyid),
                 delindex = handler.delete.box(delbox);
+              boxLayer.removeLayer(e.layers._layers[element]);
             });
           handler.update.progressBar({ type: 'tagging' });
         });
@@ -1255,6 +1257,7 @@ app.ready = async () => {
         layer.on('click', handler.selectRectangle);
         handler.style.setActive(layer);
         boxLayer.addLayer(layer);
+        documentBoxLayers[currentPageIndex].addLayer(layer);
         const
           polyid = boxLayer.getLayerId(layer),
           newBox = new Box({
@@ -1299,6 +1302,7 @@ app.ready = async () => {
           .forEach(box => {
             const layer = boxLayer.getLayer(box.polyid);
             boxLayer.removeLayer(layer);
+            documentBoxLayers[currentPageIndex].removeLayer(layer);
             boxData.splice(boxData.indexOf(box), 1);
             handler.delete.box(box);
           });
@@ -1312,6 +1316,7 @@ app.ready = async () => {
             newPoly.on('click', handler.selectRectangle);
             handler.style.remove(newPoly);
             boxLayer.addLayer(newPoly);
+            documentBoxLayers[currentPageIndex].addLayer(newPoly);
             const polyid = boxLayer.getLayerId(newPoly);
             newBox.polyid = polyid;
             boxData.push(newBox);
@@ -2158,6 +2163,7 @@ app.ready = async () => {
         const content = event.target.result;
         if (content && content.length) {
           boxLayer.clearLayers();
+          documentBoxLayers[currentPageIndex].clearLayers();
           boxData = [];
           switch (handler.getBoxFileType(content)) {
             case BoxFileType.WORDSTR:
@@ -2203,14 +2209,14 @@ app.ready = async () => {
                 documentBoxLayers[dimensions[5]] = new L.FeatureGroup();
                 documentBoxData[dimensions[5]] = [];
               }
+              boxLayer.addLayer(rectangle);
               documentBoxLayers[dimensions[5]].addLayer(rectangle);
-              // boxLayer.addLayer(rectangle);
               box.polyid = boxLayer.getLayerId(rectangle);
               documentBoxData[dimensions[5]].push(box);
               // boxData.push(box);
             }
           });
-        boxLayer = documentBoxLayers[0];
+        // boxLayer = documentBoxLayers[0];
         boxData = documentBoxData[0];
       },
       char_or_line: (content) => {
@@ -3334,7 +3340,6 @@ app.ready = async () => {
       },
       initialBoxes: async (includeSuggestions = true) => {
         $redetectAllBoxesButton.addClass('disabled double loading');
-
         if (appSettings.behavior.alerting.enableWarrningMessagesForOverwritingDirtyData && boxDataInfo.isDirty()) {
           const response = await handler.askUser({
             title: notificationTypes.warning.replacingTextWarning.title,
@@ -3358,13 +3363,15 @@ app.ready = async () => {
         handler.set.loadingState({ buttons: true, main: true });
         handler.map.fitImage();
         boxLayer.clearLayers();
+        documentBoxLayers[currentPageIndex].clearLayers();
         boxData = [];
         try {
           const
             results = await handler.ocr.detect(),
             textLines = results.data.lines;
-          if (!textLines.length) {
-            handler.set.loadingState({ buttons: false, main: false });
+            handler.notifyUser({ title: 'TEST', message: 'TEST'});
+            if (!textLines.length) {
+              handler.set.loadingState({ buttons: false, main: false });
             return false;
           }
 
@@ -3386,6 +3393,7 @@ app.ready = async () => {
     ocr: {
       insertSuggestions: async (includeSuggestions, textLines) => {
         boxLayer.clearLayers();
+        documentBoxLayers[currentPageIndex].clearLayers();
         boxData = [];
         for (const line of textLines) {
           const
@@ -3405,6 +3413,7 @@ app.ready = async () => {
           rectangle.on('click', handler.selectRectangle);
           handler.style.remove(rectangle);
           boxLayer.addLayer(rectangle);
+          documentBoxLayers[currentPageIndex].addLayer(rectangle);
           box.polyid = boxLayer.getLayerId(rectangle);
           boxData.push(box);
           lineDataInfo.setDirty(true);
@@ -3432,6 +3441,7 @@ app.ready = async () => {
               height: box.y2 - box.y1,
             },
             result = await worker.recognize(image._image, { rectangle });
+          // boxLayer.addLayer(rectangle);
           box.text = result.data.text.replace(/(\r\n|\n|\r)/gm, '');
           box.isModelGeneratedText = true;
           box.modelConfidenceScore = result.data.confidence;
