@@ -3341,7 +3341,6 @@ app.ready = async () => {
           const
             results = await handler.ocr.detect(),
             textLines = results.data.lines;
-            handler.notifyUser({ title: 'TEST', message: 'TEST'});
             if (!textLines.length) {
               handler.set.loadingState({ buttons: false, main: false });
             return false;
