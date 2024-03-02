@@ -149,7 +149,6 @@ app.ready = async () => {
       'CHAR_OR_LINE_PATTERN': /^.+?\s+(?:[\d]+?\s+\b){4}[\d]+$\n?/gm,
     }),
     boxFileType = BoxFileType.WORDSTR,
-    boxLayer = new L.FeatureGroup(),
     selectedPoly,
     selectedBox,
     maxZoom = 1,
@@ -173,7 +172,10 @@ app.ready = async () => {
     lineDataInfo = {
       dirty: false,
       isDirty: () => lineDataInfo.dirty,
-      setDirty: (value = true) => lineDataInfo.dirty = value,
+      setDirty: (value = true) => {
+        lineDataInfo.dirty = value;
+        if (value) $unsavedChangesBadge.toggle(lineDataInfo.dirty);
+      }
     },
     unicodeData,
     imageFile,
@@ -772,7 +774,6 @@ app.ready = async () => {
         if (boxIndex > -1) {
           boxData.splice(boxIndex, 1);
         }
-        boxLayer
         const
           newIndex = recognizedLinesOfText.findIndex(object => {
             object = object.bbox;
@@ -1197,6 +1198,8 @@ app.ready = async () => {
           maxBoundsViscosity: .5,
         });
 
+        documentBoxLayers[currentPageIndex] = new L.FeatureGroup();
+
         const
           zoomControl = new L.Control.Zoom({ position: 'topright' }),
           drawControl = new L.Control.Draw({
@@ -1210,7 +1213,7 @@ app.ready = async () => {
             },
             position: 'topright',
             edit: {
-              featureGroup: boxLayer,
+              featureGroup: documentBoxLayers[currentPageIndex],
               edit: false,
               remove: true
             }
@@ -1226,7 +1229,6 @@ app.ready = async () => {
                 polyid = parseInt(element),
                 delbox = boxData.find(box => box.polyid == polyid),
                 delindex = handler.delete.box(delbox);
-              boxLayer.removeLayer(e.layers._layers[element]);
             });
           handler.update.progressBar({ type: 'tagging' });
         });
@@ -1256,10 +1258,9 @@ app.ready = async () => {
         layer.on('edit', handler.editRectangle);
         layer.on('click', handler.selectRectangle);
         handler.style.setActive(layer);
-        boxLayer.addLayer(layer);
         documentBoxLayers[currentPageIndex].addLayer(layer);
         const
-          polyid = boxLayer.getLayerId(layer),
+          polyid = documentBoxLayers[currentPageIndex].getLayerId(layer),
           newBox = new Box({
             polyid: polyid,
             text: '',
@@ -1272,7 +1273,7 @@ app.ready = async () => {
         boxData.splice(idx + 1, 0, newBox);
         handler.sortAllBoxes();
         handler.init.slider();
-        map.addLayer(boxLayer);
+        map.addLayer(documentBoxLayers[currentPageIndex]);
         handler.focusBoxID(polyid);
       },
       polyline: async (poly) => {
@@ -1300,8 +1301,7 @@ app.ready = async () => {
         }
         deleteBoxes
           .forEach(box => {
-            const layer = boxLayer.getLayer(box.polyid);
-            boxLayer.removeLayer(layer);
+            const layer = documentBoxLayers[currentPageIndex].getLayer(box.polyid);
             documentBoxLayers[currentPageIndex].removeLayer(layer);
             boxData.splice(boxData.indexOf(box), 1);
             handler.delete.box(box);
@@ -1315,9 +1315,8 @@ app.ready = async () => {
             newPoly.on('edit', handler.editRectangle);
             newPoly.on('click', handler.selectRectangle);
             handler.style.remove(newPoly);
-            boxLayer.addLayer(newPoly);
             documentBoxLayers[currentPageIndex].addLayer(newPoly);
-            const polyid = boxLayer.getLayerId(newPoly);
+            const polyid = documentBoxLayers[currentPageIndex].getLayerId(newPoly);
             newBox.polyid = polyid;
             boxData.push(newBox);
           });
@@ -1891,7 +1890,7 @@ app.ready = async () => {
         handler.update.rectangle(polyid, newBoxData);
       },
       rectangle: (polyid, data) => {
-        const box = boxLayer.getLayer(polyid);
+        const box = documentBoxLayers[currentPageIndex].getLayer(polyid);
         box.setBounds([[data.y1, data.x1], [data.y2, data.x2]]);
       },
       form: (box) => {
@@ -2162,8 +2161,8 @@ app.ready = async () => {
       boxFile: (event) => {
         const content = event.target.result;
         if (content && content.length) {
-          boxLayer.clearLayers();
           documentBoxLayers[currentPageIndex].clearLayers();
+          map.removeLayer(documentBoxLayers[currentPageIndex]);
           boxData = [];
           switch (handler.getBoxFileType(content)) {
             case BoxFileType.WORDSTR:
@@ -2177,7 +2176,7 @@ app.ready = async () => {
               console.error('invalid file format');
               return;
           }
-          map.addLayer(boxLayer);
+          map.addLayer(documentBoxLayers[currentPageIndex]);
         }
         handler.sortAllBoxes();
         handler.focusBoxID(handler.getBoxContent().polyid);
@@ -2205,18 +2204,18 @@ app.ready = async () => {
               rectangle.on('edit', handler.editRectangle);
               rectangle.on('click', handler.selectRectangle);
               handler.style.remove(rectangle);
-              if (documentBoxLayers[dimensions[5]] == undefined) {
+              if (documentBoxLayers[dimensions[5]] === undefined) {
                 documentBoxLayers[dimensions[5]] = new L.FeatureGroup();
+              }
+              if (documentBoxData[dimensions[5]] === undefined) {
                 documentBoxData[dimensions[5]] = [];
               }
-              boxLayer.addLayer(rectangle);
               documentBoxLayers[dimensions[5]].addLayer(rectangle);
-              box.polyid = boxLayer.getLayerId(rectangle);
+              box.polyid = documentBoxLayers[dimensions[5]].getLayerId(rectangle);
               documentBoxData[dimensions[5]].push(box);
               // boxData.push(box);
             }
           });
-        // boxLayer = documentBoxLayers[0];
         boxData = documentBoxData[0];
       },
       char_or_line: (content) => {
@@ -2303,19 +2302,18 @@ app.ready = async () => {
         // console.log('Image loaded', img);
         // if (!map) { handler.create.map('mapid'); }
         documentBoxData[currentPageIndex] = boxData;
-        documentBoxLayers[currentPageIndex] = boxLayer;
         emptyBoxLayer = true;
-        map.removeLayer(boxLayer);
+        map.removeLayer(documentBoxLayers[currentPageIndex]);
         // map.eachLayer(layer => map.removeLayer(layer));
-        boxLayer = new L.FeatureGroup();
         boxData = [];
         if (documentBoxData[newPageIndex] && documentBoxData[newPageIndex].length !== 0) {
           boxData = documentBoxData[newPageIndex];
-          // boxLayer = new L.FeatureGroup(documentBoxLayers[newPageIndex]);
-          boxLayer = documentBoxLayers[newPageIndex];
           emptyBoxLayer = false;
         }
-        map.addLayer(boxLayer);
+        if (documentBoxLayers[newPageIndex] === undefined) {
+          documentBoxLayers[newPageIndex] = new L.FeatureGroup();
+        }
+        map.addLayer(documentBoxLayers[newPageIndex]);
 
         boxDataInfo.setDirty(false);
         lineDataInfo.setDirty(false);
@@ -2409,8 +2407,6 @@ app.ready = async () => {
               class: notificationTypes.error.invalidFileTypeError.class,
             });
           })
-        // remove current box data
-        // boxLayer.clearLayers();
         $groundTruthInputField.val('');
         handler.destroy.positionSlider();
         handler.destroy.progressBar();
@@ -2436,8 +2432,6 @@ app.ready = async () => {
               class: notificationTypes.error.invalidFileTypeError.class,
             });
           })
-        // remove current box data
-        // boxLayer.clearLayers();
         $groundTruthInputField.val('');
         handler.destroy.positionSlider();
         handler.destroy.progressBar();
@@ -2898,7 +2892,7 @@ app.ready = async () => {
             return false;
           }
         }
-        handler.set.loadingState({ buttons: true });
+        handler.set.loadingState({ main: true, buttons: true });
         const
           reader = new FileReader(),
           defaultBoxUrl = '../../assets/sampleImage.box';
@@ -2972,7 +2966,7 @@ app.ready = async () => {
               return false;
             }
           }
-          handler.set.loadingState({ buttons: true });
+          handler.set.loadingState({main: true, buttons: true });
           var file;
           documentPages = [];
           const
@@ -3031,28 +3025,6 @@ app.ready = async () => {
                 class: notificationTypes.error.invalidFileTypeError.class,
               });
             })
-          // remove current box data
-          // boxLayer.clearLayers();
-          // boxData = [];
-          // boxDataInfo.setDirty(false);
-          // lineDataInfo.setDirty(false);
-          // $groundTruthInputField.val('');
-          // handler.destroy.positionSlider();
-          // handler.destroy.progressBar();
-          // handler.update.colorizedBackground();
-
-          // // Load Tesseract Worker
-          // await handler.load.tesseractWorker();
-
-          // if (appSettings.behavior.onImageLoad.detectAllLines && !sample && !skipProcessing) {
-          //   await handler.generate.initialBoxes(includeSuggestions = appSettings.behavior.onImageLoad.includeTextForDetectedLines);
-          // }
-          // handler.set.loadingState({ main: false, buttons: false });
-          // if (appSettings.behavior.onImageLoad.detectAllLines) {
-          //   handler.focusGroundTruthField();
-          // }
-          // await $(image._image).animate({ opacity: 1 }, 500);
-          // imageFileInfo.setProcessed();
 
           return true;
 
@@ -3080,7 +3052,7 @@ app.ready = async () => {
       if (!options.zoom) options.zoom = true;
       handler.style.remove(selectedPoly, options.isUpdated);
       handler.map.disableEditBox(selectedBox);
-      const box = boxLayer.getLayer(id);
+      const box = documentBoxLayers[currentPageIndex].getLayer(id);
       handler.update.form(boxData.find(x => x.polyid == id));
       if (options.zoom) handler.map.focusShape(box, options.isUpdated);
       handler.style.setActive(box);
@@ -3193,6 +3165,7 @@ app.ready = async () => {
           });
           return false;
         }
+        handler.submitText();
         if (lineDataInfo.isDirty()) {
           handler.notifyUser({
             title: notificationTypes.error.commitLineError.title,
@@ -3283,7 +3256,7 @@ app.ready = async () => {
         $regenerateTextSuggestionForSelectedBoxButton.addClass('disabled double loading');
         suppressLogMessages['recognizing text'] = true;
 
-        if (boxLayer.getLayers().length) {
+        if (documentBoxLayers[currentPageIndex].getLayers().length) {
           const
             results = await handler.ocr.detect([selectedBox]),
             element = boxData.findIndex(el => el.polyid == selectedBox?.polyid);
@@ -3322,7 +3295,7 @@ app.ready = async () => {
         const mapPosition = handler.map.getMapPosition();
         handler.map.fitImage();
 
-        if (boxLayer.getLayers().length) {
+        if (documentBoxLayers[currentPageIndex].getLayers().length) {
           const results = await handler.ocr.detect(boxData);
           // TODO: this does not seem to be needed here
           // await Promise.all(boxData.map(async (box) => {
@@ -3362,7 +3335,6 @@ app.ready = async () => {
         handler.update.progressBar({ reset: true });
         handler.set.loadingState({ buttons: true, main: true });
         handler.map.fitImage();
-        boxLayer.clearLayers();
         documentBoxLayers[currentPageIndex].clearLayers();
         boxData = [];
         try {
@@ -3392,7 +3364,6 @@ app.ready = async () => {
     },
     ocr: {
       insertSuggestions: async (includeSuggestions, textLines) => {
-        boxLayer.clearLayers();
         documentBoxLayers[currentPageIndex].clearLayers();
         boxData = [];
         for (const line of textLines) {
@@ -3412,19 +3383,18 @@ app.ready = async () => {
           rectangle.on('edit', handler.editRectangle);
           rectangle.on('click', handler.selectRectangle);
           handler.style.remove(rectangle);
-          boxLayer.addLayer(rectangle);
           documentBoxLayers[currentPageIndex].addLayer(rectangle);
-          box.polyid = boxLayer.getLayerId(rectangle);
+          box.polyid = documentBoxLayers[currentPageIndex].getLayerId(rectangle);
           boxData.push(box);
           lineDataInfo.setDirty(true);
           boxDataInfo.setDirty(true);
         }
-        map.addLayer(boxLayer);
+        map.addLayer(documentBoxLayers[currentPageIndex]);
       },
       detect: async (boxList = []) => {
         if (!boxList.length) { return await worker.recognize(image._image, { pdf: true }); }
         for (const box of boxList) {
-          const layer = boxLayer.getLayer(box.polyid);
+          const layer = documentBoxLayers[currentPageIndex].getLayer(box.polyid);
           handler.map.disableEditBox(layer);
           handler.style.setProcessing(layer);
           const message = {
@@ -3441,7 +3411,6 @@ app.ready = async () => {
               height: box.y2 - box.y1,
             },
             result = await worker.recognize(image._image, { rectangle });
-          // boxLayer.addLayer(rectangle);
           box.text = result.data.text.replace(/(\r\n|\n|\r)/gm, '');
           box.isModelGeneratedText = true;
           box.modelConfidenceScore = result.data.confidence;

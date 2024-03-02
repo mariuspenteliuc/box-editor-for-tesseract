@@ -1,7 +1,7 @@
 {
 	"name": "RTS to Latin",
-	"version": "1.9.0",
-	"updated": "2024-01-29",
+	"version": "1.9.1",
+	"updated": "2024-03-02",
 	"description": "Transliteration of Romanian Transitional Script text to Latin alphabet",
 	"author": "mariuspenteliuc",
 	"repository": {
