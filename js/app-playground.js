@@ -150,7 +150,7 @@ app.ready = async function () {
       appVersion: null,
       interface: {
         appearance: 'match-device',
-        imageView: 'medium',
+        imageView: 500,
         displayText: 'transliteration',
       },
       behavior: {

@@ -119,6 +119,7 @@ a:first-of-type {
   width: 100%;
   max-width: 100%;
   resize: none;
+  padding: 2rem;
 }
 
 .guideMessage .dimmer {
@@ -534,6 +535,9 @@ div.ui.blue.empty.circular.label.text-highlighter {
   /* background: #65656533; */
   /* mix-blend-mode: exclusion; */
 }
+.dark-theme #text-output::selection {
+   background: rgba(255, 255, 255, .75);
+ }
 
 /* getko brosers */
 .dark-theme #previewText::-moz-selection,
@@ -542,6 +546,10 @@ div.ui.blue.empty.circular.label.text-highlighter {
   background: rgba(255, 255, 255, .5);
   /* background: #65656533; */
 }
+
+.dark-theme #text-output::-moz-selection {
+   background: rgba(255, 255, 255, .75);
+ }
 
 .dark-theme body .ui:not(.dimmer)::-webkit-scrollbar-track {
   background: rgba(255, 255, 255, 0.1);
@@ -3436,6 +3444,14 @@ div.ui.blue.empty.circular.label.text-highlighter {
 .dark-theme .ui.primary.segment {
   background: #1b1c1d;
   color: rgba(255, 255, 255, 0.9);
+}
+
+.dark-theme .maprow.ui.segment {
+  background: rgba(255, 255, 255, .15);
+}
+
+.dark-theme #text-output.ui.text-output.segment {
+  background: rgba(255, 255, 255, .15);
 }
 
 .dark-theme .ui.segment .segment {
@@ -7712,12 +7728,21 @@ div.ui.blue.empty.circular.label.text-highlighter {
     /* mix-blend-mode: exclusion; */
   }
 
+  .match-device #text-output::selection {
+    background: rgba(255, 255, 255, .75);
+
+  }
+
   /* getko brosers */
   .match-device #previewText::-moz-selection,
   .match-device #formtxt::-moz-selection {
     color: transparent;
     background: rgba(255, 255, 255, .25);
     /* background: #65656533; */
+  }
+
+  .match-device #text-output::-moz-selection {
+    background: rgba(255, 255, 255, .75);
   }
 
   .match-device body .ui:not(.dimmer)::-webkit-scrollbar-track {
@@ -10612,6 +10637,14 @@ div.ui.blue.empty.circular.label.text-highlighter {
   .match-device .ui.primary.segment {
     background: #1b1c1d;
     color: rgba(255, 255, 255, 0.9);
+  }
+
+  .match-device .maprow.ui.segment {
+    background: rgba(255, 255, 255, .15);
+  }
+
+  .match-device #text-output.ui.text-output.segment {
+    background: rgba(255, 255, 255, .15);
   }
 
   .match-device .ui.segment .segment {
